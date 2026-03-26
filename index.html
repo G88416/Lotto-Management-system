@@ -166,6 +166,27 @@
         .grid-2      { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .grid-3      { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
         @media (max-width: 640px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+        .draw-result-card { background: var(--surface); border-radius: 18px; border: 1px solid var(--border); padding: 18px 20px; margin-bottom: 12px; box-shadow: 0 4px 14px var(--shadow); }
+        .draw-result-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+        .draw-result-date { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+        .live-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 700; color: #fff; background: #16a34a; border-radius: 20px; padding: 3px 10px; }
+        .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: pulse 1.2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+        .pattern-card { background: var(--surface); border-radius: 18px; border: 1px solid var(--border); padding: 22px; margin-bottom: 16px; box-shadow: 0 4px 16px var(--shadow); }
+        .pattern-card-title { font-size: 1rem; font-weight: 800; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .pattern-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pattern-bar-label { width: 110px; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); flex-shrink: 0; text-align: right; }
+        .pattern-bar-wrap { flex: 1; background: var(--surface2); border-radius: 100px; height: 12px; overflow: hidden; }
+        .pattern-bar-fill { height: 100%; border-radius: 100px; background: var(--accent-grad); transition: width 0.5s; }
+        .pattern-bar-val { font-size: 0.82rem; font-weight: 700; color: var(--purple); min-width: 32px; text-align: right; }
+        .suggestion-balls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; align-items: center; }
+        .suggest-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+        .suggest-tag.hot  { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .suggest-tag.cold { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+        .suggest-tag.pair { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .pair-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .pair-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 5px 12px; font-size: 0.8rem; font-weight: 700; color: var(--purple); }
+        .no-draws-hint { text-align:center; padding: 32px 20px; color: var(--text-muted); }
     </style>
 </head>
 <body>
@@ -194,6 +215,8 @@
         <button class="tab-btn" onclick="switchTab('seed')">&#127807; Seed Engine</button>
         <button class="tab-btn" onclick="switchTab('budget')">&#128176; Budget</button>
         <button class="tab-btn" onclick="switchTab('schedule')">&#128197; Draws</button>
+        <button class="tab-btn" onclick="switchTab('livedraws')">&#128995; Live Draws</button>
+        <button class="tab-btn" onclick="switchTab('patterns')">&#129302; Patterns</button>
     </nav>
 
     <!-- QUICK PICK -->
@@ -407,6 +430,65 @@
             <div id="custom-draws-list"></div>
         </div>
     </section>
+
+    <!-- LIVE DRAWS -->
+    <section id="sec-livedraws" class="section">
+        <div class="section-title">&#128995; Live Recent Draws</div>
+        <div class="card" style="margin-bottom:14px;">
+            <div class="flex justify-between items-center flex-wrap gap-10">
+                <span class="text-muted text-sm" id="live-draws-last-updated">Auto-refreshes every 60 seconds</span>
+                <div class="flex gap-10 flex-wrap">
+                    <select id="live-draws-format-filter" onchange="renderLiveDraws()" style="width:auto;min-width:185px;">
+                        <option value="all">All Formats</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="refreshLiveDraws()">&#128257; Refresh</button>
+                </div>
+            </div>
+        </div>
+        <div id="live-draws-list"></div>
+        <div class="card">
+            <div class="section-title" style="font-size:1.15rem;margin-bottom:16px;">&#10133; Add Draw Result</div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Lottery Format</label>
+                    <select id="add-draw-format"></select>
+                </div>
+                <div class="form-group">
+                    <label>Draw Date</label>
+                    <input type="date" id="add-draw-date" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Winning Numbers (space or comma separated)</label>
+                <input type="text" id="add-draw-numbers" placeholder="e.g. 5 12 23 34 41 49" />
+            </div>
+            <div class="form-group" id="add-draw-bonus-group">
+                <label id="add-draw-bonus-label">Bonus Ball</label>
+                <input type="text" id="add-draw-bonus" placeholder="e.g. 7" />
+            </div>
+            <button class="btn btn-primary" onclick="addDrawResult()">&#10133; Add Result</button>
+        </div>
+    </section>
+
+    <!-- PATTERN DETECTOR -->
+    <section id="sec-patterns" class="section">
+        <div class="section-title">&#129302; Pattern Detector</div>
+        <div class="card">
+            <div class="flex justify-between items-center flex-wrap gap-10 mb-14">
+                <div class="form-group" style="margin:0;flex:1;min-width:200px;">
+                    <label>Analyse Lottery Format</label>
+                    <select id="pattern-format" onchange="runPatternDetector()"></select>
+                </div>
+                <button class="btn btn-primary" onclick="runPatternDetector()" style="margin-top:24px;">&#128200; Analyse Patterns</button>
+            </div>
+            <div class="algo-info">
+                <strong>Algorithm:</strong> Analyses the last 15 recorded draw results for the chosen lottery. Detects hot/cold numbers, even/odd balance, number range distribution, pair frequency, and sum-range trends to generate data-driven suggestions.
+            </div>
+        </div>
+        <div id="pattern-results">
+            <p class="text-muted text-center mt-14">Select a lottery and add at least 3 draw results on the <strong>Live Draws</strong> tab to analyse patterns.</p>
+        </div>
+    </section>
 </div>
 
 <!-- SAVE TICKET MODAL -->
@@ -428,13 +510,16 @@
 'use strict';
 
 const FORMATS = [
-    { id:'sa-lotto',      name:'SA Lotto',       flag:'\u{1F1FF}\u{1F1E6}', mainCount:6, mainMax:52, bonusCount:1, bonusMax:52, bonusLabel:'Bonus Ball',   bonusColor:'ball-bonus', ticketPrice:5,   currency:'R',  jackpot:'R 5M+',    drawDays:[3,6],     drawTime:'21:00' },
-    { id:'sa-powerball',  name:'SA PowerBall',   flag:'\u{1F1FF}\u{1F1E6}', mainCount:5, mainMax:50, bonusCount:1, bonusMax:20, bonusLabel:'PowerBall',    bonusColor:'ball-power', ticketPrice:5,   currency:'R',  jackpot:'R 20M+',   drawDays:[2,5],     drawTime:'21:00' },
-    { id:'sa-daily',      name:'SA Daily Lotto', flag:'\u{1F1FF}\u{1F1E6}', mainCount:5, mainMax:36, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:3,   currency:'R',  jackpot:'R 100K+',  drawDays:[0,1,2,3,4,5,6], drawTime:'21:00' },
-    { id:'us-powerball',  name:'US Powerball',   flag:'\u{1F1FA}\u{1F1F8}', mainCount:5, mainMax:69, bonusCount:1, bonusMax:26, bonusLabel:'Powerball',    bonusColor:'ball-power', ticketPrice:2,   currency:'$',  jackpot:'$100M+',   drawDays:[1,3,6],   drawTime:'22:59' },
-    { id:'mega-millions', name:'Mega Millions',  flag:'\u{1F1FA}\u{1F1F8}', mainCount:5, mainMax:70, bonusCount:1, bonusMax:25, bonusLabel:'Mega Ball',    bonusColor:'ball-lucky', ticketPrice:2,   currency:'$',  jackpot:'$200M+',   drawDays:[2,5],     drawTime:'23:00' },
-    { id:'euro-millions', name:'EuroMillions',   flag:'\u{1F1EA}\u{1F1FA}', mainCount:5, mainMax:50, bonusCount:2, bonusMax:12, bonusLabel:'Lucky Stars',  bonusColor:'ball-lucky', ticketPrice:2.5, currency:'\u20AC', jackpot:'\u20AC17M+', drawDays:[2,5],  drawTime:'21:00' },
-    { id:'uk-lotto',      name:'UK Lotto',       flag:'\u{1F1EC}\u{1F1E7}', mainCount:6, mainMax:59, bonusCount:1, bonusMax:59, bonusLabel:'Bonus Ball',   bonusColor:'ball-bonus', ticketPrice:2,   currency:'\u00A3', jackpot:'\u00A34M+', drawDays:[3,6],  drawTime:'20:30' }
+    { id:'sa-lotto',      name:'SA Lotto',            flag:'\u{1F1FF}\u{1F1E6}', mainCount:6, mainMax:52, bonusCount:1, bonusMax:52, bonusLabel:'Bonus Ball',   bonusColor:'ball-bonus', ticketPrice:5,   currency:'R',       jackpot:'R 5M+',      drawDays:[3,6],         drawTime:'21:00' },
+    { id:'sa-powerball',  name:'SA PowerBall',        flag:'\u{1F1FF}\u{1F1E6}', mainCount:5, mainMax:50, bonusCount:1, bonusMax:20, bonusLabel:'PowerBall',    bonusColor:'ball-power', ticketPrice:5,   currency:'R',       jackpot:'R 20M+',     drawDays:[2,5],         drawTime:'21:00' },
+    { id:'sa-daily',      name:'SA Daily Lotto',      flag:'\u{1F1FF}\u{1F1E6}', mainCount:5, mainMax:36, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:3,   currency:'R',       jackpot:'R 100K+',    drawDays:[0,1,2,3,4,5,6], drawTime:'21:00' },
+    { id:'us-powerball',  name:'US Powerball',        flag:'\u{1F1FA}\u{1F1F8}', mainCount:5, mainMax:69, bonusCount:1, bonusMax:26, bonusLabel:'Powerball',    bonusColor:'ball-power', ticketPrice:2,   currency:'$',       jackpot:'$100M+',     drawDays:[1,3,6],       drawTime:'22:59' },
+    { id:'mega-millions', name:'Mega Millions',       flag:'\u{1F1FA}\u{1F1F8}', mainCount:5, mainMax:70, bonusCount:1, bonusMax:25, bonusLabel:'Mega Ball',    bonusColor:'ball-lucky', ticketPrice:2,   currency:'$',       jackpot:'$200M+',     drawDays:[2,5],         drawTime:'23:00' },
+    { id:'euro-millions', name:'EuroMillions',        flag:'\u{1F1EA}\u{1F1FA}', mainCount:5, mainMax:50, bonusCount:2, bonusMax:12, bonusLabel:'Lucky Stars',  bonusColor:'ball-lucky', ticketPrice:2.5, currency:'\u20AC',  jackpot:'\u20AC17M+', drawDays:[2,5],         drawTime:'21:00' },
+    { id:'uk-lotto',      name:'UK Lotto',            flag:'\u{1F1EC}\u{1F1E7}', mainCount:6, mainMax:59, bonusCount:1, bonusMax:59, bonusLabel:'Bonus Ball',   bonusColor:'ball-bonus', ticketPrice:2,   currency:'\u00A3',  jackpot:'\u00A34M+',  drawDays:[3,6],         drawTime:'20:30' },
+    { id:'uk-49s',        name:'UK 49s',              flag:'\u{1F1EC}\u{1F1E7}', mainCount:6, mainMax:49, bonusCount:1, bonusMax:49, bonusLabel:'Booster Ball', bonusColor:'ball-bonus', ticketPrice:1,   currency:'\u00A3',  jackpot:'\u00A3100K+',drawDays:[1,2,3,4,5,6], drawTime:'17:49' },
+    { id:'uk-39s',        name:'UK 39s',              flag:'\u{1F1EC}\u{1F1E7}', mainCount:5, mainMax:39, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:1,   currency:'\u00A3',  jackpot:'\u00A350K+', drawDays:[1,3,5],       drawTime:'18:30' },
+    { id:'lt-jega',       name:'Lithuania Jega 6/30', flag:'\u{1F1F1}\u{1F1F9}', mainCount:6, mainMax:30, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:1,   currency:'\u20AC',  jackpot:'\u20AC500K+',drawDays:[3,6],         drawTime:'20:00' }
 ];
 
 let state = {
@@ -448,6 +533,7 @@ let state = {
     budget:               { limit: 0, currency: 'R' },
     stats:                {},
     customDraws:          [],
+    recentDraws:          [],
     pendingSaveTicket:    null,
     manualPicked:         [],
     manualBonusPicked:    [],
@@ -459,7 +545,7 @@ function persist() {
         localStorage.setItem('lotto_state', JSON.stringify({
             tickets: state.tickets, budget: state.budget, stats: state.stats,
             customDraws: state.customDraws, reverseHistory: state.reverseHistory,
-            seedHistory: state.seedHistory
+            seedHistory: state.seedHistory, recentDraws: state.recentDraws
         }));
     } catch(e) {}
 }
@@ -473,12 +559,13 @@ function loadPersisted() {
         state.budget         = d.budget         || { limit:0, currency:'R' };
         state.stats          = d.stats          || {};
         state.customDraws    = d.customDraws    || [];
+        state.recentDraws    = d.recentDraws    || [];
         state.reverseHistory = d.reverseHistory || [];
         state.seedHistory    = d.seedHistory    || [];
     } catch(e) {}
 }
 
-var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule'];
+var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns'];
 
 function switchTab(key) {
     TAB_KEYS.forEach(function(k, i) {
@@ -487,10 +574,12 @@ function switchTab(key) {
         if (sec) sec.classList.toggle('active', k === key);
         if (btn) btn.classList.toggle('active', k === key);
     });
-    if (key === 'tickets')  renderTickets();
-    if (key === 'stats')    renderHeatmap();
-    if (key === 'budget')   renderBudget();
-    if (key === 'schedule') renderSchedule();
+    if (key === 'tickets')   renderTickets();
+    if (key === 'stats')     renderHeatmap();
+    if (key === 'budget')    renderBudget();
+    if (key === 'schedule')  renderSchedule();
+    if (key === 'livedraws') renderLiveDraws();
+    if (key === 'patterns')  runPatternDetector();
 }
 
 function switchSeedSub(idx) {
@@ -513,11 +602,11 @@ function buildFormatGrids() {
                 '<div class="jackpot">' + f.jackpot + '</div></div>';
         }).join('');
     });
-    ['reverse-format','seed-lotto-format'].forEach(function(id) {
+    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = FORMATS.map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
-    ['tkt-filter-format','stats-format-filter'].forEach(function(id) {
+    ['tkt-filter-format','stats-format-filter','live-draws-format-filter'].forEach(function(id) {
         var el = document.getElementById(id);
         if (!el) return;
         el.innerHTML = '<option value="all">All Formats</option>' + FORMATS.map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
@@ -1071,12 +1160,310 @@ function updateHeader() {
     document.getElementById('hdr-budget-val').textContent  = cur + spent.toFixed(0);
 }
 
+/* ============================================================
+   LIVE RECENT DRAWS
+   ============================================================ */
+
+function addDrawResult() {
+    var fmtId  = document.getElementById('add-draw-format').value;
+    var date   = document.getElementById('add-draw-date').value;
+    var numStr = document.getElementById('add-draw-numbers').value.trim();
+    var bonStr = document.getElementById('add-draw-bonus').value.trim();
+    if (!fmtId || !date || !numStr) { showToast('Fill in format, date and numbers', 'error'); return; }
+    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    if (!fmt) return;
+    var nums = numStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n >= 1 && n <= fmt.mainMax; });
+    var uniqueNums = Array.from(new Set(nums));
+    if (uniqueNums.length !== fmt.mainCount) { showToast('Enter exactly ' + fmt.mainCount + ' unique numbers (1\u2013' + fmt.mainMax + ')', 'error'); return; }
+    nums = uniqueNums;
+    var bonus = [];
+    if (fmt.bonusCount > 0) {
+        var bonusRaw = bonStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n >= 1 && n <= fmt.bonusMax; });
+        bonus = Array.from(new Set(bonusRaw));
+        if (bonus.length !== fmt.bonusCount) { showToast('Enter exactly ' + fmt.bonusCount + ' unique bonus number(s) (1\u2013' + fmt.bonusMax + ')', 'error'); return; }
+    }
+    state.recentDraws.unshift({ id: String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36), formatId: fmtId, date: date, numbers: nums, bonus: bonus });
+    if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
+    persist();
+    document.getElementById('add-draw-numbers').value = '';
+    document.getElementById('add-draw-bonus').value   = '';
+    renderLiveDraws();
+    showToast('Draw result added!', 'success');
+}
+
+function renderLiveDraws() {
+    var filter  = document.getElementById('live-draws-format-filter');
+    var fmtId   = filter ? filter.value : 'all';
+    var draws   = fmtId === 'all' ? state.recentDraws : state.recentDraws.filter(function(d) { return d.formatId === fmtId; });
+    var list    = document.getElementById('live-draws-list');
+    var upd     = document.getElementById('live-draws-last-updated');
+    if (upd) upd.textContent = 'Last updated: ' + new Date().toLocaleTimeString() + ' \u2022 Auto-refreshes every 60s';
+    if (!draws.length) {
+        list.innerHTML = '<div class="no-draws-hint"><div style="font-size:2.5rem;margin-bottom:10px;">&#128200;</div><div class="fw-700">No draw results recorded yet</div><div class="text-sm" style="margin-top:6px;">Add results using the form below, or pick numbers to auto-record them.</div></div>';
+        return;
+    }
+    var grouped = {};
+    draws.forEach(function(d) {
+        if (!grouped[d.formatId]) grouped[d.formatId] = [];
+        grouped[d.formatId].push(d);
+    });
+    list.innerHTML = Object.keys(grouped).map(function(fid) {
+        var fmt = FORMATS.find(function(f) { return f.id === fid; });
+        var label = fmt ? fmt.flag + ' ' + fmt.name : fid;
+        var items = grouped[fid];
+        return '<div class="card" style="margin-bottom:18px;">' +
+            '<div class="flex justify-between items-center flex-wrap gap-10 mb-14">' +
+            '<span class="fw-800">' + label + '</span>' +
+            '<span class="live-badge"><span class="live-dot"></span>LIVE</span></div>' +
+            items.map(function(d) {
+                var f = fmt || {};
+                var dateLabel = d.date ? new Date(d.date + 'T00:00:00').toLocaleDateString(undefined, {weekday:'short',day:'numeric',month:'short',year:'numeric'}) : '';
+                return '<div class="draw-result-card"><div class="draw-result-header">' +
+                    '<span class="ticket-format-badge">' + (fmt ? fmt.flag + ' ' + fmt.name : fid) + '</span>' +
+                    '<span class="draw-result-date">&#128197; ' + dateLabel + '</span>' +
+                    '<button class="btn btn-danger btn-sm" onclick="deleteDrawResult(' + JSON.stringify(d.id) + ')">&#128465;&#65039;</button></div>' +
+                    '<div class="balls-row">' +
+                    d.numbers.map(function(n) { return '<span class="ball ball-main ball-sm">' + n + '</span>'; }).join('') +
+                    (d.bonus && d.bonus.length ? '<span class="ball-separator">+</span>' + d.bonus.map(function(n) { return '<span class="ball ' + (f.bonusColor || 'ball-bonus') + ' ball-sm">' + n + '</span>'; }).join('') : '') +
+                    '</div></div>';
+            }).join('') + '</div>';
+    }).join('');
+}
+
+function deleteDrawResult(id) {
+    state.recentDraws = state.recentDraws.filter(function(d) { return d.id !== id; });
+    persist();
+    renderLiveDraws();
+}
+
+function refreshLiveDraws() {
+    renderLiveDraws();
+    showToast('Draw results refreshed!', 'info');
+}
+
+/* ============================================================
+   PATTERN DETECTOR
+   ============================================================ */
+
+var MIN_DRAWS_FOR_ANALYSIS = 3;
+
+function runPatternDetector() {
+    var fmtEl = document.getElementById('pattern-format');
+    if (!fmtEl) return;
+    var fmtId = fmtEl.value;
+    var fmt   = FORMATS.find(function(f) { return f.id === fmtId; });
+    if (!fmt)  return;
+    var draws = state.recentDraws.filter(function(d) { return d.formatId === fmtId; }).slice(0, 15);
+    var container = document.getElementById('pattern-results');
+
+    if (draws.length < MIN_DRAWS_FOR_ANALYSIS) {
+        container.innerHTML = '<div class="no-draws-hint"><div style="font-size:2.5rem;margin-bottom:10px;">&#128202;</div><div class="fw-700">Not enough data</div><div class="text-sm" style="margin-top:6px;">Add at least ' + MIN_DRAWS_FOR_ANALYSIS + ' draw results for <strong>' + fmt.flag + ' ' + fmt.name + '</strong> on the <strong>Live Draws</strong> tab.</div></div>';
+        return;
+    }
+
+    /* ---- collect all numbers ---- */
+    var allNums = [];
+    draws.forEach(function(d) { d.numbers.forEach(function(n) { allNums.push(n); }); });
+
+    /* ---- frequency map ---- */
+    var freq = {};
+    for (var i = 1; i <= fmt.mainMax; i++) freq[i] = 0;
+    allNums.forEach(function(n) { if (freq[n] !== undefined) freq[n]++; });
+
+    /* ---- sort by frequency ---- */
+    var sorted = Object.keys(freq).map(Number).sort(function(a,b) { return freq[b] - freq[a]; });
+    var hotNums  = sorted.slice(0, 8);
+    var coldNums = sorted.slice(-8).reverse();
+    var maxFreq  = freq[sorted[0]] || 1;
+
+    /* ---- even / odd ---- */
+    var evenCount = 0, oddCount = 0;
+    allNums.forEach(function(n) { if (n % 2 === 0) evenCount++; else oddCount++; });
+    var totalNums = allNums.length || 1;
+
+    /* ---- range bands (low/mid/high thirds) ---- */
+    var low = Math.floor(fmt.mainMax / 3);
+    var mid = Math.floor(fmt.mainMax * 2 / 3);
+    var lowCount = 0, midCount = 0, highCount = 0;
+    allNums.forEach(function(n) {
+        if (n <= low) lowCount++;
+        else if (n <= mid) midCount++;
+        else highCount++;
+    });
+
+    /* ---- sum distribution ---- */
+    var sums = draws.map(function(d) { return d.numbers.reduce(function(s,n){ return s+n; }, 0); });
+    var avgSum = Math.round(sums.reduce(function(s,n){ return s+n; }, 0) / sums.length);
+    var minSum = Math.min.apply(null, sums);
+    var maxSum = Math.max.apply(null, sums);
+
+    /* ---- pair frequency ---- */
+    var pairs = {};
+    draws.forEach(function(d) {
+        var ns = d.numbers.slice().sort(function(a,b){ return a-b; });
+        for (var a = 0; a < ns.length; a++) {
+            for (var b = a+1; b < ns.length; b++) {
+                var key = ns[a] + '-' + ns[b];
+                pairs[key] = (pairs[key] || 0) + 1;
+            }
+        }
+    });
+    var topPairs = Object.keys(pairs).filter(function(k){ return pairs[k] >= 2; })
+        .sort(function(a,b){ return pairs[b] - pairs[a]; }).slice(0, 10);
+
+    /* ---- smart suggestion ---- */
+    var suggestion = buildSuggestion(fmt, freq, sorted, hotNums, coldNums, evenCount, oddCount, totalNums, lowCount, midCount, highCount);
+
+    /* ---- render ---- */
+    var dataNote = '<div class="text-sm text-muted" style="margin-bottom:14px;">&#128202; Analysed <strong>' + draws.length + '</strong> draw' + (draws.length > 1 ? 's' : '') + ' (last ' + draws.length + ' of up to 15) for ' + fmt.flag + ' ' + fmt.name + '</div>';
+
+    var hotHtml = hotNums.map(function(n) {
+        var pct = Math.round((freq[n] / maxFreq) * 100);
+        return '<div class="pattern-bar-row"><span class="pattern-bar-label">' + n + '</span><div class="pattern-bar-wrap"><div class="pattern-bar-fill" style="width:' + pct + '%;background:linear-gradient(90deg,#f59e0b,#ef4444);"></div></div><span class="pattern-bar-val">' + freq[n] + 'x</span></div>';
+    }).join('');
+
+    var coldHtml = coldNums.map(function(n) {
+        var pct = Math.round((freq[n] / maxFreq) * 100);
+        return '<div class="pattern-bar-row"><span class="pattern-bar-label">' + n + '</span><div class="pattern-bar-wrap"><div class="pattern-bar-fill" style="width:' + (pct||2) + '%;background:linear-gradient(90deg,#06b6d4,#6366f1);"></div></div><span class="pattern-bar-val">' + freq[n] + 'x</span></div>';
+    }).join('');
+
+    var evenPct = Math.round(evenCount / totalNums * 100);
+    var oddPct  = 100 - evenPct;
+    var lowPct  = Math.round(lowCount  / totalNums * 100);
+    var midPct  = Math.round(midCount  / totalNums * 100);
+    var highPct = 100 - lowPct - midPct;
+
+    var pairsHtml = topPairs.length
+        ? '<div class="pair-grid">' + topPairs.map(function(k){ return '<span class="pair-chip">' + k + ' &#215;' + pairs[k] + '</span>'; }).join('') + '</div>'
+        : '<p class="text-muted text-sm">No repeated pairs found yet (need more draws).</p>';
+
+    var suggBalls = suggestion.main.map(function(n) { return '<span class="ball ball-main ball-sm">' + n + '</span>'; }).join('');
+    if (suggestion.bonus.length) {
+        suggBalls += '<span class="ball-separator">+</span>' + suggestion.bonus.map(function(n){ return '<span class="ball ' + (fmt.bonusColor||'ball-bonus') + ' ball-sm">' + n + '</span>'; }).join('');
+    }
+
+    container.innerHTML = dataNote +
+        '<div class="card-grid">' +
+        '<div class="pattern-card"><div class="pattern-card-title">&#128293; Hot Numbers (Most Drawn)</div>' + hotHtml + '</div>' +
+        '<div class="pattern-card"><div class="pattern-card-title">&#10052;&#65039; Cold Numbers (Least Drawn)</div>' + coldHtml + '</div>' +
+        '</div>' +
+        '<div class="card-grid">' +
+        '<div class="pattern-card"><div class="pattern-card-title">&#9878;&#65039; Even / Odd Balance</div>' +
+            '<div class="pattern-bar-row"><span class="pattern-bar-label">Even</span><div class="pattern-bar-wrap"><div class="pattern-bar-fill" style="width:' + evenPct + '%;background:linear-gradient(90deg,#8b5cf6,#06b6d4);"></div></div><span class="pattern-bar-val">' + evenPct + '%</span></div>' +
+            '<div class="pattern-bar-row"><span class="pattern-bar-label">Odd</span><div class="pattern-bar-wrap"><div class="pattern-bar-fill" style="width:' + oddPct + '%;background:linear-gradient(90deg,#f59e0b,#ef4444);"></div></div><span class="pattern-bar-val">' + oddPct + '%</span></div>' +
+        '</div>' +
+        '<div class="pattern-card"><div class="pattern-card-title">&#128207; Number Range Distribution</div>' +
+            '<div class="pattern-bar-row"><span class="pattern-bar-label">Low (1\u2013' + low + ')</span><div class="pattern-bar-wrap"><div class="pattern-bar-fill" style="width:' + lowPct + '%;"></div></div><span class="pattern-bar-val">' + lowPct + '%</span></div>' +
+            '<div class="pattern-bar-row"><span class="pattern-bar-label">Mid (' + (low+1) + '\u2013' + mid + ')</span><div class="pattern-bar-wrap"><div class="pattern-bar-fill" style="width:' + midPct + '%;background:linear-gradient(90deg,#f59e0b,#16a34a);"></div></div><span class="pattern-bar-val">' + midPct + '%</span></div>' +
+            '<div class="pattern-bar-row"><span class="pattern-bar-label">High (' + (mid+1) + '\u2013' + fmt.mainMax + ')</span><div class="pattern-bar-wrap"><div class="pattern-bar-fill" style="width:' + highPct + '%;background:linear-gradient(90deg,#16a34a,#06b6d4);"></div></div><span class="pattern-bar-val">' + highPct + '%</span></div>' +
+        '</div>' +
+        '</div>' +
+        '<div class="pattern-card"><div class="pattern-card-title">&#128200; Sum-Range Analysis</div>' +
+            '<div class="flex flex-wrap gap-14" style="margin-top:4px;">' +
+            '<div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-icon">&#8721;</div><div><div class="stat-label">Average Sum</div><div class="stat-value">' + avgSum + '</div></div></div>' +
+            '<div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-icon">&#11015;&#65039;</div><div><div class="stat-label">Min Sum</div><div class="stat-value">' + minSum + '</div></div></div>' +
+            '<div class="stat-card" style="flex:1;min-width:130px;"><div class="stat-icon">&#11014;&#65039;</div><div><div class="stat-label">Max Sum</div><div class="stat-value">' + maxSum + '</div></div></div>' +
+            '</div>' +
+        '</div>' +
+        '<div class="pattern-card"><div class="pattern-card-title">&#128101; Top Recurring Pairs</div>' + pairsHtml + '</div>' +
+        '<div class="pattern-card" style="border:2px solid var(--purple);">' +
+            '<div class="pattern-card-title" style="color:var(--purple);">&#127775; Pattern-Based Suggestion</div>' +
+            '<div class="text-sm text-muted mb-8">Generated from hot-number weighting, even/odd balance, and range distribution of the last ' + draws.length + ' draws.</div>' +
+            '<div class="suggestion-balls">' + suggBalls + '</div>' +
+            '<div class="flex flex-wrap gap-10" style="margin-top:12px;">' +
+            suggestion.tags.map(function(t){ return '<span class="suggest-tag ' + t.cls + '">' + t.icon + ' ' + t.label + '</span>'; }).join('') +
+            '</div>' +
+        '</div>';
+}
+
+function buildSuggestion(fmt, freq, sorted, hotNums, coldNums, evenCount, oddCount, totalNums, lowCount, midCount, highCount) {
+    /* Build a weighted pool blending hot (70%) + mild cold (30%) */
+    var pool = [];
+    sorted.forEach(function(n) {
+        var w = Math.max(1, freq[n]);
+        for (var i = 0; i < w; i++) pool.push(n);
+        pool.push(n); /* adds 1 base weight on top of the w frequency-based entries (w+1 total) */
+    });
+    /* Target even/odd ratio from historical data */
+    var targetEven = Math.round((evenCount / totalNums) * fmt.mainCount);
+    var targetOdd  = fmt.mainCount - targetEven;
+
+    var picked = new Set();
+    var attempts = 0;
+    /* pick even numbers first */
+    var poolEven = pool.filter(function(n){ return n % 2 === 0; });
+    while (picked.size < targetEven && poolEven.length && attempts < 5000) {
+        picked.add(poolEven[Math.floor(Math.random() * poolEven.length)]);
+        attempts++;
+    }
+    /* pick odd numbers */
+    var poolOdd = pool.filter(function(n){ return n % 2 !== 0; });
+    attempts = 0;
+    while (picked.size < fmt.mainCount && poolOdd.length && attempts < 5000) {
+        picked.add(poolOdd[Math.floor(Math.random() * poolOdd.length)]);
+        attempts++;
+    }
+    /* fallback: fill from full pool */
+    attempts = 0;
+    while (picked.size < fmt.mainCount && attempts < 5000) {
+        picked.add(pool[Math.floor(Math.random() * pool.length)]);
+        attempts++;
+    }
+
+    var main = Array.from(picked).sort(function(a,b){ return a-b; });
+
+    /* bonus number(s) */
+    var bonus = [];
+    if (fmt.bonusCount > 0) {
+        var bonusPool = [];
+        for (var b = 1; b <= fmt.bonusMax; b++) {
+            if (!picked.has(b)) bonusPool.push(b);
+        }
+        attempts = 0;
+        while (bonus.length < fmt.bonusCount && bonusPool.length && attempts < 5000) {
+            var bn = bonusPool[Math.floor(Math.random() * bonusPool.length)];
+            if (bonus.indexOf(bn) === -1) bonus.push(bn);
+            attempts++;
+        }
+        bonus.sort(function(a,b){ return a-b; });
+    }
+
+    /* compute tags */
+    var hotOverlap = main.filter(function(n){ return hotNums.indexOf(n) > -1; }).length;
+    var coldOverlap = main.filter(function(n){ return coldNums.indexOf(n) > -1; }).length;
+    var evenMain = main.filter(function(n){ return n%2===0; }).length;
+    var oddMain  = main.length - evenMain;
+    var sumMain  = main.reduce(function(s,n){ return s+n; }, 0);
+    var tags = [
+        { icon:'&#128293;', label: hotOverlap + ' hot numbers', cls:'hot' },
+        { icon:'&#10052;&#65039;', label: coldOverlap + ' cold numbers', cls:'cold' },
+        { icon:'&#9878;&#65039;', label: evenMain + ' even / ' + oddMain + ' odd', cls:'pair' },
+        { icon:'&#8721;', label:'Sum: ' + sumMain, cls:'pair' }
+    ];
+
+    return { main: main, bonus: bonus, tags: tags };
+}
+
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'add-draw-format') {
+        var fmtId = e.target.value;
+        var fmt = FORMATS.find(function(f){ return f.id === fmtId; });
+        var grp = document.getElementById('add-draw-bonus-group');
+        var lbl = document.getElementById('add-draw-bonus-label');
+        if (grp) grp.style.display = fmt && fmt.bonusCount > 0 ? 'block' : 'none';
+        if (lbl && fmt && fmt.bonusCount > 0) lbl.textContent = fmt.bonusLabel + ' (1\u2013' + fmt.bonusMax + ')';
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     loadPersisted();
     buildFormatGrids();
     renderReverseHistory();
     renderSeedHistory();
     updateHeader();
+    /* initialise bonus group for add-draw form */
+    var grp = document.getElementById('add-draw-bonus-group');
+    if (grp) grp.style.display = 'none';
     try {
         var savedTheme = localStorage.getItem('lotto_theme');
         if (savedTheme) {
@@ -1088,6 +1475,10 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(function() {
         if (document.getElementById('sec-schedule').classList.contains('active')) tickCountdowns();
     }, 1000);
+    /* Auto-refresh Live Draws every 60 seconds */
+    setInterval(function() {
+        if (document.getElementById('sec-livedraws').classList.contains('active')) renderLiveDraws();
+    }, 60000);
     document.getElementById('save-modal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
     });
