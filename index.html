@@ -166,6 +166,14 @@
         .grid-2      { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .grid-3      { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
         @media (max-width: 640px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+        .sync-indicator { display:inline-flex; align-items:center; gap:5px; font-size:0.72rem; font-weight:700; padding:6px 12px; border-radius:20px; background:rgba(255,255,255,0.18); color:#fff; cursor:default; white-space:nowrap; }
+        .sync-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; transition:background 0.3s; }
+        .sync-dot.green  { background:#4ade80; box-shadow:0 0 6px #4ade80; }
+        .sync-dot.yellow { background:#facc15; animation:pulse 1s infinite; }
+        .sync-dot.red    { background:#f87171; }
+        .sync-dot.grey   { background:rgba(255,255,255,0.45); }
+        .firebase-setup-banner { background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; padding:14px 20px; border-radius:14px; margin-bottom:20px; display:none; align-items:center; gap:12px; font-weight:600; font-size:0.9rem; flex-wrap:wrap; }
+        .firebase-setup-banner a { color:#fff; text-decoration:underline; }
         .draw-result-card { background: var(--surface); border-radius: 18px; border: 1px solid var(--border); padding: 18px 20px; margin-bottom: 12px; box-shadow: 0 4px 14px var(--shadow); }
         .draw-result-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
         .draw-result-date { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
@@ -188,6 +196,12 @@
         .pair-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 5px 12px; font-size: 0.8rem; font-weight: 700; color: var(--purple); }
         .no-draws-hint { text-align:center; padding: 32px 20px; color: var(--text-muted); }
     </style>
+    <!-- Firebase SDK v10 (compat build – no bundler required) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <!-- Project-specific Firebase credentials (fill in firebase-config.js) -->
+    <script src="firebase-config.js"></script>
 </head>
 <body>
 
@@ -202,11 +216,25 @@
     <div class="header-controls">
         <div class="header-stat"><strong id="hdr-tickets-val">0</strong>Tickets</div>
         <div class="header-stat"><strong id="hdr-budget-val">R0</strong>Spent</div>
+        <span id="sync-status" class="sync-indicator" title="Firebase Sync Status">
+            <span class="sync-dot grey"></span>
+            <span class="sync-label">Offline</span>
+        </span>
         <button class="theme-toggle" onclick="toggleTheme()">&#127769; Dark</button>
     </div>
 </header>
 
 <div class="app-container">
+    <!-- Shown when firebase-config.js has not been filled in -->
+    <div id="firebase-setup-banner" class="firebase-setup-banner">
+        &#9888;&#65039; <strong>Firebase Setup Required:</strong>&nbsp;
+        Edit <code style="background:rgba(0,0,0,0.15);padding:2px 6px;border-radius:4px;">firebase-config.js</code>
+        with your project credentials to enable cloud sync and live draw data.
+        See <a href="https://console.firebase.google.com/" target="_blank" rel="noopener">Firebase Console</a>
+        and the <code style="background:rgba(0,0,0,0.15);padding:2px 6px;border-radius:4px;">README.md</code>
+        for instructions.&nbsp;
+        <a href="#" onclick="document.getElementById('firebase-setup-banner').style.display='none';return false;">Dismiss</a>
+    </div>
     <nav class="tab-nav">
         <button class="tab-btn active" onclick="switchTab('quickpick')">&#127920; Quick Pick</button>
         <button class="tab-btn" onclick="switchTab('manual')">&#9999;&#65039; Manual Pick</button>
@@ -540,6 +568,163 @@ let state = {
     manualBonusPhase:     false
 };
 
+/* ============================================================
+   FIREBASE INTEGRATION
+   Real-time cloud sync using Firestore + Anonymous Auth.
+   The app works fully offline with localStorage; Firebase adds
+   cross-device consistency and live draw data collection.
+   ============================================================ */
+
+var fbDb               = null;
+var fbAuth             = null;
+var fbUserId           = null;
+var fbReady            = false;
+var fbSyncTimer        = null;
+var fbDrawsUnsubscribe = null;
+
+function updateSyncStatus(status) {
+    var el = document.getElementById('sync-status');
+    if (!el) return;
+    var dotEl = el.querySelector('.sync-dot');
+    var txtEl = el.querySelector('.sync-label');
+    var dotClass = { synced:'green', connecting:'yellow', offline:'grey', error:'red' }[status] || 'grey';
+    var label    = { synced:'Synced', connecting:'Syncing\u2026', offline:'Offline', error:'Sync Error' }[status] || status;
+    if (dotEl) dotEl.className = 'sync-dot ' + dotClass;
+    if (txtEl) txtEl.textContent = label;
+}
+
+function initFirebase() {
+    if (typeof firebase === 'undefined') { updateSyncStatus('offline'); return; }
+    var cfg = (typeof FIREBASE_CONFIG !== 'undefined') ? FIREBASE_CONFIG : null;
+    if (!cfg || cfg.apiKey === 'YOUR_API_KEY') {
+        updateSyncStatus('offline');
+        var banner = document.getElementById('firebase-setup-banner');
+        if (banner) banner.style.display = 'flex';
+        return;
+    }
+    try {
+        firebase.initializeApp(cfg);
+        fbAuth = firebase.auth();
+        fbDb   = firebase.firestore();
+        /* Enable offline persistence so the app works without a network.
+           Fails silently in private-browsing mode or if already enabled by
+           another tab; log the reason but continue — online sync still works. */
+        fbDb.enablePersistence({ synchronizeTabs: true }).catch(function(err) {
+            console.info('[Firebase] Offline persistence not available:', err.code);
+        });
+        updateSyncStatus('connecting');
+        fbAuth.signInAnonymously().then(function(cred) {
+            fbUserId = cred.user.uid;
+            fbReady  = true;
+            updateSyncStatus('synced');
+            loadFromFirestore();
+            setupRealtimeListeners();
+        }).catch(function(err) {
+            console.warn('[Firebase] Auth error:', err.message);
+            updateSyncStatus('error');
+        });
+    } catch(err) {
+        console.warn('[Firebase] Init error:', err.message);
+        updateSyncStatus('error');
+    }
+}
+
+/* Debounced write of tickets/budget/stats/customDraws/history to Firestore */
+function syncToFirestore() {
+    if (!fbReady || !fbDb || !fbUserId) return;
+    clearTimeout(fbSyncTimer);
+    updateSyncStatus('connecting');
+    fbSyncTimer = setTimeout(function() {
+        fbDb.collection('users').doc(fbUserId).collection('data').doc('main').set({
+            tickets:        state.tickets,
+            budget:         state.budget,
+            stats:          state.stats,
+            customDraws:    state.customDraws,
+            reverseHistory: state.reverseHistory,
+            seedHistory:    state.seedHistory,
+            updatedAt:      firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function() {
+            updateSyncStatus('synced');
+        }).catch(function(err) {
+            console.warn('[Firebase] Write error:', err.message);
+            updateSyncStatus('error');
+        });
+    }, 1500);
+}
+
+/* One-time load of the main state document from Firestore on sign-in */
+function loadFromFirestore() {
+    if (!fbReady || !fbDb || !fbUserId) return;
+    fbDb.collection('users').doc(fbUserId).collection('data').doc('main').get()
+        .then(function(doc) {
+            if (!doc.exists) return;
+            var d = doc.data();
+            if (Array.isArray(d.tickets))          state.tickets        = d.tickets;
+            if (d.budget && typeof d.budget === 'object') state.budget  = d.budget;
+            if (d.stats  && typeof d.stats  === 'object') state.stats   = d.stats;
+            if (Array.isArray(d.customDraws))      state.customDraws    = d.customDraws;
+            if (Array.isArray(d.reverseHistory))   state.reverseHistory = d.reverseHistory;
+            if (Array.isArray(d.seedHistory))      state.seedHistory    = d.seedHistory;
+            /* Back-fill localStorage with the freshly loaded cloud state */
+            try {
+                localStorage.setItem('lotto_state', JSON.stringify({
+                    tickets:state.tickets, budget:state.budget, stats:state.stats,
+                    customDraws:state.customDraws, reverseHistory:state.reverseHistory,
+                    seedHistory:state.seedHistory, recentDraws:state.recentDraws
+                }));
+            } catch(e) {}
+            updateHeader();
+            renderReverseHistory();
+            renderSeedHistory();
+            if (document.getElementById('sec-budget').classList.contains('active'))  renderBudget();
+            if (document.getElementById('sec-tickets').classList.contains('active')) renderTickets();
+            if (document.getElementById('sec-stats').classList.contains('active'))   renderHeatmap();
+        })
+        .catch(function(err) {
+            console.warn('[Firebase] Load error:', err.message);
+        });
+}
+
+/* Real-time listener for the draws subcollection — drives the Live Draws tab */
+function setupRealtimeListeners() {
+    if (!fbReady || !fbDb || !fbUserId) return;
+    if (fbDrawsUnsubscribe) { fbDrawsUnsubscribe(); fbDrawsUnsubscribe = null; }
+    fbDrawsUnsubscribe = fbDb
+        .collection('users').doc(fbUserId).collection('draws')
+        .orderBy('addedAt', 'desc')
+        .limit(200)
+        .onSnapshot(function(snapshot) {
+            var draws = [];
+            snapshot.forEach(function(doc) { draws.push(doc.data()); });
+            state.recentDraws = draws;
+            try {
+                localStorage.setItem('lotto_state', JSON.stringify({
+                    tickets:state.tickets, budget:state.budget, stats:state.stats,
+                    customDraws:state.customDraws, reverseHistory:state.reverseHistory,
+                    seedHistory:state.seedHistory, recentDraws:state.recentDraws
+                }));
+            } catch(e) {}
+            if (document.getElementById('sec-livedraws').classList.contains('active')) renderLiveDraws();
+            if (document.getElementById('sec-patterns').classList.contains('active'))  runPatternDetector();
+        }, function(err) {
+            console.warn('[Firebase] Draws listener error:', err.message);
+        });
+}
+
+/* Write a single draw document to Firestore */
+function fbAddDraw(draw) {
+    if (!fbReady || !fbDb || !fbUserId) return;
+    fbDb.collection('users').doc(fbUserId).collection('draws').doc(draw.id).set(draw)
+        .catch(function(err) { console.warn('[Firebase] Add draw error:', err.message); });
+}
+
+/* Delete a single draw document from Firestore */
+function fbDeleteDraw(id) {
+    if (!fbReady || !fbDb || !fbUserId) return;
+    fbDb.collection('users').doc(fbUserId).collection('draws').doc(String(id)).delete()
+        .catch(function(err) { console.warn('[Firebase] Delete draw error:', err.message); });
+}
+
 function persist() {
     try {
         localStorage.setItem('lotto_state', JSON.stringify({
@@ -548,6 +733,7 @@ function persist() {
             seedHistory: state.seedHistory, recentDraws: state.recentDraws
         }));
     } catch(e) {}
+    syncToFirestore();
 }
 
 function loadPersisted() {
@@ -1182,8 +1368,15 @@ function addDrawResult() {
         bonus = Array.from(new Set(bonusRaw));
         if (bonus.length !== fmt.bonusCount) { showToast('Enter exactly ' + fmt.bonusCount + ' unique bonus number(s) (1\u2013' + fmt.bonusMax + ')', 'error'); return; }
     }
-    state.recentDraws.unshift({ id: String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36), formatId: fmtId, date: date, numbers: nums, bonus: bonus });
+    var newDraw = {
+        id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID()
+            : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36),
+        formatId: fmtId, date: date, numbers: nums, bonus: bonus,
+        addedAt: new Date().toISOString()
+    };
+    state.recentDraws.unshift(newDraw);
     if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
+    fbAddDraw(newDraw);
     persist();
     document.getElementById('add-draw-numbers').value = '';
     document.getElementById('add-draw-bonus').value   = '';
@@ -1232,6 +1425,7 @@ function renderLiveDraws() {
 
 function deleteDrawResult(id) {
     state.recentDraws = state.recentDraws.filter(function(d) { return d.id !== id; });
+    fbDeleteDraw(id);
     persist();
     renderLiveDraws();
 }
@@ -1482,6 +1676,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('save-modal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
     });
+    /* Initialise Firebase sync after the rest of the app is ready */
+    initFirebase();
 });
 </script>
 </body>
