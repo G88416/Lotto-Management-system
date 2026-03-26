@@ -541,6 +541,8 @@ function cryptoRandom(max) {
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
         var arr = new Uint32Array(1);
         var val;
+        // Rejection sampling: discard values in the last partial bucket of size
+        // (2^32 mod max) to avoid modulo bias and ensure uniform distribution.
         do { crypto.getRandomValues(arr); val = arr[0] % max; } while (arr[0] - val + max > 0xffffffff);
         return val + 1;
     }
@@ -548,14 +550,20 @@ function cryptoRandom(max) {
 }
 
 function lcgRandom(seedRef, max) {
+    // Standard POSIX LCG constants: multiplier=1103515245, increment=12345, modulus=2^31 (0x7fffffff mask)
     seedRef.val = (seedRef.val * 1103515245 + 12345) & 0x7fffffff;
     return (seedRef.val % max) + 1;
 }
 
+// Maximum iteration guard: worst-case is picking the last number from a near-full
+// range (e.g. 6 from 6), but 10000 attempts is many orders of magnitude more than
+// needed even for the largest supported format (70 main numbers).
+var MAX_GENERATION_ATTEMPTS = 10000;
+
 function generateUniqueNumbers(count, max, method, seedRef) {
     var nums = new Set();
     var attempts = 0;
-    while (nums.size < count && attempts < 10000) {
+    while (nums.size < count && attempts < MAX_GENERATION_ATTEMPTS) {
         var n;
         if (method === 'crypto') n = cryptoRandom(max);
         else if (method === 'seed' && seedRef) n = lcgRandom(seedRef, max);
@@ -834,10 +842,14 @@ function renderHeatmap() {
     document.getElementById('top-hot').innerHTML  = renderList(sorted.slice(0,10));
     document.getElementById('top-cold').innerHTML = renderList(sorted.slice(-10).reverse());
     var html = '';
+    // Heatmap color gradient: low frequency = purple (#8b5cf6 = rgb(139,92,246))
+    //                         high frequency = orange-red (#ef4444 = rgb(239,68,68))
+    var LO_R = 139, LO_G = 92,  LO_B = 246;
+    var HI_R = 239, HI_G = 68,  HI_B = 68;
     for (var n = 1; n <= max; n++) {
         var count = freq[n] || 0;
         var ratio = count / maxFreq;
-        var r = Math.round(139 + ratio*(239-139)), g = Math.round(92 + ratio*(68-92)), b = Math.round(246 + ratio*(68-246));
+        var r = Math.round(LO_R + ratio*(HI_R-LO_R)), g = Math.round(LO_G + ratio*(HI_G-LO_G)), b = Math.round(LO_B + ratio*(HI_B-LO_B));
         var textColor = ratio > 0.5 ? '#fff' : 'var(--text)';
         html += '<div class="heat-cell" style="background:rgb(' + r + ',' + g + ',' + b + ');color:' + textColor + ';border:1px solid var(--border);" title="Number ' + n + ': drawn ' + count + ' time' + (count!==1?'s':'') + '">' + n + (count > 0 ? '<span class="count-badge">' + count + '</span>' : '') + '</div>';
     }
