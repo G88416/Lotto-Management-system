@@ -69,6 +69,8 @@
         .btn-secondary:hover { border-color: var(--purple); color: var(--purple); }
         .btn-danger { background: #fef2f2; color: var(--red); border: 2px solid #fecaca; }
         .btn-danger:hover { background: #fee2e2; }
+        .btn-warning { background: #fffbeb; color: var(--amber); border: 2px solid #fde68a; }
+        .btn-warning:hover { background: #fef3c7; }
         .btn-success { background: #f0fdf4; color: var(--green); border: 2px solid #bbf7d0; }
         .btn-success:hover { background: #dcfce7; }
         .btn-purple { background: linear-gradient(135deg,#7c3aed,#0891b2); color:#fff; box-shadow:0 6px 18px rgba(124,58,237,0.3); }
@@ -197,6 +199,13 @@
         .pair-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
         .pair-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 5px 12px; font-size: 0.8rem; font-weight: 700; color: var(--purple); }
         .no-draws-hint { text-align:center; padding: 32px 20px; color: var(--text-muted); }
+        .collect-status-box { border-radius: 12px; padding: 12px 16px; font-size: 0.88rem; font-weight: 600; margin-bottom: 16px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); }
+        .collect-status-box.success { background: #f0fdf4; border-color: #86efac; color: var(--green); }
+        .collect-status-box.error   { background: #fef2f2; border-color: #fca5a5; color: var(--red); }
+        .collect-status-box.loading { background: var(--surface2); border-color: var(--purple); color: var(--purple); }
+        [data-theme="dark"] .collect-status-box.success { background: #052e16; border-color: #166534; }
+        [data-theme="dark"] .collect-status-box.error   { background: #450a0a; border-color: #991b1b; }
+        .collect-api-badge { display:inline-block; font-size:0.7rem; font-weight:700; padding:2px 7px; border-radius:20px; background:var(--green); color:#fff; margin-left:6px; vertical-align:middle; }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -483,6 +492,7 @@
                         <option value="all">All Formats</option>
                     </select>
                     <button class="btn btn-primary btn-sm" onclick="refreshLiveDraws()">&#128257; Refresh</button>
+                    <button class="btn btn-secondary btn-sm" onclick="openCollectModal()">&#127758; Collect from Net</button>
                 </div>
             </div>
         </div>
@@ -541,6 +551,61 @@
         <div class="btn-row">
             <button class="btn btn-primary" onclick="confirmSaveTicket()">&#9989; Save</button>
             <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- COLLECT DRAWS MODAL -->
+<div class="modal-backdrop" id="collect-modal">
+    <div class="modal" style="max-width:480px;">
+        <div class="modal-title">&#127758; Collect Draws from Net</div>
+        <div class="form-group">
+            <label>Lottery</label>
+            <select id="collect-format"></select>
+        </div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Number of Draws</label>
+                <select id="collect-count">
+                    <option value="5">5 draws</option>
+                    <option value="10" selected>10 draws</option>
+                    <option value="20">20 draws</option>
+                    <option value="50">50 draws</option>
+                    <option value="100">100 draws</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>From Date</label>
+                <input type="date" id="collect-from-date" />
+            </div>
+        </div>
+        <div id="collect-status" class="collect-status-box" style="display:none;"></div>
+        <div class="btn-row">
+            <button class="btn btn-primary" id="collect-fetch-btn" onclick="startCollectDraws()">&#127758; Fetch Draws</button>
+            <button class="btn btn-secondary" onclick="closeCollectModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT DRAW MODAL -->
+<div class="modal-backdrop" id="edit-draw-modal">
+    <div class="modal" style="max-width:500px;">
+        <div class="modal-title">&#9998; Edit Draw Result</div>
+        <div class="form-group">
+            <label>Draw Date</label>
+            <input type="date" id="edit-draw-date" />
+        </div>
+        <div class="form-group">
+            <label id="edit-draw-numbers-label">Winning Numbers</label>
+            <input type="text" id="edit-draw-numbers" placeholder="e.g. 5 12 23 34 41 49" />
+        </div>
+        <div class="form-group" id="edit-draw-bonus-group">
+            <label id="edit-draw-bonus-label">Bonus Ball</label>
+            <input type="text" id="edit-draw-bonus" placeholder="e.g. 7" />
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-primary" onclick="saveEditDraw()">&#9989; Save Changes</button>
+            <button class="btn btn-secondary" onclick="closeEditDrawModal()">Cancel</button>
         </div>
     </div>
 </div>
@@ -1493,7 +1558,8 @@ function renderLiveDraws() {
                 return '<div class="draw-result-card"><div class="draw-result-header">' +
                     '<span class="ticket-format-badge">' + (fmt ? fmt.flag + ' ' + fmt.name : fid) + '</span>' +
                     '<span class="draw-result-date">&#128197; ' + dateLabel + '</span>' +
-                    '<button class="btn btn-danger btn-sm" onclick="deleteDrawResult(' + JSON.stringify(d.id) + ')">&#128465;&#65039;</button></div>' +
+                    '<button class="btn btn-warning btn-sm" onclick="openEditDrawModal(\'' + d.id + '\')" title="Edit draw">&#9998;</button>' +
+                    '<button class="btn btn-danger btn-sm" onclick="deleteDrawResult(\'' + d.id + '\')">&#128465;&#65039;</button></div>' +
                     '<div class="balls-row">' +
                     d.numbers.map(function(n) { return '<span class="ball ball-main ball-sm">' + n + '</span>'; }).join('') +
                     (d.bonus && d.bonus.length ? '<span class="ball-separator">+</span>' + d.bonus.map(function(n) { return '<span class="ball ' + (f.bonusColor || 'ball-bonus') + ' ball-sm">' + n + '</span>'; }).join('') : '') +
@@ -1509,9 +1575,267 @@ function deleteDrawResult(id) {
     renderLiveDraws();
 }
 
+/* ============================================================
+   EDIT DRAW RESULT
+   ============================================================ */
+
+var _editDrawId = null;
+
+function openEditDrawModal(id) {
+    var draw = state.recentDraws.find(function(d) { return d.id === id; });
+    if (!draw) return;
+    var fmt = FORMATS.find(function(f) { return f.id === draw.formatId; });
+    if (!fmt) return;
+
+    _editDrawId = id;
+
+    document.getElementById('edit-draw-date').value    = draw.date || '';
+    document.getElementById('edit-draw-numbers').value = draw.numbers ? draw.numbers.join(' ') : '';
+    document.getElementById('edit-draw-bonus').value   = draw.bonus  ? draw.bonus.join(' ')   : '';
+
+    /* Update labels and bonus visibility for this format */
+    var numbersLabel = document.getElementById('edit-draw-numbers-label');
+    numbersLabel.textContent = fmt.mainCount + ' Winning Numbers (1\u2013' + fmt.mainMax + ')';
+
+    var bonusGroup = document.getElementById('edit-draw-bonus-group');
+    var bonusLabel = document.getElementById('edit-draw-bonus-label');
+    if (fmt.bonusCount > 0) {
+        bonusGroup.style.display = 'block';
+        bonusLabel.textContent = fmt.bonusLabel + ' (1\u2013' + fmt.bonusMax + ')';
+    } else {
+        bonusGroup.style.display = 'none';
+    }
+
+    document.getElementById('edit-draw-modal').classList.add('open');
+}
+
+function closeEditDrawModal() {
+    _editDrawId = null;
+    document.getElementById('edit-draw-modal').classList.remove('open');
+}
+
+function saveEditDraw() {
+    if (!_editDrawId) return;
+    var draw = state.recentDraws.find(function(d) { return d.id === _editDrawId; });
+    if (!draw) return;
+    var fmt = FORMATS.find(function(f) { return f.id === draw.formatId; });
+    if (!fmt) return;
+
+    var date    = document.getElementById('edit-draw-date').value;
+    var numStr  = document.getElementById('edit-draw-numbers').value.trim();
+    var bonStr  = document.getElementById('edit-draw-bonus').value.trim();
+
+    if (!date)    { showToast('Please enter a draw date', 'error'); return; }
+    if (!numStr)  { showToast('Please enter winning numbers', 'error'); return; }
+
+    var nums = numStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n >= 1 && n <= fmt.mainMax; });
+    var uniqueNums = Array.from(new Set(nums));
+    if (uniqueNums.length !== fmt.mainCount) {
+        showToast('Enter exactly ' + fmt.mainCount + ' unique numbers (1\u2013' + fmt.mainMax + ')', 'error');
+        return;
+    }
+
+    var bonus = [];
+    if (fmt.bonusCount > 0) {
+        var bonusRaw = bonStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n >= 1 && n <= fmt.bonusMax; });
+        bonus = Array.from(new Set(bonusRaw));
+        if (bonus.length !== fmt.bonusCount) {
+            showToast('Enter exactly ' + fmt.bonusCount + ' unique bonus number(s) (1\u2013' + fmt.bonusMax + ')', 'error');
+            return;
+        }
+    }
+
+    draw.date    = date;
+    draw.numbers = uniqueNums;
+    draw.bonus   = bonus;
+
+    fbAddDraw(draw);
+    persist();
+    renderLiveDraws();
+    closeEditDrawModal();
+    showToast('Draw result updated!', 'success');
+}
+
 function refreshLiveDraws() {
     renderLiveDraws();
     showToast('Draw results refreshed!', 'info');
+}
+
+/* ============================================================
+   COLLECT DRAWS FROM NET
+   ============================================================ */
+
+/* Official API support map — used to show live badges in the modal */
+var COLLECT_API_SUPPORT = {
+    'us-powerball':  true,
+    'mega-millions': true
+};
+
+/* Official results page links shown when no API is available */
+var COLLECT_OFFICIAL_URLS = {
+    'sa-lotto':      'https://www.nationallottery.co.za/lotto/results',
+    'sa-powerball':  'https://www.nationallottery.co.za/powerball/results',
+    'sa-daily':      'https://www.nationallottery.co.za/daily-lotto/results',
+    'uk-lotto':      'https://www.national-lottery.co.uk/results/lotto/draw-history',
+    'uk-49s':        'https://www.uk49s.co.uk/results/',
+    'uk-39s':        'https://www.uk49s.co.uk/uk39s-results/',
+    'euro-millions': 'https://www.euromillions.com/en/results',
+    'lt-jega':       'https://www.olifeja.lt/rezultatai/'
+};
+
+function openCollectModal() {
+    var sel = document.getElementById('collect-format');
+    sel.innerHTML = FORMATS.map(function(f) {
+        var badge = COLLECT_API_SUPPORT[f.id] ? ' \u2713 Live API' : '';
+        return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + badge + '</option>';
+    }).join('');
+
+    /* Pre-select the currently filtered lottery if a specific one is chosen */
+    var currentFilter = document.getElementById('live-draws-format-filter').value;
+    if (currentFilter !== 'all') sel.value = currentFilter;
+
+    /* Default from-date: 90 days ago */
+    var d = new Date();
+    d.setDate(d.getDate() - 90);
+    document.getElementById('collect-from-date').value = d.toISOString().slice(0, 10);
+
+    /* Reset status area */
+    var st = document.getElementById('collect-status');
+    st.className = 'collect-status-box';
+    st.style.display = 'none';
+    st.innerHTML = '';
+    document.getElementById('collect-fetch-btn').disabled = false;
+
+    document.getElementById('collect-modal').classList.add('open');
+}
+
+function closeCollectModal() {
+    document.getElementById('collect-modal').classList.remove('open');
+}
+
+function setCollectStatus(html, type) {
+    var el = document.getElementById('collect-status');
+    el.className = 'collect-status-box ' + (type || '');
+    el.style.display = 'block';
+    el.innerHTML = html;
+}
+
+async function startCollectDraws() {
+    var fmtId    = document.getElementById('collect-format').value;
+    var count    = parseInt(document.getElementById('collect-count').value, 10);
+    var fromDate = document.getElementById('collect-from-date').value;
+
+    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    if (!fmt) return;
+
+    document.getElementById('collect-fetch-btn').disabled = true;
+    setCollectStatus('&#9203; Fetching draws for ' + fmt.flag + ' ' + fmt.name + '\u2026', 'loading');
+
+    try {
+        var draws = await fetchDrawsFromNet(fmtId, count, fromDate);
+        if (!draws || draws.length === 0) {
+            setCollectStatus('No draws found for the selected date range. Try an earlier \u201cFrom Date\u201d.', '');
+            document.getElementById('collect-fetch-btn').disabled = false;
+            return;
+        }
+        var imported = importFetchedDraws(draws, fmtId);
+        if (imported === 0) {
+            setCollectStatus('&#9989; All ' + draws.length + ' fetched draw(s) were already recorded \u2014 nothing new to import.', 'success');
+        } else {
+            setCollectStatus('&#9989; Imported ' + imported + ' new draw(s) for ' + fmt.flag + ' ' + fmt.name + '.', 'success');
+            showToast('Imported ' + imported + ' draw(s) for ' + fmt.name, 'success');
+        }
+    } catch (err) {
+        setCollectStatus(err.message || '&#10060; Failed to fetch draws. Check your internet connection.', 'error');
+    }
+    document.getElementById('collect-fetch-btn').disabled = false;
+}
+
+function importFetchedDraws(draws, fmtId) {
+    var existingDates = new Set(
+        state.recentDraws
+            .filter(function(d) { return d.formatId === fmtId; })
+            .map(function(d) { return d.date; })
+    );
+    var newDraws = [];
+    draws.forEach(function(d) {
+        if (existingDates.has(d.date)) return;
+        var id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36);
+        newDraws.push({
+            id: id, formatId: fmtId, date: d.date,
+            numbers: d.numbers, bonus: d.bonus || [],
+            addedAt: new Date().toISOString()
+        });
+    });
+    newDraws.forEach(function(d) {
+        state.recentDraws.unshift(d);
+        fbAddDraw(d);
+    });
+    if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
+    persist();
+    renderLiveDraws();
+    return newDraws.length;
+}
+
+async function fetchDrawsFromNet(fmtId, count, fromDate) {
+    switch (fmtId) {
+        case 'us-powerball':  return await fetchUSPowerball(count, fromDate);
+        case 'mega-millions': return await fetchMegaMillions(count, fromDate);
+        default:
+            var url = COLLECT_OFFICIAL_URLS[fmtId] || '';
+            var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+            var name = fmt ? fmt.name : fmtId;
+            var linkHtml = url
+                ? ' Visit <a href="' + url + '" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;">' + name + ' official results</a> to copy and add draws manually.'
+                : ' Please add draws manually using the form below.';
+            throw new Error('&#128683; Automatic collection is not available for ' + name + ' \u2014 no public API exists.' + linkHtml);
+    }
+}
+
+/* US Powerball — NY Open Data SODA API (free, no key, CORS-friendly) */
+async function fetchUSPowerball(count, fromDate) {
+    var query = '$limit=' + count + '&$order=draw_date+DESC';
+    if (fromDate) {
+        query += '&$where=draw_date%3E%3D%27' + fromDate + 'T00%3A00%3A00.000%27';
+    }
+    var resp = await fetch('https://data.ny.gov/resource/d6yy-54nr.json?' + query);
+    if (!resp.ok) throw new Error('Powerball API returned HTTP ' + resp.status + '. Please try again later.');
+    var data = await resp.json();
+    if (!Array.isArray(data)) throw new Error('Unexpected response format from Powerball API.');
+    return data
+        .filter(function(row) { return row.draw_date && row.winning_numbers; })
+        .map(function(row) {
+            var parts = row.winning_numbers.trim().split(/\s+/).map(Number);
+            /* Format: "n1 n2 n3 n4 n5 powerball" */
+            return {
+                date:    row.draw_date.substring(0, 10),
+                numbers: parts.slice(0, 5),
+                bonus:   parts.length > 5 ? [parts[5]] : []
+            };
+        });
+}
+
+/* Mega Millions — NY Open Data SODA API (free, no key, CORS-friendly) */
+async function fetchMegaMillions(count, fromDate) {
+    var query = '$limit=' + count + '&$order=draw_date+DESC';
+    if (fromDate) {
+        query += '&$where=draw_date%3E%3D%27' + fromDate + 'T00%3A00%3A00.000%27';
+    }
+    var resp = await fetch('https://data.ny.gov/resource/5xaw-6ayf.json?' + query);
+    if (!resp.ok) throw new Error('Mega Millions API returned HTTP ' + resp.status + '. Please try again later.');
+    var data = await resp.json();
+    if (!Array.isArray(data)) throw new Error('Unexpected response format from Mega Millions API.');
+    return data
+        .filter(function(row) { return row.draw_date && row.winning_numbers; })
+        .map(function(row) {
+            return {
+                date:    row.draw_date.substring(0, 10),
+                numbers: row.winning_numbers.trim().split(/\s+/).map(Number),
+                bonus:   row.mega_ball ? [parseInt(row.mega_ball, 10)] : []
+            };
+        });
 }
 
 /* ============================================================
@@ -1791,6 +2115,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 60000);
     document.getElementById('save-modal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
+    });
+    document.getElementById('collect-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeCollectModal();
+    });
+    document.getElementById('edit-draw-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeEditDrawModal();
     });
     /* Initialise Firebase sync after the rest of the app is ready */
     initFirebase();
