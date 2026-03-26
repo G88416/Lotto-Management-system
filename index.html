@@ -71,6 +71,8 @@
         .btn-danger:hover { background: #fee2e2; }
         .btn-success { background: #f0fdf4; color: var(--green); border: 2px solid #bbf7d0; }
         .btn-success:hover { background: #dcfce7; }
+        .btn-purple { background: linear-gradient(135deg,#7c3aed,#0891b2); color:#fff; box-shadow:0 6px 18px rgba(124,58,237,0.3); }
+        .btn-purple:hover { transform:translateY(-2px); box-shadow:0 10px 28px rgba(124,58,237,0.45); }
         .btn-sm { padding: 7px 14px; font-size: 0.82rem; border-radius: 9px; }
         .btn-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
         .format-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 14px; margin-bottom: 26px; }
@@ -278,6 +280,7 @@
             </div>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="generateQuickPick()">&#9889; Generate Quick Pick</button>
+                <button class="btn btn-purple" onclick="generateQuickPickFromPattern()">&#129518; Generate from Pattern</button>
                 <button class="btn btn-secondary" onclick="clearQuickPick()">&#128465;&#65039; Clear</button>
                 <button class="btn btn-success" onclick="saveAllQPTickets()">&#128190; Save All Tickets</button>
             </div>
@@ -371,7 +374,10 @@
                 <div class="algo-info"><strong>Algorithm:</strong> XOR-folded polynomial hash &#8212; seed = &#931;(seed &#215; 31 + n) XOR (n &#215; 17) mod 1,000,000,007. Deterministic from known inputs.</div>
                 <div class="form-group"><label>Enter Past Draw Numbers (space or comma separated)</label><input type="text" id="reverse-input" placeholder="e.g. 7 14 23 31 42 49" /></div>
                 <div class="form-group"><label>Lottery Format (optional)</label><select id="reverse-format"></select></div>
-                <button class="btn btn-primary" onclick="generateReverseSeed()">&#128260; Generate Reverse Seed</button>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="generateReverseSeed()">&#128260; Generate Reverse Seed</button>
+                    <button class="btn btn-purple" onclick="generateReverseSeedFromPattern()">&#129518; Generate from Pattern</button>
+                </div>
                 <div id="reverse-result" class="result-box" style="display:none;">
                     <span class="result-label">Reverse Seed</span>
                     <span id="reverse-seed-value" style="font-size:2rem;font-weight:900;color:var(--purple);"></span>
@@ -385,7 +391,10 @@
                 <p class="mb-14"><strong>Using Reverse Seed:</strong></p>
                 <div id="used-reverse-seed" style="font-size:1.4rem;font-weight:800;padding:14px;background:var(--surface2);border-radius:13px;margin-bottom:16px;color:var(--purple);">No reverse seed loaded yet</div>
                 <div class="form-group"><label>Or enter a custom seed</label><input type="number" id="custom-seed-input" placeholder="Enter custom seed value" /></div>
-                <button class="btn btn-primary" onclick="generateForwardSeed()">&#127807; Generate Forward Seeds</button>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="generateForwardSeed()">&#127807; Generate Forward Seeds</button>
+                    <button class="btn btn-purple" onclick="generateForwardSeedFromPattern()">&#129518; Generate from Pattern</button>
+                </div>
                 <div id="seed-result" class="result-box" style="display:none;margin-top:20px;">
                     <span class="result-label">Generated Seeds</span>
                     <div id="seed-values" style="font-size:1.1rem;"></div>
@@ -405,7 +414,10 @@
                         <option value="10">10 Sets</option>
                     </select>
                 </div>
-                <button class="btn btn-primary" onclick="generateFromSeed()">&#127920; Generate Numbers from Seed</button>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="generateFromSeed()">&#127920; Generate Numbers from Seed</button>
+                    <button class="btn btn-purple" onclick="generateFromSeedPattern()">&#129518; Generate from Pattern</button>
+                </div>
                 <div id="seed-lotto-result" style="margin-top:24px;"></div>
             </div>
         </div>
@@ -871,6 +883,24 @@ function generateQuickPick() {
     updateHeader();
 }
 
+function generateQuickPickFromPattern() {
+    var fmt = FORMATS.find(function(f) { return f.id === state.selectedFormatQP; });
+    if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
+    var pd = computePatternData(fmt.id);
+    if (!pd) { showToast('Need at least ' + MIN_DRAWS_FOR_ANALYSIS + ' draws for ' + fmt.name + '. Add draws on the Live Draws tab.', 'error'); return; }
+    var count = parseInt(document.getElementById('qp-count').value);
+    qpGeneratedSets = [];
+    for (var i = 0; i < count; i++) {
+        var s = buildSuggestion(pd.fmt, pd.freq, pd.sorted, pd.hotNums, pd.coldNums, pd.evenCount, pd.oddCount, pd.totalNums, pd.lowCount, pd.midCount, pd.highCount);
+        qpGeneratedSets.push({ main: s.main, bonus: s.bonus, formatId: fmt.id });
+        recordStats(fmt.id, s.main.concat(s.bonus));
+    }
+    persist();
+    renderQuickPickResults(fmt, qpGeneratedSets);
+    updateHeader();
+    showToast('Generated ' + count + ' pattern-based ticket' + (count > 1 ? 's' : '') + '!', 'success');
+}
+
 function renderBalls(main, mainClass, fmt, bonus) {
     var html = main.map(function(n) { return '<span class="ball ' + mainClass + '">' + n + '</span>'; }).join('');
     if (bonus && bonus.length) {
@@ -1208,6 +1238,53 @@ function generateFromSeed() {
     persist();
 }
 
+/* Generate a reverse seed using the top hot numbers from pattern analysis */
+function generateReverseSeedFromPattern() {
+    var fmtId = document.getElementById('reverse-format').value;
+    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
+    var pd = computePatternData(fmtId);
+    if (!pd) { showToast('Need at least ' + MIN_DRAWS_FOR_ANALYSIS + ' draws for ' + fmt.name + '. Add draws on the Live Draws tab.', 'error'); return; }
+    var hotInput = pd.hotNums.slice(0, fmt.mainCount).join(' ');
+    document.getElementById('reverse-input').value = hotInput;
+    generateReverseSeed();
+    showToast('Reverse seed generated from pattern hot numbers!', 'success');
+}
+
+/* Derive a seed from hot numbers then generate forward seeds */
+function generateForwardSeedFromPattern() {
+    var fmtId = document.getElementById('reverse-format').value;
+    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    if (!fmt) { showToast('Select a lottery format on the Reverse Seed tab first', 'error'); return; }
+    var pd = computePatternData(fmtId);
+    if (!pd) { showToast('Need at least ' + MIN_DRAWS_FOR_ANALYSIS + ' draws for ' + fmt.name + '. Add draws on the Live Draws tab.', 'error'); return; }
+    var hotNums = pd.hotNums.slice(0, fmt.mainCount);
+    var seed = 0;
+    hotNums.forEach(function(num) { seed = (seed * 31 + num) ^ (num * 17); });
+    seed = Math.abs(seed) % 1000000007;
+    document.getElementById('custom-seed-input').value = seed;
+    generateForwardSeed();
+    showToast('Forward seeds generated from pattern hot numbers!', 'success');
+}
+
+/* Generate lottery number sets using pattern analysis in the Seed → Numbers tab */
+function generateFromSeedPattern() {
+    var formatId = document.getElementById('seed-lotto-format').value;
+    var fmt = FORMATS.find(function(f) { return f.id === formatId; }) || FORMATS[0];
+    var pd = computePatternData(fmt.id);
+    if (!pd) { showToast('Need at least ' + MIN_DRAWS_FOR_ANALYSIS + ' draws for ' + fmt.name + '. Add draws on the Live Draws tab.', 'error'); return; }
+    var setCount = parseInt(document.getElementById('set-count').value);
+    var html = '<div class="fw-800 mb-14">' + fmt.flag + ' ' + fmt.name + ' \u2014 ' + setCount + ' Pattern-Based Set' + (setCount > 1 ? 's' : '') + '</div>';
+    for (var i = 0; i < setCount; i++) {
+        var s = buildSuggestion(pd.fmt, pd.freq, pd.sorted, pd.hotNums, pd.coldNums, pd.evenCount, pd.oddCount, pd.totalNums, pd.lowCount, pd.midCount, pd.highCount);
+        html += '<div class="ticket-card"><div class="ticket-header"><span class="ticket-format-badge">' + fmt.flag + ' ' + fmt.name + '</span><span class="text-sm text-muted">Set ' + (i + 1) + '</span></div><div class="balls-row">' + renderBalls(s.main, 'ball-main', fmt, s.bonus) + '</div></div>';
+        recordStats(fmt.id, s.main.concat(s.bonus));
+    }
+    document.getElementById('seed-lotto-result').innerHTML = html;
+    persist();
+    showToast('Generated ' + setCount + ' pattern-based set' + (setCount > 1 ? 's' : '') + '!', 'success');
+}
+
 function saveBudget() {
     var val = parseFloat(document.getElementById('budget-input').value);
     var cur = document.getElementById('currency-select').value;
@@ -1442,6 +1519,43 @@ function refreshLiveDraws() {
    ============================================================ */
 
 var MIN_DRAWS_FOR_ANALYSIS = 3;
+
+/* Shared helper: compute pattern analytics for a given format ID.
+   Returns null when there are not enough recorded draws. */
+function computePatternData(fmtId) {
+    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    if (!fmt) return null;
+    var draws = state.recentDraws.filter(function(d) { return d.formatId === fmtId; }).slice(0, 15);
+    if (draws.length < MIN_DRAWS_FOR_ANALYSIS) return null;
+
+    var allNums = [];
+    draws.forEach(function(d) { d.numbers.forEach(function(n) { allNums.push(n); }); });
+
+    var freq = {};
+    for (var i = 1; i <= fmt.mainMax; i++) freq[i] = 0;
+    allNums.forEach(function(n) { if (freq[n] !== undefined) freq[n]++; });
+
+    var sorted = Object.keys(freq).map(Number).sort(function(a,b) { return freq[b] - freq[a]; });
+    var hotNums  = sorted.slice(0, 8);
+    var coldNums = sorted.slice(-8).reverse();
+
+    var evenCount = 0, oddCount = 0;
+    allNums.forEach(function(n) { if (n % 2 === 0) evenCount++; else oddCount++; });
+    var totalNums = allNums.length || 1;
+
+    var low = Math.floor(fmt.mainMax / 3);
+    var mid = Math.floor(fmt.mainMax * 2 / 3);
+    var lowCount = 0, midCount = 0, highCount = 0;
+    allNums.forEach(function(n) {
+        if (n <= low) lowCount++;
+        else if (n <= mid) midCount++;
+        else highCount++;
+    });
+
+    return { fmt: fmt, freq: freq, sorted: sorted, hotNums: hotNums, coldNums: coldNums,
+             evenCount: evenCount, oddCount: oddCount, totalNums: totalNums,
+             lowCount: lowCount, midCount: midCount, highCount: highCount, draws: draws };
+}
 
 function runPatternDetector() {
     var fmtEl = document.getElementById('pattern-format');
