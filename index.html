@@ -1667,8 +1667,20 @@ function refreshLiveDraws() {
 
 /* Official API support map — used to show live badges in the modal */
 var COLLECT_API_SUPPORT = {
+    'sa-lotto':      true,
+    'sa-powerball':  true,
+    'sa-daily':      true,
     'us-powerball':  true,
     'mega-millions': true
+};
+
+/* Source labels shown next to each format in the collect modal */
+var COLLECT_SOURCE_LABELS = {
+    'sa-lotto':      'national-lottery.co.za',
+    'sa-powerball':  'national-lottery.co.za',
+    'sa-daily':      'national-lottery.co.za',
+    'us-powerball':  'NY Open Data API',
+    'mega-millions': 'NY Open Data API'
 };
 
 /* Official results page links shown when no API is available */
@@ -1683,10 +1695,18 @@ var COLLECT_OFFICIAL_URLS = {
     'lt-jega':       'https://www.olifeja.lt/rezultatai/'
 };
 
+/* national-lottery.co.za result page URLs */
+var NLZA_URLS = {
+    'sa-lotto':     'https://national-lottery.co.za/lotto-results/',
+    'sa-powerball': 'https://national-lottery.co.za/powerball-results/',
+    'sa-daily':     'https://national-lottery.co.za/daily-lotto-results/'
+};
+
 function openCollectModal() {
     var sel = document.getElementById('collect-format');
     sel.innerHTML = FORMATS.map(function(f) {
-        var badge = COLLECT_API_SUPPORT[f.id] ? ' \u2713 Live API' : '';
+        var src = COLLECT_API_SUPPORT[f.id] ? (COLLECT_SOURCE_LABELS[f.id] || 'Live API') : '';
+        var badge = src ? ' \u2713 ' + src : '';
         return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + badge + '</option>';
     }).join('');
 
@@ -1783,6 +1803,9 @@ async function fetchDrawsFromNet(fmtId, count, fromDate) {
     switch (fmtId) {
         case 'us-powerball':  return await fetchUSPowerball(count, fromDate);
         case 'mega-millions': return await fetchMegaMillions(count, fromDate);
+        case 'sa-lotto':
+        case 'sa-powerball':
+        case 'sa-daily':      return await fetchFromNationalLotteryZA(fmtId, count, fromDate);
         default:
             var url = COLLECT_OFFICIAL_URLS[fmtId] || '';
             var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
@@ -1792,6 +1815,274 @@ async function fetchDrawsFromNet(fmtId, count, fromDate) {
                 : ' Please add draws manually using the form below.';
             throw new Error('&#128683; Automatic collection is not available for ' + name + ' \u2014 no public API exists.' + linkHtml);
     }
+}
+
+/* SA National Lottery — national-lottery.co.za via allorigins.win CORS proxy.
+   Note: allorigins.win is a free public CORS proxy. If it is unavailable, the
+   fetch will fail gracefully and the user will be given a link to add draws
+   manually from the site directly. No user credentials are transmitted. */
+async function fetchFromNationalLotteryZA(fmtId, count, fromDate) {
+    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    if (!fmt) throw new Error('Unknown format: ' + fmtId);
+
+    var targetUrl = NLZA_URLS[fmtId];
+    if (!targetUrl) throw new Error('No URL configured for ' + fmtId);
+
+    var proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(targetUrl);
+
+    var resp;
+    try {
+        resp = await fetch(proxyUrl);
+    } catch (e) {
+        throw new Error(
+            '&#10060; Could not reach national-lottery.co.za. ' +
+            'Visit <a href="' + targetUrl + '" target="_blank" rel="noopener noreferrer" ' +
+            'style="color:inherit;text-decoration:underline;">national-lottery.co.za</a> ' +
+            'to add draws manually.'
+        );
+    }
+
+    if (!resp.ok) {
+        throw new Error(
+            '&#10060; national-lottery.co.za returned HTTP ' + resp.status + '. ' +
+            'Visit <a href="' + targetUrl + '" target="_blank" rel="noopener noreferrer" ' +
+            'style="color:inherit;text-decoration:underline;">national-lottery.co.za</a> ' +
+            'to add draws manually.'
+        );
+    }
+
+    var data;
+    try {
+        data = await resp.json();
+    } catch (e) {
+        throw new Error('&#10060; Unexpected response from CORS proxy. Please try again later.');
+    }
+
+    var html = data && data.contents;
+    if (!html) {
+        throw new Error('&#10060; Empty response from national-lottery.co.za proxy. Please try again later.');
+    }
+
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    var draws = parseNLZAPage(doc, fmt, count, fromDate);
+
+    if (draws.length === 0) {
+        throw new Error(
+            '&#10060; Could not parse results from national-lottery.co.za. ' +
+            'The page structure may have changed. ' +
+            'Visit <a href="' + targetUrl + '" target="_blank" rel="noopener noreferrer" ' +
+            'style="color:inherit;text-decoration:underline;">national-lottery.co.za</a> ' +
+            'to add draws manually.'
+        );
+    }
+
+    return draws;
+}
+
+/* Parse a national-lottery.co.za results page DOM into draw objects */
+function parseNLZAPage(doc, fmt, count, fromDate) {
+    var fromTimestamp = fromDate ? new Date(fromDate + 'T00:00:00').getTime() : 0;
+    var draws = [];
+
+    /* Strategy 1 – table rows */
+    draws = nlzaParseTable(doc, fmt, fromTimestamp);
+    if (draws.length > 0) return draws.slice(0, count);
+
+    /* Strategy 2 – article / div block per draw */
+    draws = nlzaParseBlocks(doc, fmt, fromTimestamp);
+    if (draws.length > 0) return draws.slice(0, count);
+
+    /* Strategy 3 – full-page text regex */
+    draws = nlzaParseText(doc.body ? doc.body.innerText || doc.body.textContent : '', fmt, fromTimestamp);
+    return draws.slice(0, count);
+}
+
+/* ---- helpers ---- */
+
+/* Attempt to extract an ISO date string from any text node */
+function nlzaExtractDate(text) {
+    if (!text) return null;
+    text = text.trim();
+
+    /* ISO: 2026-03-25 */
+    var m = text.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return m[0];
+
+    /* SA short: 25/03/2026 or 25-03-2026 */
+    m = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (m) {
+        var d = m[1].padStart(2,'0'), mo = m[2].padStart(2,'0'), y = m[3];
+        return y + '-' + mo + '-' + d;
+    }
+
+    /* Long: 25 March 2026 or Wednesday, 25 March 2026 */
+    var months = ['january','february','march','april','may','june',
+                  'july','august','september','october','november','december'];
+    m = text.toLowerCase().match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})/);
+    if (m) {
+        var idx = months.indexOf(m[2]);
+        if (idx !== -1) {
+            return m[3] + '-' + String(idx + 1).padStart(2,'0') + '-' + m[1].padStart(2,'0');
+        }
+    }
+    return null;
+}
+
+/* Extract an array of integers from a text node, filtered to [minVal, maxVal] */
+function nlzaExtractNumbers(text, minVal, maxVal) {
+    if (!text) return [];
+    var nums = [];
+    var parts = text.match(/\d+/g) || [];
+    parts.forEach(function(p) {
+        var n = parseInt(p, 10);
+        if (n >= minVal && n <= maxVal) nums.push(n);
+    });
+    return nums;
+}
+
+/* Strategy 1: parse <table> elements */
+function nlzaParseTable(doc, fmt, fromTimestamp) {
+    var draws = [];
+    var tables = doc.querySelectorAll('table');
+    tables.forEach(function(table) {
+        var rows = table.querySelectorAll('tr');
+        rows.forEach(function(row) {
+            var cells = Array.from(row.querySelectorAll('td,th'));
+            var rowText = cells.map(function(c) { return c.textContent; }).join(' ');
+            var date = nlzaExtractDate(rowText);
+            if (!date) return;
+            if (fromTimestamp && new Date(date + 'T00:00:00').getTime() < fromTimestamp) return;
+
+            /* look for the cell(s) with lottery numbers, skip date cells */
+            var allNums = [];
+            cells.forEach(function(c) {
+                var cellText = c.textContent;
+                if (nlzaExtractDate(cellText)) return; /* skip the date cell */
+                var nums = nlzaExtractNumbers(cellText, 1, fmt.mainMax);
+                allNums = allNums.concat(nums);
+            });
+            /* deduplicate */
+            allNums = allNums.filter(function(n, i, a) { return a.indexOf(n) === i; });
+
+            if (allNums.length < fmt.mainCount) return;
+
+            var main   = allNums.slice(0, fmt.mainCount).sort(function(a,b){return a-b;});
+            var bonus  = [];
+            if (fmt.bonusCount > 0 && allNums.length > fmt.mainCount) {
+                var bonusCandidates = allNums.slice(fmt.mainCount);
+                bonus = bonusCandidates.filter(function(n) { return n >= 1 && n <= fmt.bonusMax; })
+                                       .slice(0, fmt.bonusCount);
+            }
+            draws.push({ date: date, numbers: main, bonus: bonus });
+        });
+    });
+    /* deduplicate by date */
+    var seenDates = {};
+    return draws.filter(function(d) {
+        if (seenDates[d.date]) return false;
+        seenDates[d.date] = true;
+        return true;
+    });
+}
+
+/* Strategy 2: parse article / div blocks */
+function nlzaParseBlocks(doc, fmt, fromTimestamp) {
+    var draws = [];
+    /* Common selectors used by lottery WordPress themes */
+    var blockSels = [
+        'article', '.draw-result', '.lottery-result', '.lotto-result',
+        '.result-item', '.result-row', '.entry-content > div',
+        '[class*="draw"]', '[class*="result"]', '[class*="lotto"]'
+    ].join(',');
+
+    var blocks;
+    try { blocks = doc.querySelectorAll(blockSels); } catch(e) { return draws; }
+
+    blocks.forEach(function(block) {
+        var text = block.textContent || '';
+        var date = nlzaExtractDate(text);
+        if (!date) return;
+        if (fromTimestamp && new Date(date + 'T00:00:00').getTime() < fromTimestamp) return;
+
+        /* Try to find number elements inside the block first */
+        var numEls = block.querySelectorAll(
+            '[class*="ball"],[class*="number"],[class*="num"],[class*="digit"],[class*="pick"]'
+        );
+        var allNums = [];
+        if (numEls.length >= fmt.mainCount) {
+            numEls.forEach(function(el) {
+                var n = parseInt(el.textContent.trim(), 10);
+                if (!isNaN(n)) allNums.push(n);
+            });
+        } else {
+            /* Remove date text (including day numbers, month names, years 1900-2099) so
+               they are not confused with lottery numbers */
+            var datePat = /(?:\w+,?\s*)?\d{1,2}[-\/\s]\w+[-\/\s]\d{4}/g;
+            var numText = text.replace(datePat, '').replace(/\b(?:19|20)\d{2}\b/g, '');
+            allNums = nlzaExtractNumbers(numText, 1, fmt.mainMax);
+        }
+
+        allNums = allNums.filter(function(n, i, a) { return a.indexOf(n) === i; });
+        if (allNums.length < fmt.mainCount) return;
+
+        var main  = allNums.slice(0, fmt.mainCount).sort(function(a,b){return a-b;});
+        var bonus = [];
+        if (fmt.bonusCount > 0 && allNums.length > fmt.mainCount) {
+            var bonusCandidates = allNums.slice(fmt.mainCount);
+            bonus = bonusCandidates.filter(function(n) { return n >= 1 && n <= fmt.bonusMax; })
+                                   .slice(0, fmt.bonusCount);
+        }
+        draws.push({ date: date, numbers: main, bonus: bonus });
+    });
+
+    /* deduplicate by date */
+    var seen = {};
+    return draws.filter(function(d) {
+        if (seen[d.date]) return false;
+        seen[d.date] = true;
+        return true;
+    });
+}
+
+/* Strategy 3: regex scan of raw page text */
+var NLZA_LOOKAHEAD_LINES = 5; /* number of lines after a date line to scan for numbers */
+function nlzaParseText(text, fmt, fromTimestamp) {
+    var draws = [];
+    if (!text) return draws;
+
+    /* Split into lines and look for lines/groups that contain a date */
+    var lines = text.split(/\n+/);
+    var i = 0;
+    while (i < lines.length) {
+        var date = nlzaExtractDate(lines[i]);
+        if (date) {
+            if (!fromTimestamp || new Date(date + 'T00:00:00').getTime() >= fromTimestamp) {
+                /* scan the next few lines for lottery numbers, stripping date text first */
+                var chunk = lines.slice(i + 1, i + 1 + NLZA_LOOKAHEAD_LINES).join(' ');
+                var allNums = nlzaExtractNumbers(chunk, 1, fmt.mainMax);
+                allNums = allNums.filter(function(n, idx, a) { return a.indexOf(n) === idx; });
+                if (allNums.length >= fmt.mainCount) {
+                    var main  = allNums.slice(0, fmt.mainCount).sort(function(a,b){return a-b;});
+                    var bonus = [];
+                    if (fmt.bonusCount > 0 && allNums.length > fmt.mainCount) {
+                        var bc = allNums.slice(fmt.mainCount);
+                        bonus = bc.filter(function(n) { return n >= 1 && n <= fmt.bonusMax; })
+                                  .slice(0, fmt.bonusCount);
+                    }
+                    draws.push({ date: date, numbers: main, bonus: bonus });
+                }
+            }
+        }
+        i++;
+    }
+
+    /* deduplicate by date */
+    var seen = {};
+    return draws.filter(function(d) {
+        if (seen[d.date]) return false;
+        seen[d.date] = true;
+        return true;
+    });
 }
 
 /* US Powerball — NY Open Data SODA API (free, no key, CORS-friendly) */
