@@ -200,6 +200,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
     <!-- Project-specific Firebase credentials (fill in firebase-config.js) -->
     <script src="firebase-config.js"></script>
 </head>
@@ -604,6 +605,7 @@ function initFirebase() {
     }
     try {
         firebase.initializeApp(cfg);
+        if (typeof firebase.analytics === 'function') { firebase.analytics(); }
         fbAuth = firebase.auth();
         fbDb   = firebase.firestore();
         /* Enable offline persistence so the app works without a network.
