@@ -32,10 +32,11 @@
  */
 
 var FIREBASE_CONFIG = {
-    apiKey:            'YOUR_API_KEY',
-    authDomain:        'YOUR_PROJECT_ID.firebaseapp.com',
-    projectId:         'YOUR_PROJECT_ID',
-    storageBucket:     'YOUR_PROJECT_ID.appspot.com',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    appId:             'YOUR_APP_ID'
+    apiKey:            'AIzaSyDda_Ns_ca4XqxD6e89hBaGAWz5vt1he8I',
+    authDomain:        'lotto-management-system-26761.firebaseapp.com',
+    projectId:         'lotto-management-system-26761',
+    storageBucket:     'lotto-management-system-26761.firebasestorage.app',
+    messagingSenderId: '986799310017',
+    appId:             '1:986799310017:web:f65d7f237c26e8834d4040',
+    measurementId:     'G-EPNKLK5B52'
 };
