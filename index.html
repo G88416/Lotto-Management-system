@@ -1173,13 +1173,16 @@ function addDrawResult() {
     var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
     if (!fmt) return;
     var nums = numStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n >= 1 && n <= fmt.mainMax; });
-    if (nums.length !== fmt.mainCount) { showToast('Enter exactly ' + fmt.mainCount + ' numbers (1\u2013' + fmt.mainMax + ')', 'error'); return; }
+    var uniqueNums = Array.from(new Set(nums));
+    if (uniqueNums.length !== fmt.mainCount) { showToast('Enter exactly ' + fmt.mainCount + ' unique numbers (1\u2013' + fmt.mainMax + ')', 'error'); return; }
+    nums = uniqueNums;
     var bonus = [];
     if (fmt.bonusCount > 0) {
-        bonus = bonStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n >= 1 && n <= fmt.bonusMax; });
-        if (bonus.length !== fmt.bonusCount) { showToast('Enter exactly ' + fmt.bonusCount + ' bonus number(s) (1\u2013' + fmt.bonusMax + ')', 'error'); return; }
+        var bonusRaw = bonStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n >= 1 && n <= fmt.bonusMax; });
+        bonus = Array.from(new Set(bonusRaw));
+        if (bonus.length !== fmt.bonusCount) { showToast('Enter exactly ' + fmt.bonusCount + ' unique bonus number(s) (1\u2013' + fmt.bonusMax + ')', 'error'); return; }
     }
-    state.recentDraws.unshift({ id: Date.now(), formatId: fmtId, date: date, numbers: nums, bonus: bonus });
+    state.recentDraws.unshift({ id: String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36), formatId: fmtId, date: date, numbers: nums, bonus: bonus });
     if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
     persist();
     document.getElementById('add-draw-numbers').value = '';
@@ -1214,11 +1217,11 @@ function renderLiveDraws() {
             '<span class="live-badge"><span class="live-dot"></span>LIVE</span></div>' +
             items.map(function(d) {
                 var f = fmt || {};
-                var dateLabel = d.date ? new Date(d.date + 'T00:00:00').toLocaleDateString('en-ZA', {weekday:'short',day:'numeric',month:'short',year:'numeric'}) : '';
+                var dateLabel = d.date ? new Date(d.date + 'T00:00:00').toLocaleDateString(undefined, {weekday:'short',day:'numeric',month:'short',year:'numeric'}) : '';
                 return '<div class="draw-result-card"><div class="draw-result-header">' +
                     '<span class="ticket-format-badge">' + (fmt ? fmt.flag + ' ' + fmt.name : fid) + '</span>' +
                     '<span class="draw-result-date">&#128197; ' + dateLabel + '</span>' +
-                    '<button class="btn btn-danger btn-sm" onclick="deleteDrawResult(' + d.id + ')">&#128465;&#65039;</button></div>' +
+                    '<button class="btn btn-danger btn-sm" onclick="deleteDrawResult(' + JSON.stringify(d.id) + ')">&#128465;&#65039;</button></div>' +
                     '<div class="balls-row">' +
                     d.numbers.map(function(n) { return '<span class="ball ball-main ball-sm">' + n + '</span>'; }).join('') +
                     (d.bonus && d.bonus.length ? '<span class="ball-separator">+</span>' + d.bonus.map(function(n) { return '<span class="ball ' + (f.bonusColor || 'ball-bonus') + ' ball-sm">' + n + '</span>'; }).join('') : '') +
@@ -1242,6 +1245,8 @@ function refreshLiveDraws() {
    PATTERN DETECTOR
    ============================================================ */
 
+var MIN_DRAWS_FOR_ANALYSIS = 3;
+
 function runPatternDetector() {
     var fmtEl = document.getElementById('pattern-format');
     if (!fmtEl) return;
@@ -1251,8 +1256,8 @@ function runPatternDetector() {
     var draws = state.recentDraws.filter(function(d) { return d.formatId === fmtId; }).slice(0, 15);
     var container = document.getElementById('pattern-results');
 
-    if (draws.length < 3) {
-        container.innerHTML = '<div class="no-draws-hint"><div style="font-size:2.5rem;margin-bottom:10px;">&#128202;</div><div class="fw-700">Not enough data</div><div class="text-sm" style="margin-top:6px;">Add at least 3 draw results for <strong>' + fmt.flag + ' ' + fmt.name + '</strong> on the <strong>Live Draws</strong> tab.</div></div>';
+    if (draws.length < MIN_DRAWS_FOR_ANALYSIS) {
+        container.innerHTML = '<div class="no-draws-hint"><div style="font-size:2.5rem;margin-bottom:10px;">&#128202;</div><div class="fw-700">Not enough data</div><div class="text-sm" style="margin-top:6px;">Add at least ' + MIN_DRAWS_FOR_ANALYSIS + ' draw results for <strong>' + fmt.flag + ' ' + fmt.name + '</strong> on the <strong>Live Draws</strong> tab.</div></div>';
         return;
     }
 
@@ -1377,7 +1382,7 @@ function buildSuggestion(fmt, freq, sorted, hotNums, coldNums, evenCount, oddCou
     sorted.forEach(function(n) {
         var w = Math.max(1, freq[n]);
         for (var i = 0; i < w; i++) pool.push(n);
-        pool.push(n); /* always at least one entry */
+        pool.push(n); /* adds 1 base weight on top of the w frequency-based entries (w+1 total) */
     });
     /* Target even/odd ratio from historical data */
     var targetEven = Math.round((evenCount / totalNums) * fmt.mainCount);
