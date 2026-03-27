@@ -1848,7 +1848,11 @@ async function fetchDrawsFromNet(fmtId, count, fromDate) {
    Fetches the latest draw result for lotteries supported by the magayo API.
    The api_key is passed as a query parameter; the endpoint returns a single
    JSON object { error, draw, results } where "results" is a comma-separated
-   string of all drawn numbers (main numbers followed by bonus number(s)). */
+   string of all drawn numbers (main numbers followed by bonus number(s)).
+   Note: the request is routed via allorigins.win (a free CORS proxy) because
+   the magayo API does not set Access-Control-Allow-Origin headers, which
+   prevents browsers from reading the response directly. No user credentials
+   are transmitted through the proxy. */
 async function fetchFromMagayo(fmtId) {
     var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
     if (!fmt) throw new Error('Unknown format: ' + fmtId);
@@ -1858,11 +1862,12 @@ async function fetchFromMagayo(fmtId) {
         throw new Error('&#128683; ' + fmt.name + ' is not available via the magayo API.');
     }
 
-    var url = MAGAYO_BASE_URL + '?api_key=' + encodeURIComponent(MAGAYO_API_KEY) + '&game=' + encodeURIComponent(gameId);
+    var directUrl = MAGAYO_BASE_URL + '?api_key=' + encodeURIComponent(MAGAYO_API_KEY) + '&game=' + encodeURIComponent(gameId);
+    var proxyUrl  = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(directUrl);
 
     var resp;
     try {
-        resp = await fetch(url);
+        resp = await fetch(proxyUrl);
     } catch (e) {
         throw new Error(
             '&#10060; Could not reach magayo API. ' +
