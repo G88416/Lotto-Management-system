@@ -1665,45 +1665,37 @@ function refreshLiveDraws() {
    COLLECT DRAWS FROM NET
    ============================================================ */
 
-/* ---- magayo Lottery Data API -------------------------------------------- */
-/* https://www.magayo.com/lottery-feeds/lottery-data-api/                     */
-var MAGAYO_API_KEY  = 'rG5n8aAcvL9rV5ypL5';
-var MAGAYO_BASE_URL = 'https://www.magayo.com/api/results.php';
+/* ---- APIVerve Lottery Numbers API --------------------------------------- */
+/* https://apiverve.com/marketplace/lottery                                   */
+var APIVERVE_API_KEY  = 'apv_1d3d07ef-4d5d-4b61-bfa2-0fab357fb5b4';
+var APIVERVE_BASE_URL = 'https://api.apiverve.com/v1/lottery';
 
-/* Map from our internal format ID to the magayo game identifier */
-var MAGAYO_GAME_IDS = {
-    'sa-lotto':      'za_lotto',
-    'euro-millions': 'euromillions',
-    'uk-lotto':      'uk_lotto',
-    'uk-49s':        'uk_49s',
-    'lt-jega':       'lt_jega'
+/* Map from our internal format ID to the APIVerve lottery name */
+var APIVERVE_GAME_IDS = {
+    'euro-millions': 'euromillions'
 };
 /* -------------------------------------------------------------------------- */
 
 /* Official API support map — used to show live badges in the modal */
 var COLLECT_API_SUPPORT = {
-    'sa-lotto':      true,
+    'sa-lotto':      false,
     'sa-powerball':  true,
     'sa-daily':      true,
     'us-powerball':  true,
     'mega-millions': true,
     'euro-millions': true,
-    'uk-lotto':      true,
-    'uk-49s':        true,
-    'lt-jega':       true
+    'uk-lotto':      false,
+    'uk-49s':        false,
+    'lt-jega':       false
 };
 
 /* Source labels shown next to each format in the collect modal */
 var COLLECT_SOURCE_LABELS = {
-    'sa-lotto':      'magayo API',
     'sa-powerball':  'national-lottery.co.za',
     'sa-daily':      'national-lottery.co.za',
     'us-powerball':  'NY Open Data API',
     'mega-millions': 'NY Open Data API',
-    'euro-millions': 'magayo API',
-    'uk-lotto':      'magayo API',
-    'uk-49s':        'magayo API',
-    'lt-jega':       'magayo API'
+    'euro-millions': 'APIVerve'
 };
 
 /* Official results page links shown when no API is available */
@@ -1828,11 +1820,7 @@ async function fetchDrawsFromNet(fmtId, count, fromDate) {
         case 'mega-millions': return await fetchMegaMillions(count, fromDate);
         case 'sa-powerball':
         case 'sa-daily':      return await fetchFromNationalLotteryZA(fmtId, count, fromDate);
-        case 'sa-lotto':
-        case 'euro-millions':
-        case 'uk-lotto':
-        case 'uk-49s':
-        case 'lt-jega':       return await fetchFromMagayo(fmtId);
+        case 'euro-millions': return await fetchFromApiVerve(fmtId);
         default:
             var url = COLLECT_OFFICIAL_URLS[fmtId] || '';
             var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
@@ -1844,67 +1832,69 @@ async function fetchDrawsFromNet(fmtId, count, fromDate) {
     }
 }
 
-/* magayo Lottery Data API — https://www.magayo.com/lottery-feeds/lottery-data-api/
-   Fetches the latest draw result for lotteries supported by the magayo API.
-   The api_key is passed as a query parameter; the endpoint returns a single
-   JSON object { error, draw, results } where "results" is a comma-separated
-   string of all drawn numbers (main numbers followed by bonus number(s)).
-   Note: the request is routed via allorigins.win (a free CORS proxy) because
-   the magayo API does not set Access-Control-Allow-Origin headers, which
-   prevents browsers from reading the response directly. No user credentials
-   are transmitted through the proxy. */
-async function fetchFromMagayo(fmtId) {
+/* APIVerve Lottery Numbers API — https://apiverve.com/marketplace/lottery
+   Fetches the latest draw result for lotteries supported by the APIVerve API.
+   The API key is sent as the x-api-key request header.  The endpoint returns
+   a JSON object { status, data } where data.numbers is an array of all drawn
+   numbers (main numbers followed by bonus/lucky-star numbers) and data.drawDate
+   is the draw date string.
+   Note: the APIVerve endpoint supports CORS for browser requests, so no proxy
+   is required. */
+async function fetchFromApiVerve(fmtId) {
     var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
     if (!fmt) throw new Error('Unknown format: ' + fmtId);
 
-    var gameId = MAGAYO_GAME_IDS[fmtId];
+    var gameId = APIVERVE_GAME_IDS[fmtId];
     if (!gameId) {
-        throw new Error('&#128683; ' + fmt.name + ' is not available via the magayo API.');
+        throw new Error('&#128683; ' + fmt.name + ' is not available via the APIVerve API.');
     }
 
-    var directUrl = MAGAYO_BASE_URL + '?api_key=' + encodeURIComponent(MAGAYO_API_KEY) + '&game=' + encodeURIComponent(gameId);
-    var proxyUrl  = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(directUrl);
+    var url = APIVERVE_BASE_URL + '?numbers=' + encodeURIComponent(gameId);
 
     var resp;
     try {
-        resp = await fetch(proxyUrl);
+        resp = await fetch(url, {
+            method: 'GET',
+            headers: { 'x-api-key': APIVERVE_API_KEY }
+        });
     } catch (e) {
         throw new Error(
-            '&#10060; Could not reach magayo API. ' +
+            '&#10060; Could not reach APIVerve API. ' +
             'Check your internet connection or try again later.'
         );
     }
 
     if (!resp.ok) {
-        throw new Error('&#10060; magayo API returned HTTP ' + resp.status + ' for ' + fmt.name + '.');
+        throw new Error('&#10060; APIVerve API returned HTTP ' + resp.status + ' for ' + fmt.name + '.');
     }
 
     var data;
     try {
         data = await resp.json();
     } catch (e) {
-        throw new Error('&#10060; Unexpected response from magayo API. Please try again later.');
+        throw new Error('&#10060; Unexpected response from APIVerve API. Please try again later.');
     }
 
-    if (data.error !== 0) {
-        throw new Error('&#10060; magayo API error ' + data.error + ' for ' + fmt.name + '. The game may not be available on your current plan.');
+    if (data.status !== 'ok' || !data.data) {
+        throw new Error('&#10060; APIVerve API error for ' + fmt.name + '. The game may not be available on your current plan.');
     }
 
-    if (!data.draw || !data.results) {
-        throw new Error('&#10060; No draw data returned by magayo API for ' + fmt.name + '.');
+    var result = data.data;
+
+    if (!result.drawDate || !result.numbers || !Array.isArray(result.numbers)) {
+        throw new Error('&#10060; No draw data returned by APIVerve API for ' + fmt.name + '.');
     }
 
-    /* Parse the comma-separated results string into main numbers and bonus */
-    var allNums = data.results.split(',').map(function(n) { return parseInt(n.trim(), 10); }).filter(function(n) { return !isNaN(n); });
+    var allNums = result.numbers.map(function(n) { return parseInt(n, 10); }).filter(function(n) { return !isNaN(n); });
 
     if (allNums.length < fmt.mainCount) {
-        throw new Error('&#10060; magayo API returned only ' + allNums.length + ' number(s) for ' + fmt.name + '; expected at least ' + fmt.mainCount + '.');
+        throw new Error('&#10060; APIVerve API returned only ' + allNums.length + ' number(s) for ' + fmt.name + '; expected at least ' + fmt.mainCount + '.');
     }
 
     var mainNums  = allNums.slice(0, fmt.mainCount);
     var bonusNums = fmt.bonusCount > 0 ? allNums.slice(fmt.mainCount, fmt.mainCount + fmt.bonusCount) : [];
 
-    return [{ date: data.draw, numbers: mainNums, bonus: bonusNums }];
+    return [{ date: result.drawDate, numbers: mainNums, bonus: bonusNums }];
 }
 
 /* SA National Lottery — national-lottery.co.za via allorigins.win CORS proxy.
