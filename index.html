@@ -1672,6 +1672,7 @@ var MAGAYO_BASE_URL = 'https://www.magayo.com/api/results.php';
 
 /* Map from our internal format ID to the magayo game identifier */
 var MAGAYO_GAME_IDS = {
+    'sa-lotto':      'za_lotto',
     'euro-millions': 'euromillions',
     'uk-lotto':      'uk_lotto',
     'uk-49s':        'uk_49s',
@@ -1694,7 +1695,7 @@ var COLLECT_API_SUPPORT = {
 
 /* Source labels shown next to each format in the collect modal */
 var COLLECT_SOURCE_LABELS = {
-    'sa-lotto':      'national-lottery.co.za',
+    'sa-lotto':      'magayo API',
     'sa-powerball':  'national-lottery.co.za',
     'sa-daily':      'national-lottery.co.za',
     'us-powerball':  'NY Open Data API',
@@ -1825,9 +1826,9 @@ async function fetchDrawsFromNet(fmtId, count, fromDate) {
     switch (fmtId) {
         case 'us-powerball':  return await fetchUSPowerball(count, fromDate);
         case 'mega-millions': return await fetchMegaMillions(count, fromDate);
-        case 'sa-lotto':
         case 'sa-powerball':
         case 'sa-daily':      return await fetchFromNationalLotteryZA(fmtId, count, fromDate);
+        case 'sa-lotto':
         case 'euro-millions':
         case 'uk-lotto':
         case 'uk-49s':
