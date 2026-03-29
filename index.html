@@ -1676,26 +1676,48 @@ var APIVERVE_GAME_IDS = {
 };
 /* -------------------------------------------------------------------------- */
 
+/* ---- RapidAPI Lotto Draw Results Global ---------------------------------- */
+/* https://rapidapi.com/api-sports/api/lotto-draw-results-global              */
+var RAPIDAPI_KEY      = '556ed809f4msh9cfffab1ff2d752p1d28b5jsnd56070763ddf';
+var RAPIDAPI_HOST     = 'lotto-draw-results-global.p.rapidapi.com';
+var RAPIDAPI_BASE_URL = 'https://lotto-draw-results-global.p.rapidapi.com/get_result';
+
+/* Map from our internal format ID to the RapidAPI {country}/{lottery} path */
+var RAPIDAPI_GAME_IDS = {
+    'sa-lotto':  'za/lotto',
+    'uk-lotto':  'gb/lotto',
+    'uk-49s':    'gb/49s',
+    'uk-39s':    'gb/39s',
+    'lt-jega':   'lt/jega'
+};
+/* -------------------------------------------------------------------------- */
+
 /* Official API support map — used to show live badges in the modal */
 var COLLECT_API_SUPPORT = {
-    'sa-lotto':      false,
+    'sa-lotto':      true,
     'sa-powerball':  true,
     'sa-daily':      true,
     'us-powerball':  true,
     'mega-millions': true,
     'euro-millions': true,
-    'uk-lotto':      false,
-    'uk-49s':        false,
-    'lt-jega':       false
+    'uk-lotto':      true,
+    'uk-49s':        true,
+    'uk-39s':        true,
+    'lt-jega':       true
 };
 
 /* Source labels shown next to each format in the collect modal */
 var COLLECT_SOURCE_LABELS = {
+    'sa-lotto':      'RapidAPI Global Lotto',
     'sa-powerball':  'national-lottery.co.za',
     'sa-daily':      'national-lottery.co.za',
     'us-powerball':  'NY Open Data API',
     'mega-millions': 'NY Open Data API',
-    'euro-millions': 'APIVerve'
+    'euro-millions': 'APIVerve',
+    'uk-lotto':      'RapidAPI Global Lotto',
+    'uk-49s':        'RapidAPI Global Lotto',
+    'uk-39s':        'RapidAPI Global Lotto',
+    'lt-jega':       'RapidAPI Global Lotto'
 };
 
 /* Official results page links shown when no API is available */
@@ -1821,6 +1843,11 @@ async function fetchDrawsFromNet(fmtId, count, fromDate) {
         case 'sa-powerball':
         case 'sa-daily':      return await fetchFromNationalLotteryZA(fmtId, count, fromDate);
         case 'euro-millions': return await fetchFromApiVerve(fmtId);
+        case 'sa-lotto':
+        case 'uk-lotto':
+        case 'uk-49s':
+        case 'uk-39s':
+        case 'lt-jega':       return await fetchFromRapidAPI(fmtId, count, fromDate);
         default:
             var url = COLLECT_OFFICIAL_URLS[fmtId] || '';
             var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
@@ -2209,9 +2236,119 @@ async function fetchMegaMillions(count, fromDate) {
         });
 }
 
-/* ============================================================
-   PATTERN DETECTOR
-   ============================================================ */
+/* RapidAPI Lotto Draw Results Global
+   Endpoint: GET /get_result/{country}/{lottery}/{YYYY-MM-DD}
+   The API key is sent as the x-rapidapi-key header.  Each call returns a
+   single draw result for the given date.  We build the list of expected draw
+   dates from the format's drawDays schedule and fetch them individually,
+   collecting up to `count` results starting from `fromDate`.               */
+async function fetchFromRapidAPI(fmtId, count, fromDate) {
+    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    if (!fmt) throw new Error('Unknown format: ' + fmtId);
+
+    var gamePath = RAPIDAPI_GAME_IDS[fmtId];
+    if (!gamePath) {
+        throw new Error('&#128683; ' + fmt.name + ' is not available via the RapidAPI Lotto Draw Results API.');
+    }
+
+    /* Build a list of expected draw dates (newest first) */
+    var start = fromDate ? new Date(fromDate) : (function() { var d = new Date(); d.setDate(d.getDate() - 90); return d; }());
+    var end   = new Date();
+    var dates = [];
+    var cur = new Date(start);
+    while (cur <= end) {
+        if (fmt.drawDays.indexOf(cur.getDay()) !== -1) {
+            dates.push(cur.toISOString().slice(0, 10));
+        }
+        cur.setDate(cur.getDate() + 1);
+    }
+    dates.reverse(); /* most recent first */
+    if (dates.length > count) dates = dates.slice(0, count);
+
+    var results = [];
+    for (var i = 0; i < dates.length; i++) {
+        var url = RAPIDAPI_BASE_URL + '/' + gamePath + '/' + dates[i];
+        var resp;
+        try {
+            resp = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'x-rapidapi-host': RAPIDAPI_HOST,
+                    'x-rapidapi-key':  RAPIDAPI_KEY
+                }
+            });
+        } catch (e) {
+            /* Network error for this date — skip and continue */
+            continue;
+        }
+        if (!resp.ok) continue;
+        var data;
+        try { data = await resp.json(); } catch (e) { continue; }
+        var draw = parseRapidAPIResponse(data, dates[i], fmt);
+        if (draw) results.push(draw);
+    }
+
+    if (results.length === 0) {
+        throw new Error(
+            '&#10060; No draw results returned by RapidAPI for ' + fmt.name + '. ' +
+            'The API may not cover this date range or the game path may differ. ' +
+            'Please try a different date range or add draws manually.'
+        );
+    }
+    return results;
+}
+
+/* Parse a single RapidAPI /get_result response into the app's draw object.
+   Handles common envelope shapes and normalises numbers to integer arrays. */
+function parseRapidAPIResponse(data, dateStr, fmt) {
+    if (!data) return null;
+
+    /* Unwrap common envelope shapes: { result: … }, { data: … }, or bare object */
+    var payload = data.result || data.data || data;
+
+    /* Extract numbers — accept common field names used by the API */
+    var rawNumbers = payload.numbers || payload.winning_numbers || payload.draw_numbers || null;
+    var rawBonus   = payload.bonus_number || payload.bonus_ball || payload.bonus || payload.extra || null;
+    var rawDate    = payload.date || payload.draw_date || dateStr;
+
+    if (!rawNumbers) return null;
+
+    /* Normalise numbers to an array of integers */
+    var mainNumbers;
+    if (Array.isArray(rawNumbers)) {
+        mainNumbers = rawNumbers.map(Number).filter(function(n) { return !isNaN(n) && n > 0; });
+    } else if (typeof rawNumbers === 'string') {
+        mainNumbers = rawNumbers.trim().split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n > 0; });
+    } else {
+        return null;
+    }
+
+    /* If the API bundles bonus balls into the main array, split them off */
+    var bonusNumbers = [];
+    if (mainNumbers.length > fmt.mainCount) {
+        bonusNumbers = mainNumbers.slice(fmt.mainCount);
+        mainNumbers  = mainNumbers.slice(0, fmt.mainCount);
+    }
+
+    /* Use the explicit bonus field when present and no bonus extracted yet */
+    if (bonusNumbers.length === 0 && rawBonus !== null && rawBonus !== undefined) {
+        if (Array.isArray(rawBonus)) {
+            bonusNumbers = rawBonus.map(Number).filter(function(n) { return !isNaN(n) && n > 0; });
+        } else {
+            var b = parseInt(rawBonus, 10);
+            if (!isNaN(b) && b > 0) bonusNumbers = [b];
+        }
+    }
+
+    /* Normalise date string */
+    var date = (typeof rawDate === 'string' ? rawDate : String(rawDate)).slice(0, 10);
+
+    if (mainNumbers.length === 0) return null;
+
+    return { date: date, numbers: mainNumbers, bonus: bonusNumbers };
+}
+
+
 
 var MIN_DRAWS_FOR_ANALYSIS = 3;
 
