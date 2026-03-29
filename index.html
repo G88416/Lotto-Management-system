@@ -625,7 +625,8 @@ const FORMATS = [
     { id:'uk-lotto',      name:'UK Lotto',            flag:'\u{1F1EC}\u{1F1E7}', mainCount:6, mainMax:59, bonusCount:1, bonusMax:59, bonusLabel:'Bonus Ball',   bonusColor:'ball-bonus', ticketPrice:2,   currency:'\u00A3',  jackpot:'\u00A34M+',  drawDays:[3,6],         drawTime:'20:30' },
     { id:'uk-49s',        name:'UK 49s',              flag:'\u{1F1EC}\u{1F1E7}', mainCount:6, mainMax:49, bonusCount:1, bonusMax:49, bonusLabel:'Booster Ball', bonusColor:'ball-bonus', ticketPrice:1,   currency:'\u00A3',  jackpot:'\u00A3100K+',drawDays:[1,2,3,4,5,6], drawTime:'17:49' },
     { id:'uk-39s',        name:'UK 39s',              flag:'\u{1F1EC}\u{1F1E7}', mainCount:5, mainMax:39, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:1,   currency:'\u00A3',  jackpot:'\u00A350K+', drawDays:[1,3,5],       drawTime:'18:30' },
-    { id:'lt-jega',       name:'Lithuania Jega 6/30', flag:'\u{1F1F1}\u{1F1F9}', mainCount:6, mainMax:30, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:1,   currency:'\u20AC',  jackpot:'\u20AC500K+',drawDays:[3,6],         drawTime:'20:00' }
+    { id:'lt-jega',       name:'Lithuania Jega 6/30', flag:'\u{1F1F1}\u{1F1F9}', mainCount:6, mainMax:30, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:1,   currency:'\u20AC',  jackpot:'\u20AC500K+',drawDays:[3,6],         drawTime:'20:00' },
+    { id:'us-lotto',      name:'US Lotto',             flag:'\u{1F1FA}\u{1F1F8}', mainCount:6, mainMax:53, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:1,   currency:'$',       jackpot:'$1M+',       drawDays:[3,6],         drawTime:'23:00' }
 ];
 
 let state = {
@@ -1688,7 +1689,8 @@ var RAPIDAPI_GAME_IDS = {
     'uk-lotto':  'gb/lotto',
     'uk-49s':    'gb/49s',
     'uk-39s':    'gb/39s',
-    'lt-jega':   'lt/jega'
+    'lt-jega':   'lt/jega',
+    'us-lotto':  'us/lotto'
 };
 /* -------------------------------------------------------------------------- */
 
@@ -1703,7 +1705,8 @@ var COLLECT_API_SUPPORT = {
     'uk-lotto':      true,
     'uk-49s':        true,
     'uk-39s':        true,
-    'lt-jega':       true
+    'lt-jega':       true,
+    'us-lotto':      true
 };
 
 /* Source labels shown next to each format in the collect modal */
@@ -1717,7 +1720,8 @@ var COLLECT_SOURCE_LABELS = {
     'uk-lotto':      'RapidAPI Global Lotto',
     'uk-49s':        'RapidAPI Global Lotto',
     'uk-39s':        'RapidAPI Global Lotto',
-    'lt-jega':       'RapidAPI Global Lotto'
+    'lt-jega':       'RapidAPI Global Lotto',
+    'us-lotto':      'RapidAPI Global Lotto'
 };
 
 /* Official results page links shown when no API is available */
@@ -1729,7 +1733,8 @@ var COLLECT_OFFICIAL_URLS = {
     'uk-49s':        'https://www.uk49s.co.uk/results/',
     'uk-39s':        'https://www.uk49s.co.uk/uk39s-results/',
     'euro-millions': 'https://www.euromillions.com/en/results',
-    'lt-jega':       'https://www.olifeja.lt/rezultatai/'
+    'lt-jega':       'https://www.olifeja.lt/rezultatai/',
+    'us-lotto':      'https://www.usamega.com/lotto-results.htm'
 };
 
 /* national-lottery.co.za result page URLs */
@@ -1847,7 +1852,8 @@ async function fetchDrawsFromNet(fmtId, count, fromDate) {
         case 'uk-lotto':
         case 'uk-49s':
         case 'uk-39s':
-        case 'lt-jega':       return await fetchFromRapidAPI(fmtId, count, fromDate);
+        case 'lt-jega':
+        case 'us-lotto':      return await fetchFromRapidAPI(fmtId, count, fromDate);
         default:
             var url = COLLECT_OFFICIAL_URLS[fmtId] || '';
             var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
@@ -2242,6 +2248,43 @@ async function fetchMegaMillions(count, fromDate) {
    single draw result for the given date.  We build the list of expected draw
    dates from the format's drawDays schedule and fetch them individually,
    collecting up to `count` results starting from `fromDate`.               */
+
+/* Wraps a single RapidAPI GET request in a Promise using XMLHttpRequest so
+   that credentials and all required headers are set exactly as specified by
+   the RapidAPI code snippet (withCredentials, x-rapidapi-key/host,
+   Content-Type: application/json).                                         */
+function rapidAPIXHRGet(url) {
+    return new Promise(function(resolve, reject) {
+        const data = null;
+
+        var xhr = new XMLHttpRequest();
+        xhr.withCredentials = true;
+
+        xhr.addEventListener('readystatechange', function() {
+            if (this.readyState === this.DONE) {
+                if (this.status >= 200 && this.status < 300) {
+                    try {
+                        resolve(JSON.parse(this.responseText));
+                    } catch (e) {
+                        reject(new Error('Invalid JSON from RapidAPI: ' + e.message));
+                    }
+                } else if (this.status === 0) {
+                    reject(new Error('Network error or request blocked'));
+                } else {
+                    reject(new Error('HTTP ' + this.status));
+                }
+            }
+        });
+
+        xhr.open('GET', url);
+        xhr.setRequestHeader('x-rapidapi-key',  RAPIDAPI_KEY);
+        xhr.setRequestHeader('x-rapidapi-host', RAPIDAPI_HOST);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+
+        xhr.send(data);
+    });
+}
+
 async function fetchFromRapidAPI(fmtId, count, fromDate) {
     var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
     if (!fmt) throw new Error('Unknown format: ' + fmtId);
@@ -2268,22 +2311,13 @@ async function fetchFromRapidAPI(fmtId, count, fromDate) {
     var results = [];
     for (var i = 0; i < dates.length; i++) {
         var url = RAPIDAPI_BASE_URL + '/' + gamePath + '/' + dates[i];
-        var resp;
+        var data;
         try {
-            resp = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'x-rapidapi-host': RAPIDAPI_HOST,
-                    'x-rapidapi-key':  RAPIDAPI_KEY
-                }
-            });
+            data = await rapidAPIXHRGet(url);
         } catch (e) {
-            /* Network error for this date — skip and continue */
+            /* Network error or non-2xx for this date — skip and continue */
             continue;
         }
-        if (!resp.ok) continue;
-        var data;
-        try { data = await resp.json(); } catch (e) { continue; }
         var draw = parseRapidAPIResponse(data, dates[i], fmt);
         if (draw) results.push(draw);
     }
