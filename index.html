@@ -1686,9 +1686,7 @@ var RAPIDAPI_BASE_URL = 'https://lotto-draw-results-global.p.rapidapi.com/get_re
 /* Map from our internal format ID to the RapidAPI {country}/{lottery} path */
 var RAPIDAPI_GAME_IDS = {
     'sa-lotto':  'za/lotto',
-    'uk-lotto':  'gb/lotto',
-    'uk-49s':    'gb/49s',
-    'uk-39s':    'gb/39s',
+    'uk-lotto':  'uk/lotto',
     'lt-jega':   'lt/jega',
     'us-lotto':  'us/lotto'
 };
@@ -1703,8 +1701,8 @@ var COLLECT_API_SUPPORT = {
     'mega-millions': true,
     'euro-millions': true,
     'uk-lotto':      true,
-    'uk-49s':        true,
-    'uk-39s':        true,
+    'uk-49s':        false,
+    'uk-39s':        false,
     'lt-jega':       true,
     'us-lotto':      true
 };
@@ -1718,8 +1716,6 @@ var COLLECT_SOURCE_LABELS = {
     'mega-millions': 'NY Open Data API',
     'euro-millions': 'APIVerve',
     'uk-lotto':      'RapidAPI Global Lotto',
-    'uk-49s':        'RapidAPI Global Lotto',
-    'uk-39s':        'RapidAPI Global Lotto',
     'lt-jega':       'RapidAPI Global Lotto',
     'us-lotto':      'RapidAPI Global Lotto'
 };
