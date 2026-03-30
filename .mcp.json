@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "RapidAPI Hub - Lottery Results": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.rapidapi.com",
+        "--header",
+        "x-api-host: lottery-results.p.rapidapi.com",
+        "--header",
+        "x-api-key: 556ed809f4msh9cfffab1ff2d752p1d28b5jsnd56070763ddf"
+      ]
+    }
+  }
+}
