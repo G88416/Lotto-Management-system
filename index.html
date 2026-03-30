@@ -1878,8 +1878,8 @@ var COLLECT_API_SUPPORT = {
     'mega-millions':      true,
     'euro-millions':      true,
     'uk-lotto':           true,
-    'uk-49s':             false,
-    'uk-39s':             false,
+    'uk-49s':             true,
+    'uk-39s':             true,
     'lt-jega':            true,
     'us-lotto':           true,
     /* Australia */
@@ -1934,7 +1934,7 @@ var COLLECT_API_SUPPORT = {
     'br-lotofacil':       true,
     'br-quina':           true,
     'mx-melate':          true,
-    'ar-quiniela':        false,
+    'ar-quiniela':        true,
     'ny-take5':           true,
     'us-lucky-for-life':  true,
     'cl-loto':            true
@@ -1950,6 +1950,8 @@ var COLLECT_SOURCE_LABELS = {
     'mega-millions':      'NY Open Data API',
     'euro-millions':      'APIVerve',
     'uk-lotto':           'RapidAPI Global Lotto',
+    'uk-49s':             'uk49s.co.uk',
+    'uk-39s':             'uk49s.co.uk',
     'lt-jega':            'RapidAPI Global Lotto',
     'us-lotto':           'RapidAPI Global Lotto',
     /* Australia */
@@ -2004,6 +2006,7 @@ var COLLECT_SOURCE_LABELS = {
     'br-lotofacil':       'Loteriascaixa API',
     'br-quina':           'Loteriascaixa API',
     'mx-melate':          'RapidAPI Global Lotto',
+    'ar-quiniela':        'loterianacional.gob.ar',
     'ny-take5':           'NY Open Data API',
     'us-lucky-for-life':  'RapidAPI Global Lotto',
     'cl-loto':            'RapidAPI Global Lotto'
@@ -2085,6 +2088,15 @@ var NLZA_URLS = {
     'sa-powerball': 'https://national-lottery.co.za/powerball-results/',
     'sa-daily':     'https://national-lottery.co.za/daily-lotto-results/'
 };
+
+/* UK 49s / UK 39s results website URLs */
+var UK_LOTTERY_URLS = {
+    'uk-49s': 'https://www.uk49s.co.uk/results/',
+    'uk-39s': 'https://www.uk49s.co.uk/uk39s-results/'
+};
+
+/* Argentine National Lottery Quiniela (Quiniela Nacional) */
+var ARQUINIELA_URL = 'https://www.loterianacional.gob.ar/quiniela';
 
 function openCollectModal() {
     var sel = document.getElementById('collect-format');
@@ -2195,6 +2207,9 @@ async function fetchDrawsFromNet(fmtId, count, fromDate) {
         case 'br-mega-sena':
         case 'br-lotofacil':
         case 'br-quina':      return await fetchFromBrazilCaixa(fmtId);
+        case 'uk-49s':
+        case 'uk-39s':        return await fetchFromUK49sWebsite(fmtId, count, fromDate);
+        case 'ar-quiniela':   return await fetchArgentinaQuiniela(count, fromDate);
     }
 
     /* Auto-route via APIVerve for any format mapped in APIVERVE_GAME_IDS */
@@ -2905,6 +2920,137 @@ async function fetchFromBrazilCaixa(fmtId) {
     }
 
     return [{ date: isoDate, numbers: mainNums, bonus: bonusNums }];
+}
+
+/* UK 49s / UK 39s — uk49s.co.uk via allorigins.win CORS proxy.
+   Draw results for both UK 49s (6 main + 1 booster from 1-49) and
+   UK 39s (5 main from 1-39) are published on uk49s.co.uk.  The pages
+   contain HTML tables of recent draw results which are parsed using
+   the same generic helpers used for the SA National Lottery
+   (nlzaParseTable / nlzaParseBlocks / nlzaParseText).
+   No API key is required; results are scraped via the allorigins.win
+   public CORS proxy.  If the proxy or the page structure changes the
+   function throws a descriptive error with a link to the official page
+   so the user can add draws manually. */
+async function fetchFromUK49sWebsite(fmtId, count, fromDate) {
+    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    if (!fmt) throw new Error('Unknown format: ' + fmtId);
+
+    var targetUrl = UK_LOTTERY_URLS[fmtId];
+    if (!targetUrl) throw new Error('No URL configured for ' + fmtId);
+
+    var proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(targetUrl);
+
+    var resp;
+    try {
+        resp = await fetch(proxyUrl);
+    } catch (e) {
+        throw new Error(
+            '&#10060; Could not reach uk49s.co.uk. ' +
+            'Visit <a href="' + targetUrl + '" target="_blank" rel="noopener noreferrer" ' +
+            'style="color:inherit;text-decoration:underline;">uk49s.co.uk</a> ' +
+            'to add draws manually.'
+        );
+    }
+
+    if (!resp.ok) {
+        throw new Error(
+            '&#10060; uk49s.co.uk returned HTTP ' + resp.status + '. ' +
+            'Visit <a href="' + targetUrl + '" target="_blank" rel="noopener noreferrer" ' +
+            'style="color:inherit;text-decoration:underline;">uk49s.co.uk</a> ' +
+            'to add draws manually.'
+        );
+    }
+
+    var data;
+    try {
+        data = await resp.json();
+    } catch (e) {
+        throw new Error('&#10060; Unexpected response from CORS proxy. Please try again later.');
+    }
+
+    var html = data && data.contents;
+    if (!html) {
+        throw new Error('&#10060; Empty response from uk49s.co.uk proxy. Please try again later.');
+    }
+
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    var draws = parseNLZAPage(doc, fmt, count, fromDate);
+
+    if (draws.length === 0) {
+        throw new Error(
+            '&#10060; Could not parse results from uk49s.co.uk. ' +
+            'The page structure may have changed. ' +
+            'Visit <a href="' + targetUrl + '" target="_blank" rel="noopener noreferrer" ' +
+            'style="color:inherit;text-decoration:underline;">uk49s.co.uk</a> ' +
+            'to add draws manually.'
+        );
+    }
+
+    return draws;
+}
+
+/* Argentine National Lottery Quiniela — loterianacional.gob.ar via allorigins.win CORS proxy.
+   The Quiniela Nacional publishes its draw results (5 winning terminaciones, each 1-100)
+   on the official Argentine National Lottery website.  The results page is scraped via
+   the allorigins.win public CORS proxy and parsed with the same generic helpers used for
+   the SA National Lottery.  If the proxy or the page structure changes the function
+   throws a descriptive error with a link to the official page so the user can add draws
+   manually. */
+async function fetchArgentinaQuiniela(count, fromDate) {
+    var fmt = FORMATS.find(function(f) { return f.id === 'ar-quiniela'; });
+    if (!fmt) throw new Error('Unknown format: ar-quiniela');
+
+    var targetUrl = ARQUINIELA_URL;
+    var proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(targetUrl);
+
+    var resp;
+    try {
+        resp = await fetch(proxyUrl);
+    } catch (e) {
+        throw new Error(
+            '&#10060; Could not reach loterianacional.gob.ar. ' +
+            'Visit <a href="' + targetUrl + '" target="_blank" rel="noopener noreferrer" ' +
+            'style="color:inherit;text-decoration:underline;">loterianacional.gob.ar</a> ' +
+            'to add draws manually.'
+        );
+    }
+
+    if (!resp.ok) {
+        throw new Error(
+            '&#10060; loterianacional.gob.ar returned HTTP ' + resp.status + '. ' +
+            'Visit <a href="' + targetUrl + '" target="_blank" rel="noopener noreferrer" ' +
+            'style="color:inherit;text-decoration:underline;">loterianacional.gob.ar</a> ' +
+            'to add draws manually.'
+        );
+    }
+
+    var data;
+    try {
+        data = await resp.json();
+    } catch (e) {
+        throw new Error('&#10060; Unexpected response from CORS proxy. Please try again later.');
+    }
+
+    var html = data && data.contents;
+    if (!html) {
+        throw new Error('&#10060; Empty response from loterianacional.gob.ar proxy. Please try again later.');
+    }
+
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    var draws = parseNLZAPage(doc, fmt, count, fromDate);
+
+    if (draws.length === 0) {
+        throw new Error(
+            '&#10060; Could not parse results from loterianacional.gob.ar. ' +
+            'The page structure may have changed. ' +
+            'Visit <a href="' + targetUrl + '" target="_blank" rel="noopener noreferrer" ' +
+            'style="color:inherit;text-decoration:underline;">loterianacional.gob.ar</a> ' +
+            'to add draws manually.'
+        );
+    }
+
+    return draws;
 }
 
 
