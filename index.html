@@ -626,7 +626,131 @@ const FORMATS = [
     { id:'uk-49s',        name:'UK 49s',              flag:'\u{1F1EC}\u{1F1E7}', mainCount:6, mainMax:49, bonusCount:1, bonusMax:49, bonusLabel:'Booster Ball', bonusColor:'ball-bonus', ticketPrice:1,   currency:'\u00A3',  jackpot:'\u00A3100K+',drawDays:[1,2,3,4,5,6], drawTime:'17:49' },
     { id:'uk-39s',        name:'UK 39s',              flag:'\u{1F1EC}\u{1F1E7}', mainCount:5, mainMax:39, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:1,   currency:'\u00A3',  jackpot:'\u00A350K+', drawDays:[1,3,5],       drawTime:'18:30' },
     { id:'lt-jega',       name:'Lithuania Jega 6/30', flag:'\u{1F1F1}\u{1F1F9}', mainCount:6, mainMax:30, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:1,   currency:'\u20AC',  jackpot:'\u20AC500K+',drawDays:[3,6],         drawTime:'20:00' },
-    { id:'us-lotto',      name:'US Lotto',             flag:'\u{1F1FA}\u{1F1F8}', mainCount:6, mainMax:53, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:1,   currency:'$',       jackpot:'$1M+',       drawDays:[3,6],         drawTime:'23:00' }
+    { id:'us-lotto',      name:'US Lotto',             flag:'\u{1F1FA}\u{1F1F8}', mainCount:6, mainMax:53, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:1,   currency:'$',       jackpot:'$1M+',       drawDays:[3,6],         drawTime:'23:00' },
+
+    /* ---- Australia ---- */
+    { id:'au-powerball',        name:'Australia Powerball',        flag:'\u{1F1E6}\u{1F1FA}', mainCount:7,  mainMax:35, bonusCount:1, bonusMax:20, bonusLabel:'Powerball',      bonusColor:'ball-power', ticketPrice:1.35, currency:'A$',  jackpot:'A$3M+',      drawDays:[4],           drawTime:'20:30' },
+    { id:'au-oz-lotto',         name:'Australia Oz Lotto',         flag:'\u{1F1E6}\u{1F1FA}', mainCount:7,  mainMax:47, bonusCount:2, bonusMax:47, bonusLabel:'Supplementary',  bonusColor:'ball-bonus', ticketPrice:1.35, currency:'A$',  jackpot:'A$2M+',      drawDays:[2],           drawTime:'20:30' },
+    { id:'au-saturday-lotto',   name:'Australia Saturday Lotto',   flag:'\u{1F1E6}\u{1F1FA}', mainCount:6,  mainMax:45, bonusCount:2, bonusMax:45, bonusLabel:'Supplementary',  bonusColor:'ball-bonus', ticketPrice:1.35, currency:'A$',  jackpot:'A$4M+',      drawDays:[6],           drawTime:'19:30' },
+    { id:'au-monday-lotto',     name:'Australia Monday Lotto',     flag:'\u{1F1E6}\u{1F1FA}', mainCount:6,  mainMax:45, bonusCount:2, bonusMax:45, bonusLabel:'Supplementary',  bonusColor:'ball-bonus', ticketPrice:1.35, currency:'A$',  jackpot:'A$1M+',      drawDays:[1],           drawTime:'20:30' },
+    { id:'au-wednesday-lotto',  name:'Australia Wednesday Lotto',  flag:'\u{1F1E6}\u{1F1FA}', mainCount:6,  mainMax:45, bonusCount:2, bonusMax:45, bonusLabel:'Supplementary',  bonusColor:'ball-bonus', ticketPrice:1.35, currency:'A$',  jackpot:'A$1M+',      drawDays:[3],           drawTime:'20:30' },
+
+    /* ---- Canada ---- */
+    { id:'ca-lotto-649',        name:'Canada Lotto 6/49',          flag:'\u{1F1E8}\u{1F1E6}', mainCount:6,  mainMax:49, bonusCount:1, bonusMax:49, bonusLabel:'Bonus',          bonusColor:'ball-bonus', ticketPrice:3,    currency:'C$',  jackpot:'C$5M+',      drawDays:[3,6],         drawTime:'22:30' },
+    { id:'ca-lotto-max',        name:'Canada Lotto Max',           flag:'\u{1F1E8}\u{1F1E6}', mainCount:7,  mainMax:50, bonusCount:3, bonusMax:50, bonusLabel:'Bonus',          bonusColor:'ball-bonus', ticketPrice:5,    currency:'C$',  jackpot:'C$10M+',     drawDays:[2,5],         drawTime:'22:30' },
+    { id:'ca-daily-grand',      name:'Canada Daily Grand',         flag:'\u{1F1E8}\u{1F1E6}', mainCount:5,  mainMax:49, bonusCount:1, bonusMax:7,  bonusLabel:'Grand Number',   bonusColor:'ball-lucky', ticketPrice:3,    currency:'C$',  jackpot:'C$1K/day',   drawDays:[1,2,3,4,5],   drawTime:'21:30' },
+    { id:'ca-bc49',             name:'BC/49',                      flag:'\u{1F1E8}\u{1F1E6}', mainCount:6,  mainMax:49, bonusCount:1, bonusMax:49, bonusLabel:'Bonus',          bonusColor:'ball-bonus', ticketPrice:1,    currency:'C$',  jackpot:'C$2M+',      drawDays:[3,6],         drawTime:'19:00' },
+
+    /* ---- Germany ---- */
+    { id:'de-lotto',            name:'German Lotto 6/49',          flag:'\u{1F1E9}\u{1F1EA}', mainCount:6,  mainMax:49, bonusCount:1, bonusMax:10, bonusLabel:'Superzahl',      bonusColor:'ball-lucky', ticketPrice:1.2,  currency:'\u20AC', jackpot:'\u20AC2M+',  drawDays:[3,6],         drawTime:'19:25' },
+
+    /* ---- France ---- */
+    { id:'fr-loto',             name:'French Loto',                flag:'\u{1F1EB}\u{1F1F7}', mainCount:5,  mainMax:49, bonusCount:1, bonusMax:10, bonusLabel:'Num\u00E9ro Chance', bonusColor:'ball-lucky', ticketPrice:2.2, currency:'\u20AC', jackpot:'\u20AC2M+', drawDays:[1,3,6],       drawTime:'21:30' },
+
+    /* ---- Spain ---- */
+    { id:'es-primitiva',        name:'Spanish La Primitiva',       flag:'\u{1F1EA}\u{1F1F8}', mainCount:6,  mainMax:49, bonusCount:1, bonusMax:10, bonusLabel:'Complementario', bonusColor:'ball-bonus', ticketPrice:1,    currency:'\u20AC', jackpot:'\u20AC3M+',  drawDays:[4,6],         drawTime:'21:30' },
+    { id:'es-bonoloto',         name:'Spanish Bonoloto',           flag:'\u{1F1EA}\u{1F1F8}', mainCount:6,  mainMax:49, bonusCount:1, bonusMax:10, bonusLabel:'Complementario', bonusColor:'ball-bonus', ticketPrice:0.5,  currency:'\u20AC', jackpot:'\u20AC400K+',drawDays:[1,2,3,4,5,6], drawTime:'21:30' },
+    { id:'es-eurodreams',       name:'EuroDreams',                 flag:'\u{1F1EA}\u{1F1FA}', mainCount:6,  mainMax:40, bonusCount:1, bonusMax:5,  bonusLabel:'Dream Number',   bonusColor:'ball-lucky', ticketPrice:2,    currency:'\u20AC', jackpot:'\u20AC20K/mo', drawDays:[1,4],        drawTime:'20:30' },
+
+    /* ---- Italy ---- */
+    { id:'it-superenalotto',    name:'Italian SuperEnalotto',      flag:'\u{1F1EE}\u{1F1F9}', mainCount:6,  mainMax:90, bonusCount:1, bonusMax:90, bonusLabel:'Jolly',          bonusColor:'ball-lucky', ticketPrice:1,    currency:'\u20AC', jackpot:'\u20AC15M+', drawDays:[2,4,6],       drawTime:'20:00' },
+
+    /* ---- Ireland ---- */
+    { id:'ie-lotto',            name:'Irish Lotto',                flag:'\u{1F1EE}\u{1F1EA}', mainCount:6,  mainMax:47, bonusCount:1, bonusMax:47, bonusLabel:'Bonus Ball',     bonusColor:'ball-bonus', ticketPrice:2,    currency:'\u20AC', jackpot:'\u20AC2M+',  drawDays:[3,6],         drawTime:'20:00' },
+
+    /* ---- New Zealand ---- */
+    { id:'nz-powerball',        name:'New Zealand Powerball',      flag:'\u{1F1F3}\u{1F1FF}', mainCount:6,  mainMax:40, bonusCount:1, bonusMax:10, bonusLabel:'Powerball',      bonusColor:'ball-power', ticketPrice:1.5,  currency:'NZ$', jackpot:'NZ$4M+',     drawDays:[3,6],         drawTime:'20:00' },
+    { id:'nz-lotto',            name:'New Zealand Lotto',          flag:'\u{1F1F3}\u{1F1FF}', mainCount:6,  mainMax:40, bonusCount:1, bonusMax:40, bonusLabel:'Bonus Ball',     bonusColor:'ball-bonus', ticketPrice:1.5,  currency:'NZ$', jackpot:'NZ$1M+',     drawDays:[3,6],         drawTime:'20:00' },
+
+    /* ---- Czech Republic ---- */
+    { id:'cz-sportka',          name:'Czech Sportka',              flag:'\u{1F1E8}\u{1F1FF}', mainCount:6,  mainMax:49, bonusCount:1, bonusMax:49, bonusLabel:'Dopl\u0148kov\u00E9', bonusColor:'ball-bonus', ticketPrice:20, currency:'K\u010D', jackpot:'K\u010D10M+', drawDays:[3,6],    drawTime:'19:00' },
+
+    /* ---- Poland ---- */
+    { id:'pl-lotto',            name:'Polish Lotto',               flag:'\u{1F1F5}\u{1F1F1}', mainCount:6,  mainMax:49, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:3,    currency:'z\u0142', jackpot:'z\u01422M+', drawDays:[2,4,6],      drawTime:'22:00' },
+
+    /* ---- Sweden ---- */
+    { id:'se-lotto',            name:'Swedish Lotto',              flag:'\u{1F1F8}\u{1F1EA}', mainCount:7,  mainMax:35, bonusCount:1, bonusMax:35, bonusLabel:'Jokern',         bonusColor:'ball-lucky', ticketPrice:5,    currency:'kr',  jackpot:'kr10M+',     drawDays:[3,6],         drawTime:'19:00' },
+
+    /* ---- Norway ---- */
+    { id:'no-lotto',            name:'Norwegian Lotto',            flag:'\u{1F1F3}\u{1F1F4}', mainCount:7,  mainMax:34, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:5,    currency:'kr',  jackpot:'kr5M+',      drawDays:[6],           drawTime:'19:00' },
+
+    /* ---- Denmark ---- */
+    { id:'dk-lotto',            name:'Danish Lotto',               flag:'\u{1F1E9}\u{1F1F0}', mainCount:7,  mainMax:36, bonusCount:1, bonusMax:36, bonusLabel:'Extra',          bonusColor:'ball-bonus', ticketPrice:40,   currency:'kr',  jackpot:'kr10M+',     drawDays:[6],           drawTime:'20:00' },
+
+    /* ---- Finland ---- */
+    { id:'fi-lotto',            name:'Finnish Lotto',              flag:'\u{1F1EB}\u{1F1EE}', mainCount:7,  mainMax:40, bonusCount:2, bonusMax:40, bonusLabel:'Plus',           bonusColor:'ball-bonus', ticketPrice:1,    currency:'\u20AC', jackpot:'\u20AC1M+',  drawDays:[6],           drawTime:'21:00' },
+
+    /* ---- Belgium ---- */
+    { id:'be-loto',             name:'Belgian Loto',               flag:'\u{1F1E7}\u{1F1EA}', mainCount:6,  mainMax:45, bonusCount:1, bonusMax:45, bonusLabel:'Machine Ball',   bonusColor:'ball-bonus', ticketPrice:1.25, currency:'\u20AC', jackpot:'\u20AC1M+',  drawDays:[3,6],         drawTime:'20:00' },
+
+    /* ---- Netherlands ---- */
+    { id:'nl-lotto',            name:'Dutch Staatsloterij Lotto',  flag:'\u{1F1F3}\u{1F1F1}', mainCount:6,  mainMax:45, bonusCount:1, bonusMax:45, bonusLabel:'Bonus Ball',     bonusColor:'ball-bonus', ticketPrice:1.5,  currency:'\u20AC', jackpot:'\u20AC7.5M+',drawDays:[3,6],         drawTime:'19:00' },
+
+    /* ---- Austria ---- */
+    { id:'at-lotto',            name:'Austrian Lotto 6/45',        flag:'\u{1F1E6}\u{1F1F9}', mainCount:6,  mainMax:45, bonusCount:1, bonusMax:45, bonusLabel:'Zusatzzahl',     bonusColor:'ball-bonus', ticketPrice:1.5,  currency:'\u20AC', jackpot:'\u20AC1.5M+',drawDays:[3,6],         drawTime:'18:55' },
+
+    /* ---- Portugal ---- */
+    { id:'pt-totoloto',         name:'Portuguese Totoloto',        flag:'\u{1F1F5}\u{1F1F9}', mainCount:6,  mainMax:49, bonusCount:1, bonusMax:10, bonusLabel:'Especial',       bonusColor:'ball-lucky', ticketPrice:1.5,  currency:'\u20AC', jackpot:'\u20AC2M+',  drawDays:[2,6],         drawTime:'21:00' },
+
+    /* ---- Greece ---- */
+    { id:'gr-joker',            name:'Greek JOKER',                flag:'\u{1F1EC}\u{1F1F7}', mainCount:5,  mainMax:45, bonusCount:1, bonusMax:20, bonusLabel:'Joker',          bonusColor:'ball-lucky', ticketPrice:0.5,  currency:'\u20AC', jackpot:'\u20AC2M+',  drawDays:[1,4],         drawTime:'22:00' },
+
+    /* ---- Hungary ---- */
+    { id:'hu-lotto',            name:'Hungarian Hatoslott\u00F3', flag:'\u{1F1ED}\u{1F1FA}', mainCount:6,  mainMax:90, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:300,  currency:'Ft',  jackpot:'Ft300M+',    drawDays:[6],           drawTime:'19:00' },
+
+    /* ---- Romania ---- */
+    { id:'ro-loto649',          name:'Romanian Loto 6/49',         flag:'\u{1F1F7}\u{1F1F4}', mainCount:6,  mainMax:49, bonusCount:1, bonusMax:49, bonusLabel:'Bonus',          bonusColor:'ball-bonus', ticketPrice:5,    currency:'RON', jackpot:'RON2M+',     drawDays:[0,4],         drawTime:'18:30' },
+
+    /* ---- Switzerland ---- */
+    { id:'ch-swiss-lotto',      name:'Swiss Lotto',                flag:'\u{1F1E8}\u{1F1ED}', mainCount:6,  mainMax:42, bonusCount:1, bonusMax:6,  bonusLabel:'Lucky Number',   bonusColor:'ball-lucky', ticketPrice:1.5,  currency:'CHF', jackpot:'CHF3M+',     drawDays:[3,6],         drawTime:'21:30' },
+
+    /* ---- Turkey ---- */
+    { id:'tr-sayisal-loto',     name:'Turkish Say\u0131sal Loto',  flag:'\u{1F1F9}\u{1F1F7}', mainCount:6,  mainMax:49, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:5,    currency:'\u20BA', jackpot:'\u20BA3M+', drawDays:[3,6],         drawTime:'21:00' },
+
+    /* ---- Slovakia ---- */
+    { id:'sk-sportka',          name:'Slovak Sportka',             flag:'\u{1F1F8}\u{1F1F0}', mainCount:6,  mainMax:49, bonusCount:1, bonusMax:49, bonusLabel:'Dopl\u0148kov\u00E9', bonusColor:'ball-bonus', ticketPrice:0.5, currency:'\u20AC', jackpot:'\u20AC1M+', drawDays:[3,6],        drawTime:'20:00' },
+
+    /* ---- Bulgaria ---- */
+    { id:'bg-loto',             name:'Bulgarian Loto 6/42',        flag:'\u{1F1E7}\u{1F1EC}', mainCount:6,  mainMax:42, bonusCount:1, bonusMax:9,  bonusLabel:'Bonus',          bonusColor:'ball-bonus', ticketPrice:1,    currency:'\u043B\u0432', jackpot:'\u043B\u04321M+', drawDays:[3,6], drawTime:'21:00' },
+
+    /* ---- Hong Kong ---- */
+    { id:'hk-mark-six',         name:'HK Mark Six',                flag:'\u{1F1ED}\u{1F1F0}', mainCount:6,  mainMax:49, bonusCount:1, bonusMax:49, bonusLabel:'Extra Number',   bonusColor:'ball-bonus', ticketPrice:10,   currency:'HK$', jackpot:'HK$8M+',     drawDays:[2,4,6],       drawTime:'21:30' },
+
+    /* ---- Singapore ---- */
+    { id:'sg-toto',             name:'Singapore TOTO',             flag:'\u{1F1F8}\u{1F1EC}', mainCount:6,  mainMax:49, bonusCount:1, bonusMax:49, bonusLabel:'Additional',     bonusColor:'ball-bonus', ticketPrice:1,    currency:'S$',  jackpot:'S$1M+',      drawDays:[1,4],         drawTime:'21:30' },
+
+    /* ---- South Korea ---- */
+    { id:'kr-lotto',            name:'Korean Lotto 6/45',          flag:'\u{1F1F0}\u{1F1F7}', mainCount:6,  mainMax:45, bonusCount:1, bonusMax:45, bonusLabel:'Bonus',          bonusColor:'ball-bonus', ticketPrice:1000, currency:'\u20A9', jackpot:'\u20A93B+',  drawDays:[6],           drawTime:'20:45' },
+
+    /* ---- Philippines ---- */
+    { id:'ph-ultra-lotto',      name:'Philippine Ultra Lotto 6/58',flag:'\u{1F1F5}\u{1F1ED}', mainCount:6,  mainMax:58, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:24,   currency:'\u20B1', jackpot:'\u20B149M+', drawDays:[2,5,0],       drawTime:'21:00' },
+
+    /* ---- Israel ---- */
+    { id:'il-lotto',            name:'Israel Lotto',               flag:'\u{1F1EE}\u{1F1F1}', mainCount:6,  mainMax:37, bonusCount:1, bonusMax:7,  bonusLabel:'Strong Number',  bonusColor:'ball-lucky', ticketPrice:5.9,  currency:'\u20AA', jackpot:'\u20AA4M+',  drawDays:[1,3,6],       drawTime:'22:00' },
+
+    /* ---- Russia ---- */
+    { id:'ru-gosloto645',       name:'Russian Gosloto 6/45',       flag:'\u{1F1F7}\u{1F1FA}', mainCount:6,  mainMax:45, bonusCount:1, bonusMax:8,  bonusLabel:'Extra',          bonusColor:'ball-bonus', ticketPrice:100,  currency:'\u20BD', jackpot:'\u20BD100M+',drawDays:[0,1,2,3,4,5,6], drawTime:'22:00' },
+
+    /* ---- Ukraine ---- */
+    { id:'ua-super-loto',       name:'Ukrainian Super Loto',       flag:'\u{1F1FA}\u{1F1E6}', mainCount:6,  mainMax:52, bonusCount:1, bonusMax:52, bonusLabel:'Bonus',          bonusColor:'ball-bonus', ticketPrice:25,   currency:'\u20B4', jackpot:'\u20B45M+',  drawDays:[3,6],         drawTime:'21:00' },
+
+    /* ---- Brazil ---- */
+    { id:'br-mega-sena',        name:'Brazil Mega-Sena',           flag:'\u{1F1E7}\u{1F1F7}', mainCount:6,  mainMax:60, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:5,    currency:'R$',  jackpot:'R$5M+',      drawDays:[3,6],         drawTime:'20:00' },
+    { id:'br-lotofacil',        name:'Brazil Lotof\u00E1cil',      flag:'\u{1F1E7}\u{1F1F7}', mainCount:15, mainMax:25, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:3,    currency:'R$',  jackpot:'R$1.5M+',    drawDays:[0,1,2,3,4,5,6], drawTime:'20:00' },
+    { id:'br-quina',            name:'Brazil Quina',               flag:'\u{1F1E7}\u{1F1F7}', mainCount:5,  mainMax:80, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:2.5,  currency:'R$',  jackpot:'R$1M+',      drawDays:[0,1,2,3,4,5,6], drawTime:'20:00' },
+
+    /* ---- Mexico ---- */
+    { id:'mx-melate',           name:'Mexican Melate',             flag:'\u{1F1F2}\u{1F1FD}', mainCount:6,  mainMax:56, bonusCount:1, bonusMax:56, bonusLabel:'Adicional',      bonusColor:'ball-bonus', ticketPrice:15,   currency:'MX$', jackpot:'MX$15M+',    drawDays:[3,6],         drawTime:'21:00' },
+
+    /* ---- Argentina ---- */
+    { id:'ar-quiniela',         name:'Argentine Quiniela',         flag:'\u{1F1E6}\u{1F1F7}', mainCount:5,  mainMax:100,bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:50,   currency:'$',   jackpot:'$500K+',     drawDays:[1,2,3,4,5],   drawTime:'18:00' },
+
+    /* ---- US State ---- */
+    { id:'ny-take5',            name:'New York Take 5',            flag:'\u{1F1FA}\u{1F1F8}', mainCount:5,  mainMax:39, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:1,    currency:'$',   jackpot:'$50K+',      drawDays:[0,1,2,3,4,5,6], drawTime:'23:00' },
+    { id:'us-lucky-for-life',   name:'US Lucky For Life',          flag:'\u{1F1FA}\u{1F1F8}', mainCount:5,  mainMax:48, bonusCount:1, bonusMax:18, bonusLabel:'Lucky Ball',     bonusColor:'ball-lucky', ticketPrice:2,    currency:'$',   jackpot:'$1K/day',    drawDays:[1,4],         drawTime:'22:35' },
+
+    /* ---- Chile ---- */
+    { id:'cl-loto',             name:'Chilean Loto',               flag:'\u{1F1E8}\u{1F1F1}', mainCount:6,  mainMax:41, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:500,  currency:'CLP', jackpot:'CLP300M+',   drawDays:[6],           drawTime:'21:00' }
 ];
 
 let state = {
@@ -1685,52 +1809,274 @@ var RAPIDAPI_BASE_URL = 'https://lotto-draw-results-global.p.rapidapi.com/get_re
 
 /* Map from our internal format ID to the RapidAPI {country}/{lottery} path */
 var RAPIDAPI_GAME_IDS = {
-    'sa-lotto':  'za/lotto',
-    'uk-lotto':  'uk/lotto',
-    'lt-jega':   'lt/jega',
-    'us-lotto':  'us/lotto'
+    /* Existing */
+    'sa-lotto':          'za/lotto',
+    'uk-lotto':          'uk/lotto',
+    'lt-jega':           'lt/jega',
+    'us-lotto':          'us/lotto',
+    /* Australia */
+    'au-powerball':      'au/powerball',
+    'au-oz-lotto':       'au/oz-lotto',
+    'au-saturday-lotto': 'au/saturday-lotto',
+    'au-monday-lotto':   'au/monday-lotto',
+    'au-wednesday-lotto':'au/wednesday-lotto',
+    /* Canada */
+    'ca-lotto-649':      'ca/lotto-649',
+    'ca-lotto-max':      'ca/lotto-max',
+    'ca-daily-grand':    'ca/daily-grand',
+    'ca-bc49':           'ca/bc49',
+    /* Europe */
+    'de-lotto':          'de/lotto',
+    'fr-loto':           'fr/loto',
+    'es-primitiva':      'es/primitiva',
+    'es-bonoloto':       'es/bonoloto',
+    'es-eurodreams':     'es/eurodreams',
+    'it-superenalotto':  'it/superenalotto',
+    'ie-lotto':          'ie/lotto',
+    'nz-powerball':      'nz/powerball',
+    'nz-lotto':          'nz/lotto',
+    'cz-sportka':        'cz/sportka',
+    'pl-lotto':          'pl/lotto',
+    'se-lotto':          'se/lotto',
+    'no-lotto':          'no/lotto',
+    'dk-lotto':          'dk/lotto',
+    'fi-lotto':          'fi/lotto',
+    'be-loto':           'be/loto',
+    'nl-lotto':          'nl/lotto',
+    'at-lotto':          'at/lotto',
+    'pt-totoloto':       'pt/totoloto',
+    'gr-joker':          'gr/joker',
+    'hu-lotto':          'hu/lotto',
+    'ro-loto649':        'ro/loto-649',
+    'ch-swiss-lotto':    'ch/swiss-lotto',
+    'tr-sayisal-loto':   'tr/sayisal-loto',
+    'sk-sportka':        'sk/sportka',
+    'bg-loto':           'bg/loto',
+    /* Asia / Pacific */
+    'hk-mark-six':       'hk/mark-six',
+    'sg-toto':           'sg/toto',
+    'kr-lotto':          'kr/lotto',
+    'ph-ultra-lotto':    'ph/ultra-lotto',
+    /* Middle East / Eastern Europe */
+    'il-lotto':          'il/lotto',
+    'ru-gosloto645':     'ru/gosloto-6-45',
+    'ua-super-loto':     'ua/super-loto',
+    /* Americas */
+    'mx-melate':         'mx/melate',
+    'us-lucky-for-life': 'us/lucky-for-life',
+    'cl-loto':           'cl/loto'
 };
 /* -------------------------------------------------------------------------- */
 
 /* Official API support map — used to show live badges in the modal */
 var COLLECT_API_SUPPORT = {
-    'sa-lotto':      true,
-    'sa-powerball':  true,
-    'sa-daily':      true,
-    'us-powerball':  true,
-    'mega-millions': true,
-    'euro-millions': true,
-    'uk-lotto':      true,
-    'uk-49s':        false,
-    'uk-39s':        false,
-    'lt-jega':       true,
-    'us-lotto':      true
+    /* Existing */
+    'sa-lotto':           true,
+    'sa-powerball':       true,
+    'sa-daily':           true,
+    'us-powerball':       true,
+    'mega-millions':      true,
+    'euro-millions':      true,
+    'uk-lotto':           true,
+    'uk-49s':             false,
+    'uk-39s':             false,
+    'lt-jega':            true,
+    'us-lotto':           true,
+    /* Australia */
+    'au-powerball':       true,
+    'au-oz-lotto':        true,
+    'au-saturday-lotto':  true,
+    'au-monday-lotto':    true,
+    'au-wednesday-lotto': true,
+    /* Canada */
+    'ca-lotto-649':       true,
+    'ca-lotto-max':       true,
+    'ca-daily-grand':     true,
+    'ca-bc49':            true,
+    /* Europe */
+    'de-lotto':           true,
+    'fr-loto':            true,
+    'es-primitiva':       true,
+    'es-bonoloto':        true,
+    'es-eurodreams':      true,
+    'it-superenalotto':   true,
+    'ie-lotto':           true,
+    'nz-powerball':       true,
+    'nz-lotto':           true,
+    'cz-sportka':         true,
+    'pl-lotto':           true,
+    'se-lotto':           true,
+    'no-lotto':           true,
+    'dk-lotto':           true,
+    'fi-lotto':           true,
+    'be-loto':            true,
+    'nl-lotto':           true,
+    'at-lotto':           true,
+    'pt-totoloto':        true,
+    'gr-joker':           true,
+    'hu-lotto':           true,
+    'ro-loto649':         true,
+    'ch-swiss-lotto':     true,
+    'tr-sayisal-loto':    true,
+    'sk-sportka':         true,
+    'bg-loto':            true,
+    /* Asia / Pacific */
+    'hk-mark-six':        true,
+    'sg-toto':            true,
+    'kr-lotto':           true,
+    'ph-ultra-lotto':     true,
+    /* Middle East / Eastern Europe */
+    'il-lotto':           true,
+    'ru-gosloto645':      true,
+    'ua-super-loto':      true,
+    /* Americas */
+    'br-mega-sena':       true,
+    'br-lotofacil':       true,
+    'br-quina':           true,
+    'mx-melate':          true,
+    'ar-quiniela':        false,
+    'ny-take5':           true,
+    'us-lucky-for-life':  true,
+    'cl-loto':            true
 };
 
 /* Source labels shown next to each format in the collect modal */
 var COLLECT_SOURCE_LABELS = {
-    'sa-lotto':      'RapidAPI Global Lotto',
-    'sa-powerball':  'national-lottery.co.za',
-    'sa-daily':      'national-lottery.co.za',
-    'us-powerball':  'NY Open Data API',
-    'mega-millions': 'NY Open Data API',
-    'euro-millions': 'APIVerve',
-    'uk-lotto':      'RapidAPI Global Lotto',
-    'lt-jega':       'RapidAPI Global Lotto',
-    'us-lotto':      'RapidAPI Global Lotto'
+    /* Existing */
+    'sa-lotto':           'RapidAPI Global Lotto',
+    'sa-powerball':       'national-lottery.co.za',
+    'sa-daily':           'national-lottery.co.za',
+    'us-powerball':       'NY Open Data API',
+    'mega-millions':      'NY Open Data API',
+    'euro-millions':      'APIVerve',
+    'uk-lotto':           'RapidAPI Global Lotto',
+    'lt-jega':            'RapidAPI Global Lotto',
+    'us-lotto':           'RapidAPI Global Lotto',
+    /* Australia */
+    'au-powerball':       'RapidAPI Global Lotto',
+    'au-oz-lotto':        'RapidAPI Global Lotto',
+    'au-saturday-lotto':  'RapidAPI Global Lotto',
+    'au-monday-lotto':    'RapidAPI Global Lotto',
+    'au-wednesday-lotto': 'RapidAPI Global Lotto',
+    /* Canada */
+    'ca-lotto-649':       'RapidAPI Global Lotto',
+    'ca-lotto-max':       'RapidAPI Global Lotto',
+    'ca-daily-grand':     'RapidAPI Global Lotto',
+    'ca-bc49':            'RapidAPI Global Lotto',
+    /* Europe */
+    'de-lotto':           'RapidAPI Global Lotto',
+    'fr-loto':            'RapidAPI Global Lotto',
+    'es-primitiva':       'RapidAPI Global Lotto',
+    'es-bonoloto':        'RapidAPI Global Lotto',
+    'es-eurodreams':      'RapidAPI Global Lotto',
+    'it-superenalotto':   'RapidAPI Global Lotto',
+    'ie-lotto':           'RapidAPI Global Lotto',
+    'nz-powerball':       'RapidAPI Global Lotto',
+    'nz-lotto':           'RapidAPI Global Lotto',
+    'cz-sportka':         'RapidAPI Global Lotto',
+    'pl-lotto':           'RapidAPI Global Lotto',
+    'se-lotto':           'RapidAPI Global Lotto',
+    'no-lotto':           'RapidAPI Global Lotto',
+    'dk-lotto':           'RapidAPI Global Lotto',
+    'fi-lotto':           'RapidAPI Global Lotto',
+    'be-loto':            'RapidAPI Global Lotto',
+    'nl-lotto':           'RapidAPI Global Lotto',
+    'at-lotto':           'RapidAPI Global Lotto',
+    'pt-totoloto':        'RapidAPI Global Lotto',
+    'gr-joker':           'RapidAPI Global Lotto',
+    'hu-lotto':           'RapidAPI Global Lotto',
+    'ro-loto649':         'RapidAPI Global Lotto',
+    'ch-swiss-lotto':     'RapidAPI Global Lotto',
+    'tr-sayisal-loto':    'RapidAPI Global Lotto',
+    'sk-sportka':         'RapidAPI Global Lotto',
+    'bg-loto':            'RapidAPI Global Lotto',
+    /* Asia / Pacific */
+    'hk-mark-six':        'RapidAPI Global Lotto',
+    'sg-toto':            'RapidAPI Global Lotto',
+    'kr-lotto':           'RapidAPI Global Lotto',
+    'ph-ultra-lotto':     'RapidAPI Global Lotto',
+    /* Middle East / Eastern Europe */
+    'il-lotto':           'RapidAPI Global Lotto',
+    'ru-gosloto645':      'RapidAPI Global Lotto',
+    'ua-super-loto':      'RapidAPI Global Lotto',
+    /* Americas */
+    'br-mega-sena':       'Loteriascaixa API',
+    'br-lotofacil':       'Loteriascaixa API',
+    'br-quina':           'Loteriascaixa API',
+    'mx-melate':          'RapidAPI Global Lotto',
+    'ny-take5':           'NY Open Data API',
+    'us-lucky-for-life':  'RapidAPI Global Lotto',
+    'cl-loto':            'RapidAPI Global Lotto'
 };
 
 /* Official results page links shown when no API is available */
 var COLLECT_OFFICIAL_URLS = {
-    'sa-lotto':      'https://www.nationallottery.co.za/lotto/results',
-    'sa-powerball':  'https://www.nationallottery.co.za/powerball/results',
-    'sa-daily':      'https://www.nationallottery.co.za/daily-lotto/results',
-    'uk-lotto':      'https://www.national-lottery.co.uk/results/lotto/draw-history',
-    'uk-49s':        'https://www.uk49s.co.uk/results/',
-    'uk-39s':        'https://www.uk49s.co.uk/uk39s-results/',
-    'euro-millions': 'https://www.euromillions.com/en/results',
-    'lt-jega':       'https://www.olifeja.lt/rezultatai/',
-    'us-lotto':      'https://www.usamega.com/lotto-results.htm'
+    /* Existing */
+    'sa-lotto':           'https://www.nationallottery.co.za/lotto/results',
+    'sa-powerball':       'https://www.nationallottery.co.za/powerball/results',
+    'sa-daily':           'https://www.nationallottery.co.za/daily-lotto/results',
+    'uk-lotto':           'https://www.national-lottery.co.uk/results/lotto/draw-history',
+    'uk-49s':             'https://www.uk49s.co.uk/results/',
+    'uk-39s':             'https://www.uk49s.co.uk/uk39s-results/',
+    'euro-millions':      'https://www.euromillions.com/en/results',
+    'lt-jega':            'https://www.olifeja.lt/rezultatai/',
+    'us-lotto':           'https://www.usamega.com/lotto-results.htm',
+    /* Australia */
+    'au-powerball':       'https://www.thelott.com/powerball/results',
+    'au-oz-lotto':        'https://www.thelott.com/oz-lotto/results',
+    'au-saturday-lotto':  'https://www.thelott.com/saturday-lotto/results',
+    'au-monday-lotto':    'https://www.thelott.com/monday-lotto/results',
+    'au-wednesday-lotto': 'https://www.thelott.com/wednesday-lotto/results',
+    /* Canada */
+    'ca-lotto-649':       'https://www.lotterycanada.com/lotto-649',
+    'ca-lotto-max':       'https://www.lotterycanada.com/lotto-max',
+    'ca-daily-grand':     'https://www.lotterycanada.com/daily-grand',
+    'ca-bc49':            'https://www.bclottery.ca/play-online/lotto/bc49',
+    /* Europe */
+    'de-lotto':           'https://www.lotto.de/de/ergebnisse/lotto-6aus49/lottozahlen.html',
+    'fr-loto':            'https://www.fdj.fr/jeux-de-loterie/loto/resultats',
+    'es-primitiva':       'https://www.loteriasyapuestas.es/es/la-primitiva/resultados',
+    'es-bonoloto':        'https://www.loteriasyapuestas.es/es/bonoloto/resultados',
+    'es-eurodreams':      'https://www.loteriasyapuestas.es/es/eurodreams/resultados',
+    'it-superenalotto':   'https://www.superenalotto.it/risultati',
+    'ie-lotto':           'https://www.lottery.ie/results',
+    'nz-powerball':       'https://www.mylotto.co.nz/powerball/results',
+    'nz-lotto':           'https://www.mylotto.co.nz/lotto/results',
+    'cz-sportka':         'https://www.sazka.cz/loterijni-hry/sportka/vysledky',
+    'pl-lotto':           'https://www.lotto.pl/wyniki/lotto',
+    'se-lotto':           'https://www.sverigelotteriet.se/om-oss/lotto/resultat/',
+    'no-lotto':           'https://www.norsk-tipping.no/lotto',
+    'dk-lotto':           'https://www.lotteriet.dk/spil/lotto/resultater',
+    'fi-lotto':           'https://www.veikkaus.fi/fi/lotto',
+    'be-loto':            'https://www.loterie-nationale.be/nos-jeux/loto/resultats',
+    'nl-lotto':           'https://www.nederlandseloterij.nl/lotto/uitslagen',
+    'at-lotto':           'https://www.lotterien.at/lotto',
+    'pt-totoloto':        'https://www.jogossantacasa.pt/web/SCCartazExt/resultadosLotaria',
+    'gr-joker':           'https://www.opap.gr/en/joker/winning-numbers',
+    'hu-lotto':           'https://www.szerencsejatek.hu/lotto',
+    'ro-loto649':         'https://www.loto.ro/loto-6-din-49',
+    'ch-swiss-lotto':     'https://www.swisslos.ch/de/swisslotto/information/gewinnsystem',
+    'tr-sayisal-loto':    'https://www.mpi.gov.tr/SayisalLoto',
+    'sk-sportka':         'https://www.tipos.sk/sportka/vysledky',
+    'bg-loto':            'https://www.toto.bg/bg/sport-toto/sport-toto-bg',
+    /* Asia / Pacific */
+    'hk-mark-six':        'https://bet.hkjc.com/marksix/results/en/marksixresult.aspx',
+    'sg-toto':            'https://www.singaporepools.com.sg/en/product/Pages/toto_results.aspx',
+    'kr-lotto':           'https://dhlottery.co.kr/gameResult.do?method=byWin',
+    'ph-ultra-lotto':     'https://www.pcso.gov.ph/ResultsAndWinners/LotteryResults.aspx',
+    /* Middle East / Eastern Europe */
+    'il-lotto':           'https://www.mifal-hapayis.co.il/en-US/lotto/results',
+    'ru-gosloto645':      'https://www.stoloto.ru/gosloto645/archive',
+    'ua-super-loto':      'https://www.msl.ua/games/super-loto/',
+    /* Americas */
+    'br-mega-sena':       'https://loterias.caixa.gov.br/Paginas/Mega-Sena.aspx',
+    'br-lotofacil':       'https://loterias.caixa.gov.br/Paginas/Lotofacil.aspx',
+    'br-quina':           'https://loterias.caixa.gov.br/Paginas/Quina.aspx',
+    'mx-melate':          'https://www.lotenal.gob.mx/Sorteos/resultados',
+    'ar-quiniela':        'https://www.loterianacional.gob.ar/quiniela',
+    'ny-take5':           'https://www.nylottery.ny.gov/take5',
+    'us-lucky-for-life':  'https://www.luckyforlife.us/results',
+    'cl-loto':            'https://www.loto.cl/nuestros-juegos/loto/resultados'
 };
 
 /* national-lottery.co.za result page URLs */
@@ -1838,27 +2184,33 @@ function importFetchedDraws(draws, fmtId) {
 }
 
 async function fetchDrawsFromNet(fmtId, count, fromDate) {
+    /* Hard-coded routes for sources that require bespoke parsers */
     switch (fmtId) {
         case 'us-powerball':  return await fetchUSPowerball(count, fromDate);
         case 'mega-millions': return await fetchMegaMillions(count, fromDate);
         case 'sa-powerball':
         case 'sa-daily':      return await fetchFromNationalLotteryZA(fmtId, count, fromDate);
         case 'euro-millions': return await fetchFromApiVerve(fmtId);
-        case 'sa-lotto':
-        case 'uk-lotto':
-        case 'uk-49s':
-        case 'uk-39s':
-        case 'lt-jega':
-        case 'us-lotto':      return await fetchFromRapidAPI(fmtId, count, fromDate);
-        default:
-            var url = COLLECT_OFFICIAL_URLS[fmtId] || '';
-            var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
-            var name = fmt ? fmt.name : fmtId;
-            var linkHtml = url
-                ? ' Visit <a href="' + url + '" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;">' + name + ' official results</a> to copy and add draws manually.'
-                : ' Please add draws manually using the form below.';
-            throw new Error('&#128683; Automatic collection is not available for ' + name + ' \u2014 no public API exists.' + linkHtml);
+        case 'ny-take5':      return await fetchNYStateLottery(fmtId, count, fromDate);
+        case 'br-mega-sena':
+        case 'br-lotofacil':
+        case 'br-quina':      return await fetchFromBrazilCaixa(fmtId);
     }
+
+    /* Auto-route via APIVerve for any format mapped in APIVERVE_GAME_IDS */
+    if (APIVERVE_GAME_IDS[fmtId]) return await fetchFromApiVerve(fmtId);
+
+    /* Auto-route via RapidAPI for any format mapped in RAPIDAPI_GAME_IDS */
+    if (RAPIDAPI_GAME_IDS[fmtId]) return await fetchFromRapidAPI(fmtId, count, fromDate);
+
+    /* No automated API — show link to official results page */
+    var url = COLLECT_OFFICIAL_URLS[fmtId] || '';
+    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    var name = fmt ? fmt.name : fmtId;
+    var linkHtml = url
+        ? ' Visit <a href="' + url + '" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;">' + name + ' official results</a> to copy and add draws manually.'
+        : ' Please add draws manually using the form below.';
+    throw new Error('&#128683; Automatic collection is not available for ' + name + ' \u2014 no public API exists.' + linkHtml);
 }
 
 /* APIVerve Lottery Numbers API — https://apiverve.com/marketplace/lottery
@@ -2376,6 +2728,135 @@ function parseRapidAPIResponse(data, dateStr, fmt) {
     if (mainNumbers.length === 0) return null;
 
     return { date: date, numbers: mainNumbers, bonus: bonusNumbers };
+}
+
+/* NY Open Data SODA API — additional New York State lottery games
+   Free, no API key required. Returns JSON arrays with draw records.
+   Dataset IDs:
+     Take 5  → dg63-4siq  (5/39, draw_date + winning_numbers) */
+var NY_STATE_LOTTERY_DATASETS = {
+    'ny-take5': { datasetId: 'dg63-4siq', dateField: 'draw_date', numbersField: 'winning_numbers' }
+};
+
+async function fetchNYStateLottery(fmtId, count, fromDate) {
+    var cfg = NY_STATE_LOTTERY_DATASETS[fmtId];
+    if (!cfg) throw new Error('No NY Open Data dataset configured for: ' + fmtId);
+
+    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    if (!fmt) throw new Error('Unknown format: ' + fmtId);
+
+    var query = '$limit=' + count + '&$order=' + cfg.dateField + '+DESC';
+    if (fromDate) {
+        /* Build a SoQL $where clause using the same manual encoding as fetchUSPowerball */
+        query += '&$where=' + cfg.dateField + '%3E%3D%27' + fromDate + 'T00%3A00%3A00.000%27';
+    }
+
+    var url = 'https://data.ny.gov/resource/' + cfg.datasetId + '.json?' + query;
+
+    var resp;
+    try {
+        resp = await fetch(url);
+    } catch (e) {
+        throw new Error('&#10060; Could not reach NY Open Data API. Check your internet connection.');
+    }
+
+    if (!resp.ok) {
+        throw new Error('&#10060; NY Open Data API returned HTTP ' + resp.status + ' for ' + fmt.name + '.');
+    }
+
+    var data;
+    try {
+        data = await resp.json();
+    } catch (e) {
+        throw new Error('&#10060; Unexpected response from NY Open Data API for ' + fmt.name + '.');
+    }
+
+    if (!Array.isArray(data)) {
+        throw new Error('&#10060; Unexpected format from NY Open Data API for ' + fmt.name + '.');
+    }
+
+    var results = data
+        .filter(function(row) { return row[cfg.dateField] && row[cfg.numbersField]; })
+        .map(function(row) {
+            var parts = row[cfg.numbersField].trim().split(/\s+/).map(Number).filter(function(n) { return !isNaN(n); });
+            var mainNums = parts.slice(0, fmt.mainCount);
+            var bonusNums = fmt.bonusCount > 0 && parts.length > fmt.mainCount
+                ? [parts[fmt.mainCount]] : [];
+            return {
+                date:    row[cfg.dateField].substring(0, 10),
+                numbers: mainNums,
+                bonus:   bonusNums
+            };
+        });
+
+    if (results.length === 0) {
+        throw new Error('&#10060; No draw results found in NY Open Data for ' + fmt.name + '. Try an earlier \u201cFrom Date\u201d.');
+    }
+
+    return results;
+}
+
+/* Brazil Caixa Econômica — Loteriascaixa community API
+   https://loteriascaixa-api.herokuapp.com/api/{game}/latest
+   Free, CORS-friendly, no API key required.
+   Returns the most recent draw for each game. */
+var BRAZIL_CAIXA_GAMES = {
+    'br-mega-sena': 'mega-sena',
+    'br-lotofacil': 'lotofacil',
+    'br-quina':     'quina'
+};
+
+async function fetchFromBrazilCaixa(fmtId) {
+    var gameName = BRAZIL_CAIXA_GAMES[fmtId];
+    if (!gameName) throw new Error('No Caixa game name configured for: ' + fmtId);
+
+    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    if (!fmt) throw new Error('Unknown format: ' + fmtId);
+
+    var url = 'https://loteriascaixa-api.herokuapp.com/api/' + gameName + '/latest';
+
+    var resp;
+    try {
+        resp = await fetch(url);
+    } catch (e) {
+        throw new Error(
+            '&#10060; Could not reach the Loteriascaixa API for ' + fmt.name + '. ' +
+            'Visit <a href="' + (COLLECT_OFFICIAL_URLS[fmtId] || '#') + '" target="_blank" ' +
+            'rel="noopener noreferrer" style="color:inherit;text-decoration:underline;">' +
+            fmt.name + ' official results</a> to add draws manually.'
+        );
+    }
+
+    if (!resp.ok) {
+        throw new Error('&#10060; Loteriascaixa API returned HTTP ' + resp.status + ' for ' + fmt.name + '.');
+    }
+
+    var data;
+    try {
+        data = await resp.json();
+    } catch (e) {
+        throw new Error('&#10060; Unexpected response from Loteriascaixa API for ' + fmt.name + '.');
+    }
+
+    if (!data || !data.dezenas || !data.data) {
+        throw new Error('&#10060; No draw data returned by Loteriascaixa API for ' + fmt.name + '.');
+    }
+
+    /* Convert date from DD/MM/YYYY to YYYY-MM-DD */
+    var dateParts = data.data.split('/');
+    var isoDate = dateParts.length === 3
+        ? dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0]
+        : data.data;
+
+    var allNums  = data.dezenas.map(function(n) { return parseInt(n, 10); }).filter(function(n) { return !isNaN(n); });
+    var mainNums = allNums.slice(0, fmt.mainCount);
+    var bonusNums = fmt.bonusCount > 0 ? allNums.slice(fmt.mainCount, fmt.mainCount + fmt.bonusCount) : [];
+
+    if (mainNums.length === 0) {
+        throw new Error('&#10060; Loteriascaixa API returned no numbers for ' + fmt.name + '.');
+    }
+
+    return [{ date: isoDate, numbers: mainNums, bonus: bonusNums }];
 }
 
 
