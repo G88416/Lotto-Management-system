@@ -2600,11 +2600,11 @@ async function fetchMegaMillions(count, fromDate) {
 /* Wraps a single RapidAPI GET request in a Promise using XMLHttpRequest so
    that credentials and all required headers are set exactly as specified by
    the RapidAPI code snippet (withCredentials, x-rapidapi-key/host,
-   Content-Type: application/json).                                         */
+   Content-Type: application/json).
+   The rejected Error always carries an `httpStatus` property (0 = network
+   error) so callers can distinguish auth failures from missing-data 404s.  */
 function rapidAPIXHRGet(url) {
     return new Promise(function(resolve, reject) {
-        const data = null;
-
         var xhr = new XMLHttpRequest();
         xhr.withCredentials = true;
 
@@ -2614,12 +2614,14 @@ function rapidAPIXHRGet(url) {
                     try {
                         resolve(JSON.parse(this.responseText));
                     } catch (e) {
-                        reject(new Error('Invalid JSON from RapidAPI: ' + e.message));
+                        var jsonErr = new Error('Invalid JSON from RapidAPI: ' + e.message);
+                        jsonErr.httpStatus = this.status;
+                        reject(jsonErr);
                     }
-                } else if (this.status === 0) {
-                    reject(new Error('Network error or request blocked'));
                 } else {
-                    reject(new Error('HTTP ' + this.status));
+                    var err = new Error(this.status === 0 ? 'Network error or request blocked' : 'HTTP request failed with status ' + this.status);
+                    err.httpStatus = this.status;
+                    reject(err);
                 }
             }
         });
@@ -2629,7 +2631,7 @@ function rapidAPIXHRGet(url) {
         xhr.setRequestHeader('x-rapidapi-host', RAPIDAPI_HOST);
         xhr.setRequestHeader('Content-Type', 'application/json');
 
-        xhr.send(data);
+        xhr.send(null);
     });
 }
 
@@ -2656,41 +2658,87 @@ async function fetchFromRapidAPI(fmtId, count, fromDate) {
     dates.reverse(); /* most recent first */
     if (dates.length > count) dates = dates.slice(0, count);
 
-    var results = [];
+    var results       = [];
+    var httpStatuses  = [];    /* status code for every failed HTTP request */
+    var networkErrors = 0;    /* count of network / CORS errors             */
+    var parseFailures = 0;   /* successful HTTP responses that yielded no draw */
+
     for (var i = 0; i < dates.length; i++) {
         var url = RAPIDAPI_BASE_URL + '/' + gamePath + '/' + dates[i];
         var data;
         try {
             data = await rapidAPIXHRGet(url);
         } catch (e) {
-            /* Network error or non-2xx for this date — skip and continue */
+            var status = e.httpStatus !== undefined ? e.httpStatus : 0;
+            /* Fail immediately on auth errors — retrying other dates won't help */
+            if (status === 401 || status === 403) {
+                throw new Error(
+                    '&#128274; RapidAPI authentication failed (HTTP ' + status + ') for ' + fmt.name + '. ' +
+                    'The API key may be expired, rate-limited, or not subscribed to this endpoint. ' +
+                    'Check your RapidAPI key and subscription.'
+                );
+            }
+            if (status === 0) { networkErrors++; } else { httpStatuses.push(status); }
             continue;
         }
         var draw = parseRapidAPIResponse(data, dates[i], fmt);
-        if (draw) results.push(draw);
+        if (draw) {
+            results.push(draw);
+        } else {
+            parseFailures++;
+        }
     }
 
     if (results.length === 0) {
-        throw new Error(
-            '&#10060; No draw results returned by RapidAPI for ' + fmt.name + '. ' +
-            'The API may not cover this date range or the game path may differ. ' +
-            'Please try a different date range or add draws manually.'
-        );
+        /* Build a specific diagnostic hint based on what actually went wrong */
+        var hint;
+        if (networkErrors > 0 && httpStatuses.length === 0 && parseFailures === 0) {
+            hint = 'All requests failed with a network error. Check your internet connection or whether the RapidAPI host is reachable.';
+        } else if (httpStatuses.length > 0 && parseFailures === 0) {
+            var uniqueStatuses = httpStatuses.filter(function(v, i, a) { return a.indexOf(v) === i; });
+            if (uniqueStatuses.indexOf(404) !== -1) {
+                hint = 'The API returned HTTP 404 for every date, which usually means the game path "' + gamePath + '" is not supported by the API for this lottery. Try a different date range or add draws manually.';
+            } else {
+                hint = 'The API returned HTTP ' + uniqueStatuses.join('/') + ' for every requested date. The service may be temporarily unavailable — try again later.';
+            }
+        } else if (parseFailures > 0 && httpStatuses.length === 0 && networkErrors === 0) {
+            hint = 'The API responded successfully but the draw data was in an unrecognised format. Please report this issue.';
+        } else {
+            hint = 'The API may not cover this date range or the game path may differ. Try a different date range or add draws manually.';
+        }
+        throw new Error('&#10060; No draw results returned by RapidAPI for ' + fmt.name + '. ' + hint);
     }
     return results;
 }
 
 /* Parse a single RapidAPI /get_result response into the app's draw object.
-   Handles common envelope shapes and normalises numbers to integer arrays. */
+   Handles common envelope shapes and normalises numbers to integer arrays.
+
+   API-Sports (the provider behind lotto-draw-results-global) wraps every
+   successful result inside a top-level "response" key, which may itself be
+   an object or an array with one element.  Earlier field names ("result",
+   "data") are kept for backwards-compatibility with any mirror APIs.       */
 function parseRapidAPIResponse(data, dateStr, fmt) {
     if (!data) return null;
 
-    /* Unwrap common envelope shapes: { result: … }, { data: … }, or bare object */
-    var payload = data.result || data.data || data;
+    /* Unwrap common envelope shapes:
+       { response: … }  ← API-Sports standard
+       { result:   … }  ← legacy / mirror APIs
+       { data:     … }  ← generic wrappers
+       bare object      ← some APIs return the draw directly              */
+    var payload = data.response || data.result || data.data || data;
 
-    /* Extract numbers — accept common field names used by the API */
+    /* Some APIs return an array of draw objects; use the first entry */
+    if (Array.isArray(payload)) {
+        if (payload.length === 0) return null;
+        payload = payload[0];
+    }
+
+    /* Extract numbers — accept common field names used across APIs */
     var rawNumbers = payload.numbers || payload.winning_numbers || payload.draw_numbers || null;
-    var rawBonus   = payload.bonus_number || payload.bonus_ball || payload.bonus || payload.extra || null;
+    /* Accept "supplementary" for AU lotteries in addition to generic bonus names */
+    var rawBonus   = payload.bonus_number || payload.bonus_ball || payload.bonus ||
+                     payload.supplementary || payload.extra || null;
     var rawDate    = payload.date || payload.draw_date || dateStr;
 
     if (!rawNumbers) return null;
