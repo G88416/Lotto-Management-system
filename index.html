@@ -206,6 +206,9 @@
         [data-theme="dark"] .collect-status-box.success { background: #052e16; border-color: #166534; }
         [data-theme="dark"] .collect-status-box.error   { background: #450a0a; border-color: #991b1b; }
         .collect-api-badge { display:inline-block; font-size:0.7rem; font-weight:700; padding:2px 7px; border-radius:20px; background:var(--green); color:#fff; margin-left:6px; vertical-align:middle; }
+        .paste-canvas-textarea { font-family: 'Courier New', Courier, monospace; font-size: 0.88rem; min-height: 170px; resize: vertical; line-height: 1.55; }
+        .paste-canvas-preview-draws { display: flex; flex-direction: column; gap: 0; margin-top: 14px; }
+        .paste-draw-time-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:20px; background:rgba(139,92,246,0.12); color:var(--purple); border:1px solid rgba(139,92,246,0.25); }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -519,6 +522,26 @@
             </div>
             <button class="btn btn-primary" onclick="addDrawResult()">&#10133; Add Result</button>
         </div>
+
+        <!-- PASTE DRAW CANVAS -->
+        <div class="card">
+            <div class="section-title" style="font-size:1.15rem;margin-bottom:6px;">&#128203; Paste Draw Results Canvas</div>
+            <div class="algo-info" style="margin-bottom:16px;">
+                Paste copied draw results below — the canvas auto-detects the lottery name, draw type, date, time and numbers, then renders them in the app's ball layout.<br>
+                <span style="color:var(--text-muted);">Expected format per draw:</span><br>
+                <code style="font-size:0.82rem;">UK 49s Brunchtime 6/49 | 30 Mar 2026 at 12:48:00</code><br>
+                <code style="font-size:0.82rem;">2716412645305</code>
+            </div>
+            <div class="form-group" style="margin-bottom:12px;">
+                <label>Paste Results Here</label>
+                <textarea id="paste-canvas" class="paste-canvas-textarea" placeholder="UK 49s Brunchtime 6/49 | 30 Mar 2026 at 12:48:00&#10;2716412645305&#10;UK 49s Brunchtime 6/49&#10;&#10;UK 49s Brunchtime 6/49 | 29 Mar 2026 at 12:48:00&#10;3637223982324&#10;UK 49s Brunchtime 6/49"></textarea>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="parsePasteCanvas()">&#128269; Parse &amp; Preview</button>
+                <button class="btn btn-secondary" onclick="clearPasteCanvas()">&#10006; Clear</button>
+            </div>
+            <div id="paste-canvas-preview"></div>
+        </div>
     </section>
 
     <!-- PATTERN DETECTOR -->
@@ -623,7 +646,8 @@ const FORMATS = [
     { id:'mega-millions', name:'Mega Millions',       flag:'\u{1F1FA}\u{1F1F8}', mainCount:5, mainMax:70, bonusCount:1, bonusMax:25, bonusLabel:'Mega Ball',    bonusColor:'ball-lucky', ticketPrice:2,   currency:'$',       jackpot:'$200M+',     drawDays:[2,5],         drawTime:'23:00' },
     { id:'euro-millions', name:'EuroMillions',        flag:'\u{1F1EA}\u{1F1FA}', mainCount:5, mainMax:50, bonusCount:2, bonusMax:12, bonusLabel:'Lucky Stars',  bonusColor:'ball-lucky', ticketPrice:2.5, currency:'\u20AC',  jackpot:'\u20AC17M+', drawDays:[2,5],         drawTime:'21:00' },
     { id:'uk-lotto',      name:'UK Lotto',            flag:'\u{1F1EC}\u{1F1E7}', mainCount:6, mainMax:59, bonusCount:1, bonusMax:59, bonusLabel:'Bonus Ball',   bonusColor:'ball-bonus', ticketPrice:2,   currency:'\u00A3',  jackpot:'\u00A34M+',  drawDays:[3,6],         drawTime:'20:30' },
-    { id:'uk-49s',        name:'UK 49s',              flag:'\u{1F1EC}\u{1F1E7}', mainCount:6, mainMax:49, bonusCount:1, bonusMax:49, bonusLabel:'Booster Ball', bonusColor:'ball-bonus', ticketPrice:1,   currency:'\u00A3',  jackpot:'\u00A3100K+',drawDays:[1,2,3,4,5,6], drawTime:'17:49' },
+    { id:'uk-49s',            name:'UK 49s',              flag:'\u{1F1EC}\u{1F1E7}', mainCount:6, mainMax:49, bonusCount:1, bonusMax:49, bonusLabel:'Booster Ball', bonusColor:'ball-bonus', ticketPrice:1,   currency:'\u00A3',  jackpot:'\u00A3100K+',drawDays:[1,2,3,4,5,6], drawTime:'17:49' },
+    { id:'uk-49s-brunchtime', name:'UK 49s Brunchtime',   flag:'\u{1F1EC}\u{1F1E7}', mainCount:6, mainMax:49, bonusCount:1, bonusMax:49, bonusLabel:'Booster Ball', bonusColor:'ball-bonus', ticketPrice:1,   currency:'\u00A3',  jackpot:'\u00A3100K+',drawDays:[1,2,3,4,5,6], drawTime:'12:49' },
     { id:'uk-39s',        name:'UK 39s',              flag:'\u{1F1EC}\u{1F1E7}', mainCount:5, mainMax:39, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:1,   currency:'\u00A3',  jackpot:'\u00A350K+', drawDays:[1,3,5],       drawTime:'18:30' },
     { id:'lt-jega',       name:'Lithuania Jega 6/30', flag:'\u{1F1F1}\u{1F1F9}', mainCount:6, mainMax:30, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:1,   currency:'\u20AC',  jackpot:'\u20AC500K+',drawDays:[3,6],         drawTime:'20:00' },
     { id:'us-lotto',      name:'US Lotto',             flag:'\u{1F1FA}\u{1F1F8}', mainCount:6, mainMax:53, bonusCount:0, bonusMax:0,  bonusLabel:'',             bonusColor:'',           ticketPrice:1,   currency:'$',       jackpot:'$1M+',       drawDays:[3,6],         drawTime:'23:00' },
@@ -1680,6 +1704,7 @@ function renderLiveDraws() {
             items.map(function(d) {
                 var f = fmt || {};
                 var dateLabel = d.date ? new Date(d.date + 'T00:00:00').toLocaleDateString(undefined, {weekday:'short',day:'numeric',month:'short',year:'numeric'}) : '';
+                if (d.drawTime) dateLabel += ' \u2022 ' + d.drawTime;
                 return '<div class="draw-result-card"><div class="draw-result-header">' +
                     '<span class="ticket-format-badge">' + (fmt ? fmt.flag + ' ' + fmt.name : fid) + '</span>' +
                     '<span class="draw-result-date">&#128197; ' + dateLabel + '</span>' +
@@ -1787,8 +1812,266 @@ function refreshLiveDraws() {
 }
 
 /* ============================================================
-   COLLECT DRAWS FROM API
+   PASTE DRAW CANVAS
    ============================================================ */
+
+/* Map common lottery name variants found in pasted text to internal format IDs */
+var PASTE_CANVAS_NAME_MAP = {
+    'uk 49s brunchtime 6/49':  'uk-49s-brunchtime',
+    'uk 49s brunchtime':        'uk-49s-brunchtime',
+    'uk 49s teatime 6/49':      'uk-49s',
+    'uk 49s teatime':           'uk-49s',
+    'uk 49s 6/49':              'uk-49s',
+    'uk 49s':                   'uk-49s',
+    'uk 39s 5/39':              'uk-39s',
+    'uk 39s':                   'uk-39s',
+    'sa lotto':                 'sa-lotto',
+    'sa powerball':             'sa-powerball',
+    'sa daily lotto':           'sa-daily',
+    'euromillions':             'euro-millions',
+    'euro millions':            'euro-millions',
+    'uk lotto':                 'uk-lotto',
+    'us powerball':             'us-powerball',
+    'mega millions':            'mega-millions'
+};
+
+var PASTE_MONTH_MAP = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
+
+/* Convert "30 Mar 2026" → "2026-03-30" */
+function pasteCanvasParseDate(dateStr) {
+    var parts = dateStr.trim().split(/\s+/);
+    if (parts.length < 3) return null;
+    var day = parseInt(parts[0], 10);
+    var mon = PASTE_MONTH_MAP[parts[1].toLowerCase().substring(0, 3)];
+    var yr  = parseInt(parts[2], 10);
+    if (isNaN(day) || mon === undefined || isNaN(yr)) return null;
+    return yr + '-' + String(mon + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+}
+
+/* Resolve a pasted lottery name to a FORMATS entry */
+function pasteCanvasMatchFormat(rawName) {
+    var norm = rawName.toLowerCase().trim().replace(/\s+/g, ' ');
+    if (PASTE_CANVAS_NAME_MAP[norm]) {
+        return FORMATS.find(function(f) { return f.id === PASTE_CANVAS_NAME_MAP[norm]; }) || null;
+    }
+    var keys = Object.keys(PASTE_CANVAS_NAME_MAP);
+    for (var i = 0; i < keys.length; i++) {
+        if (norm.indexOf(keys[i]) !== -1 || keys[i].indexOf(norm) !== -1) {
+            var mapped = PASTE_CANVAS_NAME_MAP[keys[i]];
+            return FORMATS.find(function(f) { return f.id === mapped; }) || null;
+        }
+    }
+    return FORMATS.find(function(f) { return f.name.toLowerCase() === norm || norm.indexOf(f.name.toLowerCase()) !== -1; }) || null;
+}
+
+/* Split a concatenated number string (e.g. "2716412645305") into exactly
+   `count` unique integers in range [1, maxVal] using backtracking.
+   Tries 2-digit numbers first (greedy) then falls back to 1-digit.
+   Returns null if no valid split exists. */
+function pasteCanvasSplitNumbers(str, count, maxVal) {
+    var digits = str.replace(/\D/g, '');
+    function bt(pos, acc) {
+        if (acc.length === count && pos === digits.length) return acc.slice();
+        if (acc.length > count || pos >= digits.length) return null;
+        if (pos + 2 <= digits.length) {
+            var two = parseInt(digits.substring(pos, pos + 2), 10);
+            if (two >= 1 && two <= maxVal && acc.indexOf(two) === -1) {
+                var r = bt(pos + 2, acc.concat(two));
+                if (r) return r;
+            }
+        }
+        var one = parseInt(digits.substring(pos, pos + 1), 10);
+        if (one >= 1 && one <= maxVal && acc.indexOf(one) === -1) {
+            var r2 = bt(pos + 1, acc.concat(one));
+            if (r2) return r2;
+        }
+        return null;
+    }
+    return bt(0, []);
+}
+
+var _pasteCanvasParsed = [];
+
+function parsePasteCanvas() {
+    var text = document.getElementById('paste-canvas').value.trim();
+    if (!text) { showToast('Please paste draw results first', 'error'); return; }
+
+    var lines = text.split(/\r?\n/).map(function(l) { return l.trim(); });
+    _pasteCanvasParsed = [];
+    var errors = [];
+
+    var i = 0;
+    while (i < lines.length) {
+        var line = lines[i];
+        /* Header: "{Name} | {Date} at {Time}" */
+        var hm = line.match(/^(.+?)\s*\|\s*(\d{1,2}\s+\w+\s+\d{4})\s+at\s+(\d{2}:\d{2}:\d{2})\s*$/);
+        if (!hm) { i++; continue; }
+
+        var rawName = hm[1].trim();
+        var dateStr = hm[2].trim();
+        var timeStr = hm[3].trim();
+
+        /* Find the numbers line: next non-empty line that contains digits and no "|" */
+        var numStr = '';
+        var j = i + 1;
+        while (j < lines.length && lines[j] === '') j++;
+        if (j < lines.length && /\d/.test(lines[j]) && lines[j].indexOf('|') === -1) {
+            numStr = lines[j].replace(/\s/g, '');
+            i = j + 1;
+        } else {
+            errors.push('"' + rawName + '" on ' + dateStr + ': no numbers line found');
+            i++;
+            continue;
+        }
+
+        var fmt = pasteCanvasMatchFormat(rawName);
+
+        /* Fallback: derive mainCount/mainMax from "X/Y" notation in name */
+        var mainCount = fmt ? fmt.mainCount : 6;
+        var bonusCount = fmt ? fmt.bonusCount : 1;
+        var maxVal = fmt ? fmt.mainMax : 49;
+        if (!fmt) {
+            var xm = rawName.match(/(\d+)\/(\d+)/);
+            if (xm) { mainCount = parseInt(xm[1], 10); maxVal = parseInt(xm[2], 10); }
+        }
+
+        var isoDate = pasteCanvasParseDate(dateStr);
+        if (!isoDate) {
+            errors.push('"' + rawName + '" on ' + dateStr + ': date could not be parsed');
+            continue;
+        }
+
+        var totalCount = mainCount + bonusCount;
+        var nums = pasteCanvasSplitNumbers(numStr, totalCount, maxVal);
+        if (!nums) {
+            /* retry without bonus */
+            nums = pasteCanvasSplitNumbers(numStr, mainCount, maxVal);
+            if (nums) bonusCount = 0;
+        }
+        if (!nums) {
+            errors.push('"' + rawName + '" on ' + dateStr + ': could not parse numbers from "' + numStr + '"');
+            continue;
+        }
+
+        var mainNums  = nums.slice(0, mainCount);
+        /* bonusCount may have been reset to 0 above if the retry without bonus succeeded */
+        var bonusNums = bonusCount > 0 ? nums.slice(mainCount) : [];
+
+        _pasteCanvasParsed.push({
+            formatId:  fmt ? fmt.id : rawName,
+            fmt:       fmt,
+            rawName:   rawName,
+            date:      isoDate,
+            drawTime:  timeStr,
+            numbers:   mainNums,
+            bonus:     bonusNums
+        });
+    }
+
+    renderPasteCanvasPreview(_pasteCanvasParsed, errors);
+}
+
+function renderPasteCanvasPreview(draws, errors) {
+    var container = document.getElementById('paste-canvas-preview');
+    if (!draws.length && !errors.length) {
+        container.innerHTML = '<div class="collect-status-box error" style="margin-top:16px;">&#10060; No draw results found. Check the format matches the example and try again.</div>';
+        return;
+    }
+
+    var html = '<div style="margin-top:16px;">';
+
+    if (draws.length) {
+        html += '<div class="collect-status-box success">&#10003; Detected <strong>' + draws.length + '</strong> draw result' + (draws.length !== 1 ? 's' : '') + ' — review below, then click <strong>Import</strong>.</div>';
+        html += '<div class="paste-canvas-preview-draws">';
+        draws.forEach(function(d) {
+            var f        = d.fmt || {};
+            var flag     = f.flag || '&#127921;';
+            var fmtName  = f.name || d.rawName;
+            var dateObj  = new Date(d.date + 'T00:00:00');
+            var dateLbl  = dateObj.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+            html += '<div class="draw-result-card">';
+            html += '<div class="draw-result-header">';
+            html += '<span class="ticket-format-badge">' + flag + ' ' + fmtName + '</span>';
+            html += '<span class="draw-result-date">&#128197; ' + dateLbl + '</span>';
+            html += '<span class="paste-draw-time-badge">&#128336; ' + d.drawTime + '</span>';
+            html += '</div>';
+            html += '<div class="balls-row">';
+            d.numbers.forEach(function(n) {
+                html += '<span class="ball ball-main ball-sm animate">' + n + '</span>';
+            });
+            if (d.bonus.length) {
+                html += '<span class="ball-separator">+</span>';
+                d.bonus.forEach(function(n) {
+                    html += '<span class="ball ' + (f.bonusColor || 'ball-bonus') + ' ball-sm animate">' + n + '</span>';
+                });
+            }
+            html += '</div></div>';
+        });
+        html += '</div>';
+        html += '<div class="btn-row" style="margin-top:14px;">';
+        html += '<button class="btn btn-primary" onclick="importPastedDraws()">&#128190; Import ' + draws.length + ' Draw' + (draws.length !== 1 ? 's' : '') + '</button>';
+        html += '<button class="btn btn-secondary" onclick="clearPasteCanvas()">&#10006; Cancel</button>';
+        html += '</div>';
+    }
+
+    if (errors.length) {
+        html += '<div class="collect-status-box error" style="margin-top:12px;"><strong>&#9888;&#65039; ' + errors.length + ' item' + (errors.length !== 1 ? 's' : '') + ' could not be parsed:</strong>';
+        html += '<ul style="margin:8px 0 0 18px;">';
+        errors.forEach(function(e) { html += '<li>' + e + '</li>'; });
+        html += '</ul></div>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function importPastedDraws() {
+    if (!_pasteCanvasParsed.length) { showToast('Nothing to import', 'error'); return; }
+
+    var imported = 0;
+    _pasteCanvasParsed.forEach(function(d) {
+        /* Skip duplicates: same format + same date */
+        var exists = state.recentDraws.some(function(r) {
+            return r.formatId === d.formatId && r.date === d.date;
+        });
+        if (exists) return;
+
+        var newDraw = {
+            id: (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36),
+            formatId: d.formatId,
+            date:     d.date,
+            drawTime: d.drawTime,
+            numbers:  d.numbers,
+            bonus:    d.bonus,
+            addedAt:  new Date().toISOString()
+        };
+        state.recentDraws.unshift(newDraw);
+        fbAddDraw(newDraw);
+        imported++;
+    });
+
+    if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
+    persist();
+    renderLiveDraws();
+
+    _pasteCanvasParsed = [];
+    document.getElementById('paste-canvas').value = '';
+    document.getElementById('paste-canvas-preview').innerHTML = '';
+
+    if (imported > 0) {
+        showToast(imported + ' draw result' + (imported !== 1 ? 's' : '') + ' imported!', 'success');
+    } else {
+        showToast('All draws were already in the system — nothing imported.', 'info');
+    }
+}
+
+function clearPasteCanvas() {
+    document.getElementById('paste-canvas').value = '';
+    document.getElementById('paste-canvas-preview').innerHTML = '';
+    _pasteCanvasParsed = [];
+}
 
 /* ---- APIVerve Lottery Numbers API --------------------------------------- */
 /* https://apiverve.com/marketplace/lottery                                   */
@@ -1879,6 +2162,7 @@ var COLLECT_API_SUPPORT = {
     'euro-millions':      true,
     'uk-lotto':           true,
     'uk-49s':             true,
+    'uk-49s-brunchtime':  true,
     'uk-39s':             true,
     'lt-jega':            true,
     'us-lotto':           true,
@@ -1951,6 +2235,7 @@ var COLLECT_SOURCE_LABELS = {
     'euro-millions':      'APIVerve',
     'uk-lotto':           'RapidAPI Global Lotto',
     'uk-49s':             'uk49s.co.uk',
+    'uk-49s-brunchtime':  'uk49s.co.uk',
     'uk-39s':             'uk49s.co.uk',
     'lt-jega':            'RapidAPI Global Lotto',
     'us-lotto':           'RapidAPI Global Lotto',
@@ -2091,8 +2376,9 @@ var NLZA_URLS = {
 
 /* UK 49s / UK 39s results website URLs */
 var UK_LOTTERY_URLS = {
-    'uk-49s': 'https://www.uk49s.co.uk/results/',
-    'uk-39s': 'https://www.uk49s.co.uk/uk39s-results/'
+    'uk-49s':            'https://www.uk49s.co.uk/results/',
+    'uk-49s-brunchtime': 'https://www.uk49s.co.uk/brunchtime-results/',
+    'uk-39s':            'https://www.uk49s.co.uk/uk39s-results/'
 };
 
 /* Argentine National Lottery Quiniela (Quiniela Nacional) */
@@ -2208,6 +2494,7 @@ async function fetchDrawsFromApi(fmtId, count, fromDate) {
         case 'br-lotofacil':
         case 'br-quina':      return await fetchFromBrazilCaixa(fmtId);
         case 'uk-49s':
+        case 'uk-49s-brunchtime':
         case 'uk-39s':        return await fetchFromUK49sWebsite(fmtId, count, fromDate);
         case 'ar-quiniela':   return await fetchArgentinaQuiniela(count, fromDate);
     }
