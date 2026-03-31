@@ -311,7 +311,10 @@
     <section id="sec-quickpick" class="section active">
         <div class="section-title">&#127920; Quick Pick Generator</div>
         <div class="card">
-            <label>Choose Lottery Format</label>
+            <div class="flex justify-between items-center flex-wrap gap-10 mb-14">
+                <label style="margin:0;">Choose Lottery Format</label>
+                <button class="btn btn-warning btn-sm" onclick="openCustomFormatModal()">&#9881;&#65039; Manage Custom Formats</button>
+            </div>
             <div class="format-grid" id="format-grid-qp"></div>
         </div>
         <div class="card">
@@ -344,6 +347,8 @@
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="generateQuickPick()">&#9889; Generate Quick Pick</button>
                 <button class="btn btn-purple" onclick="generateQuickPickFromPattern()">&#129518; Generate from Pattern</button>
+                <button class="btn btn-purple" onclick="generateQuickPickFromSmartSearch()">&#128270; Generate from Smart Search</button>
+                <button class="btn btn-purple" onclick="generateQuickPickFromCombination()">&#128301; Generate from Combination</button>
                 <button class="btn btn-secondary" onclick="clearQuickPick()">&#128465;&#65039; Clear</button>
                 <button class="btn btn-success" onclick="saveAllQPTickets()">&#128190; Save All Tickets</button>
             </div>
@@ -838,6 +843,70 @@
     </div>
 </div>
 
+<!-- CUSTOM FORMAT MODAL -->
+<div class="modal-backdrop" id="custom-format-modal">
+    <div class="modal" style="max-width:580px;">
+        <div class="modal-title">&#9881;&#65039; Manage Custom Lottery Formats</div>
+        <div id="custom-format-list" style="margin-bottom:18px;"></div>
+        <div class="divider" style="margin-bottom:18px;"></div>
+        <div class="fw-700 mb-14" style="color:var(--purple);">&#10133; Add New Custom Format</div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Format Name *</label>
+                <input type="text" id="cf-name" placeholder="e.g. My Local Lotto" maxlength="50" />
+            </div>
+            <div class="form-group">
+                <label>Flag / Emoji</label>
+                <input type="text" id="cf-flag" placeholder="e.g. 🌍" maxlength="8" value="🎰" />
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Main Numbers to Pick *</label>
+                <input type="number" id="cf-main-count" placeholder="6" min="1" max="20" value="6" />
+            </div>
+            <div class="form-group">
+                <label>Main Number Range (1–?) *</label>
+                <input type="number" id="cf-main-max" placeholder="49" min="2" max="200" value="49" />
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Bonus Numbers to Pick</label>
+                <input type="number" id="cf-bonus-count" placeholder="0" min="0" max="5" value="0" />
+            </div>
+            <div class="form-group">
+                <label>Bonus Number Range (1–?)</label>
+                <input type="number" id="cf-bonus-max" placeholder="0" min="0" max="100" value="0" />
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Bonus Ball Label</label>
+                <input type="text" id="cf-bonus-label" placeholder="e.g. Bonus Ball" maxlength="30" value="" />
+            </div>
+            <div class="form-group">
+                <label>Ticket Price</label>
+                <input type="number" id="cf-price" placeholder="1" min="0" step="0.01" value="1" />
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Currency Symbol</label>
+                <input type="text" id="cf-currency" placeholder="R" maxlength="5" value="R" />
+            </div>
+            <div class="form-group">
+                <label>Jackpot Display</label>
+                <input type="text" id="cf-jackpot" placeholder="e.g. R 1M+" maxlength="20" value="" />
+            </div>
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-primary" onclick="saveCustomFormat()">&#9989; Add Format</button>
+            <button class="btn btn-secondary" onclick="closeCustomFormatModal()">Close</button>
+        </div>
+    </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script>
@@ -998,8 +1067,12 @@ let state = {
     pendingSaveTicket:    null,
     manualPicked:         [],
     manualBonusPicked:    [],
-    manualBonusPhase:     false
+    manualBonusPhase:     false,
+    customFormats:        []
 };
+
+/* Returns all formats: built-in + user-created custom formats */
+function getAllFormats() { return FORMATS.concat(state.customFormats || []); }
 
 /* ============================================================
    FIREBASE INTEGRATION
@@ -1165,7 +1238,8 @@ function persist() {
             tickets: state.tickets, budget: state.budget, stats: state.stats,
             customDraws: state.customDraws, reverseHistory: state.reverseHistory,
             seedHistory: state.seedHistory, recentDraws: state.recentDraws,
-            savedPatternDraws: state.savedPatternDraws
+            savedPatternDraws: state.savedPatternDraws,
+            customFormats: state.customFormats
         }));
     } catch(e) {}
     syncToFirestore();
@@ -1184,6 +1258,7 @@ function loadPersisted() {
         state.reverseHistory    = d.reverseHistory    || [];
         state.seedHistory       = d.seedHistory       || [];
         state.savedPatternDraws = d.savedPatternDraws || [];
+        state.customFormats     = d.customFormats     || [];
     } catch(e) {}
 }
 
@@ -1216,8 +1291,8 @@ function buildFormatGrids() {
         var el = document.getElementById('format-grid-' + ctx);
         if (!el) return;
         var sel = ctx === 'qp' ? state.selectedFormatQP : state.selectedFormatManual;
-        el.innerHTML = FORMATS.map(function(f) {
-            return '<div class="format-card ' + (sel === f.id ? 'selected' : '') + '" onclick="selectFormat(\'' + ctx + '\',\'' + f.id + '\')">' +
+        el.innerHTML = getAllFormats().map(function(f) {
+            return '<div class="format-card ' + (sel === f.id ? 'selected' : '') + '" data-fid="' + f.id + '" onclick="selectFormat(\'' + ctx + '\',\'' + f.id + '\')">' +
                 '<span class="selected-badge">\u2713</span><span class="flag">' + f.flag + '</span>' +
                 '<div class="name">' + f.name + '</div>' +
                 '<div class="rules">' + f.mainCount + ' from 1\u2013' + f.mainMax + (f.bonusCount ? ' + ' + f.bonusCount + ' ' + f.bonusLabel : '') + '</div>' +
@@ -1226,22 +1301,22 @@ function buildFormatGrids() {
     });
     ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format'].forEach(function(id) {
         var el = document.getElementById(id);
-        if (el) el.innerHTML = FORMATS.map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
+        if (el) el.innerHTML = getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
     ['tkt-filter-format','stats-format-filter','live-draws-format-filter','spd-format-filter'].forEach(function(id) {
         var el = document.getElementById(id);
         if (!el) return;
-        el.innerHTML = '<option value="all">All Formats</option>' + FORMATS.map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
+        el.innerHTML = '<option value="all">All Formats</option>' + getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
 }
 
 function selectFormat(ctx, id) {
     if (ctx === 'qp') {
         state.selectedFormatQP = id;
-        document.querySelectorAll('#format-grid-qp .format-card').forEach(function(el, i) { el.classList.toggle('selected', FORMATS[i].id === id); });
+        document.querySelectorAll('#format-grid-qp .format-card').forEach(function(el) { el.classList.toggle('selected', el.dataset.fid === id); });
     } else {
         state.selectedFormatManual = id;
-        document.querySelectorAll('#format-grid-manual .format-card').forEach(function(el, i) { el.classList.toggle('selected', FORMATS[i].id === id); });
+        document.querySelectorAll('#format-grid-manual .format-card').forEach(function(el) { el.classList.toggle('selected', el.dataset.fid === id); });
         buildManualPicker();
     }
 }
@@ -1288,7 +1363,7 @@ function generateUniqueNumbers(count, max, method, seedRef) {
 var qpGeneratedSets = [];
 
 function generateQuickPick() {
-    var fmt = FORMATS.find(function(f) { return f.id === state.selectedFormatQP; });
+    var fmt = getAllFormats().find(function(f) { return f.id === state.selectedFormatQP; });
     if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
     var count = parseInt(document.getElementById('qp-count').value);
     var method = document.getElementById('qp-method').value;
@@ -1315,7 +1390,7 @@ function generateQuickPick() {
 }
 
 function generateQuickPickFromPattern() {
-    var fmt = FORMATS.find(function(f) { return f.id === state.selectedFormatQP; });
+    var fmt = getAllFormats().find(function(f) { return f.id === state.selectedFormatQP; });
     if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
     var pd = computePatternData(fmt.id);
     if (!pd) { showToast('Need at least ' + MIN_DRAWS_FOR_ANALYSIS + ' draws for ' + fmt.name + '. Add draws on the Live Draws tab.', 'error'); return; }
@@ -1395,7 +1470,7 @@ function confirmSaveTicket() {
 }
 
 function addTicket(formatId, main, bonus, drawDate, notes) {
-    var fmt = FORMATS.find(function(f) { return f.id === formatId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === formatId; });
     state.tickets.push({
         id: Date.now() + Math.random(), formatId: formatId,
         main: main.slice(), bonus: (bonus || []).slice(),
@@ -1408,7 +1483,7 @@ function addTicket(formatId, main, bonus, drawDate, notes) {
 }
 
 function buildManualPicker() {
-    var fmt = FORMATS.find(function(f) { return f.id === state.selectedFormatManual; });
+    var fmt = getAllFormats().find(function(f) { return f.id === state.selectedFormatManual; });
     if (!fmt) return;
     state.manualPicked = []; state.manualBonusPicked = []; state.manualBonusPhase = false;
     var area = document.getElementById('manual-picker-area');
@@ -1481,7 +1556,7 @@ function showManualResult(fmt) {
 }
 
 function saveManualTicket() {
-    var fmt = FORMATS.find(function(f) { return f.id === state.selectedFormatManual; }); if (!fmt) return;
+    var fmt = getAllFormats().find(function(f) { return f.id === state.selectedFormatManual; }); if (!fmt) return;
     if (state.manualPicked.length < fmt.mainCount) { showToast('Complete your selection first', 'error'); return; }
     state.pendingSaveTicket = { formatId: fmt.id, main: state.manualPicked.slice().sort(function(a,b){return a-b;}), bonus: state.manualBonusPicked.slice().sort(function(a,b){return a-b;}) };
     document.getElementById('save-draw-date').value = '';
@@ -1505,7 +1580,7 @@ function renderTickets() {
     var container = document.getElementById('tickets-list');
     if (!tickets.length) { container.innerHTML = '<p class="text-muted text-center mt-14">No tickets found.</p>'; return; }
     container.innerHTML = tickets.map(function(t) {
-        var fmt      = FORMATS.find(function(f) { return f.id === t.formatId; }) || {};
+        var fmt      = getAllFormats().find(function(f) { return f.id === t.formatId; }) || {};
         var date     = t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '';
         var drawDate = t.drawDate ? ' \u00B7 Draw: ' + t.drawDate : '';
         return '<div class="ticket-card"><div class="ticket-header"><span class="ticket-format-badge">' + (fmt.flag||'') + ' ' + (fmt.name||t.formatId) + '</span><div class="flex gap-10 items-center"><span class="ticket-date">' + date + drawDate + '</span><button class="btn btn-danger btn-sm" onclick="deleteTicket(\'' + t.id + '\')">\uD83D\uDDD1\uFE0F</button></div></div>' +
@@ -1530,7 +1605,7 @@ function exportTickets() {
     if (!state.tickets.length) { showToast('No tickets to export', 'error'); return; }
     var rows = [['Format','Main Numbers','Bonus','Draw Date','Notes','Price','Created At']];
     state.tickets.forEach(function(t) {
-        var fmt = FORMATS.find(function(f) { return f.id === t.formatId; });
+        var fmt = getAllFormats().find(function(f) { return f.id === t.formatId; });
         rows.push([(fmt?fmt.name:t.formatId), t.main.join(' '), (t.bonus||[]).join(' '), t.drawDate||'', t.notes||'', (t.currency||'R')+(t.price||0).toFixed(2), t.createdAt||'']);
     });
     var csv  = rows.map(function(r) { return r.map(function(c) { return '"'+c+'"'; }).join(','); }).join('\n');
@@ -1554,7 +1629,7 @@ function recordStats(formatId, numbers) {
 
 function renderHeatmap() {
     var filter  = document.getElementById('stats-format-filter').value;
-    var fmt     = filter === 'all' ? null : FORMATS.find(function(f) { return f.id === filter; });
+    var fmt     = filter === 'all' ? null : getAllFormats().find(function(f) { return f.id === filter; });
     var max     = fmt ? fmt.mainMax : 70;
     var freq    = filter === 'all' ? (state.stats['all']||{}) : (state.stats[filter]||{});
     var values  = Object.values(freq);
@@ -1655,7 +1730,7 @@ function generateFromSeed() {
     var baseSeed = parseInt(seedStr);
     var formatId = document.getElementById('seed-lotto-format').value;
     var setCount = parseInt(document.getElementById('set-count').value);
-    var fmt      = FORMATS.find(function(f) { return f.id === formatId; }) || FORMATS[0];
+    var fmt      = getAllFormats().find(function(f) { return f.id === formatId; }) || getAllFormats()[0];
     var seedRef  = { val: baseSeed };
     var html = '<div class="fw-800 mb-14">' + fmt.flag + ' ' + fmt.name + ' \u2014 ' + setCount + ' Seed-Based Set' + (setCount>1?'s':'') + '</div>';
     for (var s = 0; s < setCount; s++) {
@@ -1672,7 +1747,7 @@ function generateFromSeed() {
 /* Generate a reverse seed using the top hot numbers from pattern analysis */
 function generateReverseSeedFromPattern() {
     var fmtId = document.getElementById('reverse-format').value;
-    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
     var pd = computePatternData(fmtId);
     if (!pd) { showToast('Need at least ' + MIN_DRAWS_FOR_ANALYSIS + ' draws for ' + fmt.name + '. Add draws on the Live Draws tab.', 'error'); return; }
@@ -1685,7 +1760,7 @@ function generateReverseSeedFromPattern() {
 /* Derive a seed from hot numbers then generate forward seeds */
 function generateForwardSeedFromPattern() {
     var fmtId = document.getElementById('reverse-format').value;
-    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) { showToast('Select a lottery format on the Reverse Seed tab first', 'error'); return; }
     var pd = computePatternData(fmtId);
     if (!pd) { showToast('Need at least ' + MIN_DRAWS_FOR_ANALYSIS + ' draws for ' + fmt.name + '. Add draws on the Live Draws tab.', 'error'); return; }
@@ -1701,7 +1776,7 @@ function generateForwardSeedFromPattern() {
 /* Generate lottery number sets using pattern analysis in the Seed → Numbers tab */
 function generateFromSeedPattern() {
     var formatId = document.getElementById('seed-lotto-format').value;
-    var fmt = FORMATS.find(function(f) { return f.id === formatId; }) || FORMATS[0];
+    var fmt = getAllFormats().find(function(f) { return f.id === formatId; }) || getAllFormats()[0];
     var pd = computePatternData(fmt.id);
     if (!pd) { showToast('Need at least ' + MIN_DRAWS_FOR_ANALYSIS + ' draws for ' + fmt.name + '. Add draws on the Live Draws tab.', 'error'); return; }
     var setCount = parseInt(document.getElementById('set-count').value);
@@ -1746,7 +1821,7 @@ function renderBudget() {
     state.tickets.forEach(function(t) { byFormat[t.formatId] = (byFormat[t.formatId]||0) + (t.price||0); });
     logEl.innerHTML = Object.entries(byFormat).map(function(entry) {
         var fid = entry[0], total = entry[1];
-        var f = FORMATS.find(function(x) { return x.id === fid; });
+        var f = getAllFormats().find(function(x) { return x.id === fid; });
         var count = state.tickets.filter(function(t) { return t.formatId === fid; }).length;
         return '<div class="history-item"><span>' + (f?f.flag+' '+f.name:fid) + '</span><span class="text-muted">' + count + ' ticket' + (count>1?'s':'') + '</span><span class="fw-700 text-purple">' + currency + total.toFixed(2) + '</span></div>';
     }).join('');
@@ -1772,7 +1847,7 @@ function formatCountdown(ms) {
 
 function renderSchedule() {
     var now = new Date();
-    document.getElementById('draw-schedule-list').innerHTML = FORMATS.map(function(f) {
+    document.getElementById('draw-schedule-list').innerHTML = getAllFormats().map(function(f) {
         var next = getNextDraw(f.drawDays, f.drawTime, now);
         var ms   = next ? next - now : 0;
         var cd   = formatCountdown(ms);
@@ -1786,7 +1861,7 @@ function renderSchedule() {
 
 function tickCountdowns() {
     var now = new Date();
-    FORMATS.forEach(function(f) {
+    getAllFormats().forEach(function(f) {
         var el = document.getElementById('countdown-' + f.id); if (!el) return;
         var next = getNextDraw(f.drawDays, f.drawTime, now);
         var cd   = formatCountdown(next ? next - now : 0);
@@ -1866,7 +1941,7 @@ function addDrawResult() {
     var numStr = document.getElementById('add-draw-numbers').value.trim();
     var bonStr = document.getElementById('add-draw-bonus').value.trim();
     if (!fmtId || !date || !numStr) { showToast('Fill in format, date and numbers', 'error'); return; }
-    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) return;
     var nums = numStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n >= 1 && n <= fmt.mainMax; });
     var uniqueNums = Array.from(new Set(nums));
@@ -1911,7 +1986,7 @@ function renderLiveDraws() {
         grouped[d.formatId].push(d);
     });
     list.innerHTML = Object.keys(grouped).map(function(fid) {
-        var fmt = FORMATS.find(function(f) { return f.id === fid; });
+        var fmt = getAllFormats().find(function(f) { return f.id === fid; });
         var label = fmt ? fmt.flag + ' ' + fmt.name : fid;
         var items = grouped[fid];
         return '<div class="card" style="margin-bottom:18px;">' +
@@ -1951,7 +2026,7 @@ var _editDrawId = null;
 function openEditDrawModal(id) {
     var draw = state.recentDraws.find(function(d) { return d.id === id; });
     if (!draw) return;
-    var fmt = FORMATS.find(function(f) { return f.id === draw.formatId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === draw.formatId; });
     if (!fmt) return;
 
     _editDrawId = id;
@@ -1985,7 +2060,7 @@ function saveEditDraw() {
     if (!_editDrawId) return;
     var draw = state.recentDraws.find(function(d) { return d.id === _editDrawId; });
     if (!draw) return;
-    var fmt = FORMATS.find(function(f) { return f.id === draw.formatId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === draw.formatId; });
     if (!fmt) return;
 
     var date    = document.getElementById('edit-draw-date').value;
@@ -2069,16 +2144,16 @@ function pasteCanvasParseDate(dateStr) {
 function pasteCanvasMatchFormat(rawName) {
     var norm = rawName.toLowerCase().trim().replace(/\s+/g, ' ');
     if (PASTE_CANVAS_NAME_MAP[norm]) {
-        return FORMATS.find(function(f) { return f.id === PASTE_CANVAS_NAME_MAP[norm]; }) || null;
+        return getAllFormats().find(function(f) { return f.id === PASTE_CANVAS_NAME_MAP[norm]; }) || null;
     }
     var keys = Object.keys(PASTE_CANVAS_NAME_MAP);
     for (var i = 0; i < keys.length; i++) {
         if (norm.indexOf(keys[i]) !== -1 || keys[i].indexOf(norm) !== -1) {
             var mapped = PASTE_CANVAS_NAME_MAP[keys[i]];
-            return FORMATS.find(function(f) { return f.id === mapped; }) || null;
+            return getAllFormats().find(function(f) { return f.id === mapped; }) || null;
         }
     }
-    return FORMATS.find(function(f) { return f.name.toLowerCase() === norm || norm.indexOf(f.name.toLowerCase()) !== -1; }) || null;
+    return getAllFormats().find(function(f) { return f.name.toLowerCase() === norm || norm.indexOf(f.name.toLowerCase()) !== -1; }) || null;
 }
 
 /* Split a concatenated number string (e.g. "2716412645305") into exactly
@@ -3021,7 +3096,7 @@ var ARQUINIELA_URL = 'https://www.loterianacional.gob.ar/quiniela';
 
 function openCollectModal() {
     var sel = document.getElementById('collect-format');
-    sel.innerHTML = FORMATS.map(function(f) {
+    sel.innerHTML = getAllFormats().map(function(f) {
         var src = COLLECT_API_SUPPORT[f.id] ? (COLLECT_SOURCE_LABELS[f.id] || 'Live API') : '';
         var badge = src ? ' \u2713 ' + src : '';
         return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + badge + '</option>';
@@ -3062,7 +3137,7 @@ async function startCollectDraws() {
     var count    = parseInt(document.getElementById('collect-count').value, 10);
     var fromDate = document.getElementById('collect-from-date').value;
 
-    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) return;
 
     document.getElementById('collect-fetch-btn').disabled = true;
@@ -3142,7 +3217,7 @@ async function fetchDrawsFromApi(fmtId, count, fromDate) {
 
     /* No automated API — show link to official results page */
     var url = COLLECT_OFFICIAL_URLS[fmtId] || '';
-    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
     var name = fmt ? fmt.name : fmtId;
     var linkHtml = url
         ? ' Visit <a href="' + url + '" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;">' + name + ' official results</a> to copy and add draws manually.'
@@ -3159,7 +3234,7 @@ async function fetchDrawsFromApi(fmtId, count, fromDate) {
    Note: the APIVerve endpoint supports CORS for browser requests, so no proxy
    is required. */
 async function fetchFromApiVerve(fmtId) {
-    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) throw new Error('Unknown format: ' + fmtId);
 
     var gameId = APIVERVE_GAME_IDS[fmtId];
@@ -3220,7 +3295,7 @@ async function fetchFromApiVerve(fmtId) {
    fetch will fail gracefully and the user will be given a link to add draws
    manually from the site directly. No user credentials are transmitted. */
 async function fetchFromNationalLotteryZA(fmtId, count, fromDate) {
-    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) throw new Error('Unknown format: ' + fmtId);
 
     var targetUrl = NLZA_URLS[fmtId];
@@ -3573,7 +3648,7 @@ function rapidAPIXHRGet(url) {
 }
 
 async function fetchFromRapidAPI(fmtId, count, fromDate) {
-    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) throw new Error('Unknown format: ' + fmtId);
 
     var gamePath = RAPIDAPI_GAME_IDS[fmtId];
@@ -3727,7 +3802,7 @@ async function fetchNYStateLottery(fmtId, count, fromDate) {
     var cfg = NY_STATE_LOTTERY_DATASETS[fmtId];
     if (!cfg) throw new Error('No NY Open Data dataset configured for: ' + fmtId);
 
-    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) throw new Error('Unknown format: ' + fmtId);
 
     var query = '$limit=' + count + '&$order=' + cfg.dateField + '+DESC';
@@ -3795,7 +3870,7 @@ async function fetchFromBrazilCaixa(fmtId) {
     var gameName = BRAZIL_CAIXA_GAMES[fmtId];
     if (!gameName) throw new Error('No Caixa game name configured for: ' + fmtId);
 
-    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) throw new Error('Unknown format: ' + fmtId);
 
     var url = 'https://loteriascaixa-api.herokuapp.com/api/' + gameName + '/latest';
@@ -3855,7 +3930,7 @@ async function fetchFromBrazilCaixa(fmtId) {
    function throws a descriptive error with a link to the official page
    so the user can add draws manually. */
 async function fetchFromUK49sWebsite(fmtId, count, fromDate) {
-    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) throw new Error('Unknown format: ' + fmtId);
 
     var targetUrl = UK_LOTTERY_URLS[fmtId];
@@ -3920,7 +3995,7 @@ async function fetchFromUK49sWebsite(fmtId, count, fromDate) {
    throws a descriptive error with a link to the official page so the user can add draws
    manually. */
 async function fetchArgentinaQuiniela(count, fromDate) {
-    var fmt = FORMATS.find(function(f) { return f.id === 'ar-quiniela'; });
+    var fmt = getAllFormats().find(function(f) { return f.id === 'ar-quiniela'; });
     if (!fmt) throw new Error('Unknown format: ar-quiniela');
 
     var targetUrl = ARQUINIELA_URL;
@@ -3984,7 +4059,7 @@ var MAX_SAVED_PATTERN_DRAWS = 500;
 /* Shared helper: compute pattern analytics for a given format ID.
    Returns null when there are not enough recorded draws. */
 function computePatternData(fmtId) {
-    var fmt = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) return null;
     var draws = state.recentDraws.filter(function(d) { return d.formatId === fmtId; }).slice(0, 15);
     if (draws.length < MIN_DRAWS_FOR_ANALYSIS) return null;
@@ -4022,7 +4097,7 @@ function runPatternDetector() {
     var fmtEl = document.getElementById('pattern-format');
     if (!fmtEl) return;
     var fmtId = fmtEl.value;
-    var fmt   = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt   = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt)  return;
     var draws = state.recentDraws.filter(function(d) { return d.formatId === fmtId; }).slice(0, 15);
     var container = document.getElementById('pattern-results');
@@ -4569,7 +4644,7 @@ function setCombAlgo(btn, algo) {
 
 function runCombinatorLab() {
     var fmtId = document.getElementById('comb-format').value;
-    var fmt   = FORMATS.find(function(f) { return f.id === fmtId; });
+    var fmt   = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
 
     var anchorStr = (document.getElementById('comb-anchors').value || '').trim();
@@ -4773,13 +4848,285 @@ function clearCombinatorResults() {
 document.addEventListener('change', function(e) {
     if (e.target && e.target.id === 'add-draw-format') {
         var fmtId = e.target.value;
-        var fmt = FORMATS.find(function(f){ return f.id === fmtId; });
+        var fmt = getAllFormats().find(function(f){ return f.id === fmtId; });
         var grp = document.getElementById('add-draw-bonus-group');
         var lbl = document.getElementById('add-draw-bonus-label');
         if (grp) grp.style.display = fmt && fmt.bonusCount > 0 ? 'block' : 'none';
         if (lbl && fmt && fmt.bonusCount > 0) lbl.textContent = fmt.bonusLabel + ' (1\u2013' + fmt.bonusMax + ')';
     }
 });
+
+/* ============================================================
+   CUSTOM LOTTERY FORMAT
+   ============================================================ */
+
+function openCustomFormatModal() {
+    renderCustomFormatList();
+    document.getElementById('custom-format-modal').classList.add('open');
+}
+
+function closeCustomFormatModal() {
+    document.getElementById('custom-format-modal').classList.remove('open');
+}
+
+function renderCustomFormatList() {
+    var container = document.getElementById('custom-format-list');
+    if (!container) return;
+    var customs = state.customFormats || [];
+    if (!customs.length) {
+        container.innerHTML = '<p class="text-muted text-sm">No custom formats yet. Add one below.</p>';
+        return;
+    }
+    container.innerHTML = customs.map(function(f, idx) {
+        return '<div class="ticket-card" style="margin-bottom:10px;">' +
+            '<div class="ticket-header">' +
+            '<span class="ticket-format-badge">' + f.flag + ' ' + f.name + '</span>' +
+            '<span class="text-sm text-muted">' + f.mainCount + ' from 1\u2013' + f.mainMax +
+                (f.bonusCount > 0 ? ' + ' + f.bonusCount + ' ' + f.bonusLabel : '') + '</span>' +
+            '<button class="btn btn-danger btn-sm" onclick="deleteCustomFormat(' + idx + ')">&#128465;&#65039; Delete</button>' +
+            '</div></div>';
+    }).join('');
+}
+
+function saveCustomFormat() {
+    var name       = (document.getElementById('cf-name').value || '').trim();
+    var flag       = (document.getElementById('cf-flag').value || '').trim() || '\uD83C\uDFB0';
+    var mainCount  = parseInt(document.getElementById('cf-main-count').value) || 6;
+    var mainMax    = parseInt(document.getElementById('cf-main-max').value)   || 49;
+    var bonusCount = parseInt(document.getElementById('cf-bonus-count').value) || 0;
+    var bonusMax   = parseInt(document.getElementById('cf-bonus-max').value)   || 0;
+    var bonusLabel = (document.getElementById('cf-bonus-label').value || '').trim() || 'Bonus';
+    var price      = parseFloat(document.getElementById('cf-price').value) || 1;
+    var currency   = (document.getElementById('cf-currency').value || '').trim() || 'R';
+    var jackpot    = (document.getElementById('cf-jackpot').value || '').trim() || (currency + '1M+');
+
+    if (!name) { showToast('Format name is required', 'error'); return; }
+    if (mainCount < 1 || mainCount > 20)  { showToast('Main count must be 1\u201320', 'error'); return; }
+    if (mainMax < 2   || mainMax > 200)   { showToast('Main max must be 2\u2013200', 'error'); return; }
+    if (mainCount >= mainMax)             { showToast('Main count must be less than main max', 'error'); return; }
+    if (bonusCount < 0 || bonusCount > 5) { showToast('Bonus count must be 0\u20135', 'error'); return; }
+    if (bonusCount > 0 && bonusMax < 1)   { showToast('Set bonus max when bonus count > 0', 'error'); return; }
+
+    /* Generate a unique ID */
+    var id = 'custom-' + Date.now();
+    var all = getAllFormats();
+    if (all.some(function(f) { return f.name.toLowerCase() === name.toLowerCase(); })) {
+        showToast('A format with that name already exists', 'error'); return;
+    }
+
+    var newFmt = {
+        id: id, name: name, flag: flag,
+        mainCount: mainCount, mainMax: mainMax,
+        bonusCount: bonusCount, bonusMax: bonusMax,
+        bonusLabel: bonusLabel, bonusColor: 'ball-bonus',
+        ticketPrice: price, currency: currency,
+        jackpot: jackpot,
+        drawDays: [0,1,2,3,4,5,6], drawTime: '20:00',
+        isCustom: true
+    };
+
+    state.customFormats = state.customFormats || [];
+    state.customFormats.push(newFmt);
+    persist();
+    buildFormatGrids();
+    renderCustomFormatList();
+    /* Reset form */
+    ['cf-name','cf-flag','cf-bonus-label','cf-currency','cf-jackpot'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.value = id === 'cf-flag' ? '\uD83C\uDFB0' : '';
+    });
+    ['cf-main-count','cf-bonus-count'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = id === 'cf-main-count' ? '6' : '0';
+    });
+    document.getElementById('cf-main-max').value  = '49';
+    document.getElementById('cf-bonus-max').value  = '0';
+    document.getElementById('cf-price').value      = '1';
+    document.getElementById('cf-currency').value   = 'R';
+    showToast('Custom format \u201c' + name + '\u201d added!', 'success');
+}
+
+function deleteCustomFormat(idx) {
+    if (!state.customFormats || idx < 0 || idx >= state.customFormats.length) return;
+    var name = state.customFormats[idx].name;
+    state.customFormats.splice(idx, 1);
+    persist();
+    buildFormatGrids();
+    renderCustomFormatList();
+    showToast('Custom format \u201c' + name + '\u201d deleted', 'success');
+}
+
+/* ============================================================
+   GENERATE FROM SMART SEARCH & FILTER (Quick Pick)
+   ============================================================ */
+
+/* Stores the most recently identified numbers from Smart Search */
+var _smartSearchNumbers = [];
+
+/* Helper: extract a pool of relevant numbers from the current Smart Search mode */
+function extractSmartSearchNumbers() {
+    var pool = getSearchDrawPool();
+    if (!pool.length) return [];
+
+    switch (_currentSearchMode) {
+        case 'repeated': {
+            var minCountEl = document.getElementById('repeat-min-count');
+            var minCount = minCountEl ? parseInt(minCountEl.value, 10) : 3;
+            var freq = {};
+            pool.forEach(function(d) {
+                (d.numbers || []).forEach(function(n) { freq[n] = (freq[n] || 0) + 1; });
+            });
+            return Object.keys(freq).map(Number)
+                .filter(function(n) { return freq[n] >= minCount; })
+                .sort(function(a,b) { return freq[b] - freq[a]; });
+        }
+        case 'fibonacci': {
+            var fibs = getFibonacciSet(90);
+            var fibFreq = {};
+            pool.forEach(function(d) {
+                (d.numbers || []).forEach(function(n) { if (fibs.has(n)) fibFreq[n] = (fibFreq[n] || 0) + 1; });
+            });
+            return Object.keys(fibFreq).map(Number).sort(function(a,b) { return fibFreq[b] - fibFreq[a]; });
+        }
+        case 'prime': {
+            var primeFreq = {};
+            pool.forEach(function(d) {
+                (d.numbers || []).forEach(function(n) { if (isPrime(n)) primeFreq[n] = (primeFreq[n] || 0) + 1; });
+            });
+            return Object.keys(primeFreq).map(Number).sort(function(a,b) { return primeFreq[b] - primeFreq[a]; });
+        }
+        case 'odd': {
+            var oddFreq = {};
+            pool.forEach(function(d) {
+                (d.numbers || []).forEach(function(n) { if (n % 2 !== 0) oddFreq[n] = (oddFreq[n] || 0) + 1; });
+            });
+            return Object.keys(oddFreq).map(Number).sort(function(a,b) { return oddFreq[b] - oddFreq[a]; });
+        }
+        case 'even': {
+            var evenFreq = {};
+            pool.forEach(function(d) {
+                (d.numbers || []).forEach(function(n) { if (n % 2 === 0) evenFreq[n] = (evenFreq[n] || 0) + 1; });
+            });
+            return Object.keys(evenFreq).map(Number).sort(function(a,b) { return evenFreq[b] - evenFreq[a]; });
+        }
+        case 'trending': {
+            if (pool.length < 6) return [];
+            var half   = Math.floor(pool.length / 2);
+            var recent = pool.slice(0, half);
+            var older  = pool.slice(half);
+            var rFreq2 = {}, oFreq2 = {};
+            recent.forEach(function(d) { (d.numbers||[]).forEach(function(n) { rFreq2[n] = (rFreq2[n]||0)+1; }); });
+            older.forEach(function(d)  { (d.numbers||[]).forEach(function(n) { oFreq2[n]  = (oFreq2[n] ||0)+1; }); });
+            var allNums2 = Array.from(new Set(Object.keys(rFreq2).map(Number).concat(Object.keys(oFreq2).map(Number))));
+            return allNums2.filter(function(n) {
+                return ((rFreq2[n]||0)/recent.length) - ((oFreq2[n]||0)/older.length) > TRENDING_THRESHOLD;
+            }).sort(function(a,b) {
+                var ta = ((rFreq2[a]||0)/recent.length) - ((oFreq2[a]||0)/older.length);
+                var tb = ((rFreq2[b]||0)/recent.length) - ((oFreq2[b]||0)/older.length);
+                return tb - ta;
+            });
+        }
+        case 'number-search': {
+            var inputEl2 = document.getElementById('number-search-input');
+            return inputEl2 ? inputEl2.value.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n > 0; }) : [];
+        }
+        case 'chromatic':
+        case 'pentatonic':
+        case 'sum-range':
+        case 'delta-gap': {
+            /* For draw-based modes, collect the numbers from the matching draws */
+            var allFound = {};
+            pool.forEach(function(d) {
+                (d.numbers || []).forEach(function(n) { allFound[n] = (allFound[n] || 0) + 1; });
+            });
+            return Object.keys(allFound).map(Number).sort(function(a,b) { return allFound[b] - allFound[a]; });
+        }
+        default: return [];
+    }
+}
+
+function generateQuickPickFromSmartSearch() {
+    var fmt = getAllFormats().find(function(f) { return f.id === state.selectedFormatQP; });
+    if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
+
+    var smartNums = extractSmartSearchNumbers();
+    if (!smartNums.length) {
+        showToast('No Smart Search results. Go to the Patterns tab, run a Smart Search, then come back.', 'error');
+        return;
+    }
+
+    /* Filter to numbers valid for this format */
+    var valid = smartNums.filter(function(n) { return n >= 1 && n <= fmt.mainMax; });
+    if (!valid.length) {
+        showToast('Smart Search numbers don\u2019t match this format\u2019s range (1\u2013' + fmt.mainMax + '). Try a different format or search mode.', 'error');
+        return;
+    }
+
+    var count = parseInt(document.getElementById('qp-count').value);
+    qpGeneratedSets = [];
+
+    for (var i = 0; i < count; i++) {
+        var picked = new Set();
+        /* Pick from the smart search pool first (weighted by position/frequency) */
+        var poolCopy = valid.slice();
+        while (picked.size < fmt.mainCount && poolCopy.length > 0) {
+            /* Weight: exponent 1.5 biases picks toward the front of the list (higher
+               frequency/relevance) without fully excluding lower-ranked numbers.
+               Lower values (close to 1) = near-uniform; higher values = very front-heavy. */
+            var weightedIdx = Math.floor(Math.pow(Math.random(), 1.5) * poolCopy.length);
+            picked.add(poolCopy[weightedIdx]);
+            poolCopy.splice(weightedIdx, 1);
+        }
+        /* Fill remaining slots randomly if smart pool didn't have enough.
+           MAX_GENERATION_ATTEMPTS is defined globally to guard against infinite loops. */
+        var attempts = 0;
+        while (picked.size < fmt.mainCount && attempts < MAX_GENERATION_ATTEMPTS) {
+            picked.add(Math.floor(Math.random() * fmt.mainMax) + 1);
+            attempts++;
+        }
+        var main  = Array.from(picked).slice(0, fmt.mainCount).sort(function(a,b) { return a-b; });
+        var bonus = fmt.bonusCount > 0 ? generateUniqueNumbers(fmt.bonusCount, fmt.bonusMax, 'crypto', null) : [];
+        qpGeneratedSets.push({ main: main, bonus: bonus, formatId: fmt.id });
+        recordStats(fmt.id, main.concat(bonus));
+    }
+    persist();
+    renderQuickPickResults(fmt, qpGeneratedSets);
+    updateHeader();
+    showToast('Generated ' + count + ' ticket' + (count > 1 ? 's' : '') + ' from Smart Search (' + valid.length + ' numbers in pool)!', 'success');
+}
+
+/* ============================================================
+   GENERATE FROM COMBINATION (Quick Pick)
+   ============================================================ */
+
+function generateQuickPickFromCombination() {
+    if (!_combinatorResults.length) {
+        showToast('No combinations available. Go to the Patterns tab \u2192 Smart Combinator Lab and generate combinations first.', 'error');
+        return;
+    }
+
+    var fmt = getAllFormats().find(function(f) { return f.id === state.selectedFormatQP; });
+    if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
+
+    /* Use the combinator results directly as quick-pick sets */
+    qpGeneratedSets = _combinatorResults.map(function(s) {
+        return { main: s.main.slice(), bonus: s.bonus.slice(), formatId: s.formatId };
+    });
+
+    /* If formats differ, warn but still show */
+    var combFmtId = _combinatorResults[0].formatId;
+    var combFmt   = getAllFormats().find(function(f) { return f.id === combFmtId; }) || fmt;
+    if (combFmtId !== state.selectedFormatQP) {
+        showToast('Showing ' + qpGeneratedSets.length + ' combination(s) from ' + combFmt.name + ' (Combinator Lab format).', 'success');
+    } else {
+        showToast('Loaded ' + qpGeneratedSets.length + ' combination' + (qpGeneratedSets.length > 1 ? 's' : '') + ' from Smart Combinator Lab!', 'success');
+    }
+
+    /* Record stats for current QP format perspective and render */
+    qpGeneratedSets.forEach(function(s) { recordStats(s.formatId, s.main.concat(s.bonus)); });
+    persist();
+    renderQuickPickResults(combFmt, qpGeneratedSets);
+    updateHeader();
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     loadPersisted();
@@ -4815,6 +5162,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.getElementById('edit-draw-modal').addEventListener('click', function(e) {
         if (e.target === this) closeEditDrawModal();
+    });
+    document.getElementById('custom-format-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeCustomFormatModal();
     });
     /* Initialise Firebase sync after the rest of the app is ready */
     initFirebase();
