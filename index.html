@@ -209,6 +209,42 @@
         .paste-canvas-textarea { font-family: 'Courier New', Courier, monospace; font-size: 0.88rem; min-height: 170px; resize: vertical; line-height: 1.55; }
         .paste-canvas-preview-draws { display: flex; flex-direction: column; gap: 0; margin-top: 14px; }
         .paste-draw-time-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:20px; background:rgba(139,92,246,0.12); color:var(--purple); border:1px solid rgba(139,92,246,0.25); }
+        /* ── Paste Canvas Workspace ─────────────────────────────────────── */
+        .paste-workspace-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:14px 18px; background:linear-gradient(135deg,rgba(139,92,246,0.10),rgba(6,182,212,0.08)); border-radius:16px; border:1px solid rgba(139,92,246,0.20); margin-bottom:16px; }
+        .paste-workspace-title { font-size:1.05rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:8px; }
+        .paste-workspace-meta { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+        .paste-count-badge { font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:20px; background:rgba(139,92,246,0.15); color:var(--purple); border:1px solid rgba(139,92,246,0.3); }
+        .paste-status-dot { width:8px; height:8px; border-radius:50%; background:#94a3b8; display:inline-block; flex-shrink:0; transition:background 0.3s; }
+        .paste-status-dot.ready  { background:#4ade80; box-shadow:0 0 6px #4ade80; }
+        .paste-status-dot.parsed { background:#f59e0b; box-shadow:0 0 6px #f59e0b; animation:pulse 1s infinite; }
+        /* ── Smart Search Panel ─────────────────────────────────────────── */
+        .smart-search-panel { background:var(--surface); border-radius:18px; border:1px solid var(--border); padding:22px; margin-bottom:16px; box-shadow:0 4px 16px var(--shadow); }
+        .smart-search-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:16px; }
+        .search-filter-row { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; align-items:center; }
+        .search-filter-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; border:2px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:0.8rem; font-weight:700; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+        .search-filter-chip:hover { border-color:var(--purple); color:var(--purple); }
+        .search-filter-chip.active { background:var(--accent-grad); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(139,92,246,0.35); }
+        .search-results-area { margin-top:14px; }
+        /* ── Saved Pattern Draws ────────────────────────────────────────── */
+        .saved-patterns-container { margin-top:8px; }
+        .spd-card { background:var(--surface); border-radius:16px; border:1px solid var(--border); padding:16px 18px; margin-bottom:10px; box-shadow:0 3px 12px var(--shadow); position:relative; transition:box-shadow 0.2s; }
+        .spd-card:hover { box-shadow:0 6px 22px var(--shadow); }
+        .spd-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+        .spd-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+        .spd-source-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.7rem; font-weight:700; padding:2px 8px; border-radius:20px; background:rgba(16,185,129,0.12); color:#059669; border:1px solid rgba(16,185,129,0.3); }
+        .spd-del-btn { background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1.1rem; line-height:1; padding:2px 6px; border-radius:8px; transition:all 0.2s; }
+        .spd-del-btn:hover { background:#fef2f2; color:var(--red); }
+        .spd-highlight { background:linear-gradient(135deg,rgba(139,92,246,0.08),rgba(6,182,212,0.06)); border-color:rgba(139,92,246,0.3); }
+        .match-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; font-weight:700; padding:2px 9px; border-radius:20px; background:rgba(245,158,11,0.14); color:#92400e; border:1px solid rgba(245,158,11,0.35); margin-left:6px; }
+        .ball-highlight { outline:3px solid #f59e0b; outline-offset:2px; animation:highlightPulse 1s infinite; }
+        @keyframes highlightPulse { 0%,100%{outline-color:#f59e0b;} 50%{outline-color:#ef4444;} }
+        .pattern-section-title { font-size:1rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:8px; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid var(--border); }
+        .search-number-input-row { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+        .repeat-filter-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+        .repeat-filter-label { font-size:0.82rem; font-weight:600; color:var(--text-muted); }
+        .repeat-filter-select { padding:6px 12px; border-radius:10px; border:2px solid var(--border); background:var(--surface2); color:var(--text); font-size:0.85rem; font-weight:600; cursor:pointer; }
+        .repeat-filter-select:focus { outline:none; border-color:var(--purple); }
+        [data-theme="dark"] .search-filter-chip.active { color:#fff; }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -525,19 +561,31 @@
 
         <!-- PASTE DRAW CANVAS -->
         <div class="card">
-            <div class="section-title" style="font-size:1.15rem;margin-bottom:6px;">&#128203; Paste Draw Results Canvas</div>
+            <!-- Workspace Header -->
+            <div class="paste-workspace-header">
+                <div class="paste-workspace-title">
+                    <span>&#128203;</span>
+                    Paste Draw Results Canvas
+                    <span class="paste-count-badge" id="paste-saved-count">&#128190; <span id="paste-saved-count-val">0</span> saved</span>
+                </div>
+                <div class="paste-workspace-meta">
+                    <span class="paste-status-dot" id="paste-status-dot"></span>
+                    <span class="text-sm text-muted" id="paste-status-label">Ready</span>
+                </div>
+            </div>
             <div class="algo-info" style="margin-bottom:16px;">
-                Paste copied draw results below — the canvas auto-detects the lottery name, draw type, date, time and numbers, then renders them in the app's ball layout.<br>
+                Paste copied draw results below — the canvas auto-detects the lottery name, draw type, date, time and numbers, then renders them in the app's ball layout. After parsing, use <strong>Save to Patterns</strong> to store draws in the Pattern Detector for smart analysis.<br>
                 <span style="color:var(--text-muted);">Expected format per draw:</span><br>
                 <code style="font-size:0.82rem;">UK 49s Brunchtime 6/49 | 30 Mar 2026 at 12:48:00</code><br>
                 <code style="font-size:0.82rem;">2716412645305</code>
             </div>
             <div class="form-group" style="margin-bottom:12px;">
                 <label>Paste Results Here</label>
-                <textarea id="paste-canvas" class="paste-canvas-textarea" placeholder="UK 49s Brunchtime 6/49 | 30 Mar 2026 at 12:48:00&#10;2716412645305&#10;UK 49s Brunchtime 6/49&#10;&#10;UK 49s Brunchtime 6/49 | 29 Mar 2026 at 12:48:00&#10;3637223982324&#10;UK 49s Brunchtime 6/49"></textarea>
+                <textarea id="paste-canvas" class="paste-canvas-textarea" oninput="onPasteCanvasInput()" placeholder="UK 49s Brunchtime 6/49 | 30 Mar 2026 at 12:48:00&#10;2716412645305&#10;UK 49s Brunchtime 6/49&#10;&#10;UK 49s Brunchtime 6/49 | 29 Mar 2026 at 12:48:00&#10;3637223982324&#10;UK 49s Brunchtime 6/49"></textarea>
             </div>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="parsePasteCanvas()">&#128269; Parse &amp; Preview</button>
+                <button class="btn btn-success" id="btn-save-to-patterns" onclick="saveParsedToPatterns()" style="display:none;">&#128190; Save to Patterns</button>
                 <button class="btn btn-secondary" onclick="clearPasteCanvas()">&#10006; Clear</button>
             </div>
             <div id="paste-canvas-preview"></div>
@@ -547,6 +595,8 @@
     <!-- PATTERN DETECTOR -->
     <section id="sec-patterns" class="section">
         <div class="section-title">&#129302; Pattern Detector</div>
+
+        <!-- Analysis controls -->
         <div class="card">
             <div class="flex justify-between items-center flex-wrap gap-10 mb-14">
                 <div class="form-group" style="margin:0;flex:1;min-width:200px;">
@@ -559,6 +609,86 @@
                 <strong>Algorithm:</strong> Analyses the last 15 recorded draw results for the chosen lottery. Detects hot/cold numbers, even/odd balance, number range distribution, pair frequency, and sum-range trends to generate data-driven suggestions.
             </div>
         </div>
+
+        <!-- Smart Search Panel -->
+        <div class="smart-search-panel">
+            <div class="pattern-section-title">&#128270; Smart Search &amp; Filter</div>
+
+            <!-- Search mode chips -->
+            <div class="search-filter-row">
+                <span class="text-sm fw-700" style="color:var(--text-muted);margin-right:2px;">Mode:</span>
+                <button class="search-filter-chip active" data-mode="repeated"    onclick="setSearchMode(this,'repeated')">&#128293; Repeated Numbers</button>
+                <button class="search-filter-chip"        data-mode="chromatic"   onclick="setSearchMode(this,'chromatic')">&#127929; Chromatic (Consecutive)</button>
+                <button class="search-filter-chip"        data-mode="pentatonic"  onclick="setSearchMode(this,'pentatonic')">&#127926; Pentatonic Intervals</button>
+                <button class="search-filter-chip"        data-mode="odd"         onclick="setSearchMode(this,'odd')">&#9899; Odd-Heavy</button>
+                <button class="search-filter-chip"        data-mode="even"        onclick="setSearchMode(this,'even')">&#9898; Even-Heavy</button>
+                <button class="search-filter-chip"        data-mode="number-search" onclick="setSearchMode(this,'number-search')">&#128269; Number Match</button>
+            </div>
+
+            <!-- Repeat-count filter (shown for "repeated" mode) -->
+            <div class="repeat-filter-row" id="repeat-filter-row">
+                <span class="repeat-filter-label">Min. occurrences to display:</span>
+                <select class="repeat-filter-select" id="repeat-min-count" onchange="runSmartSearch()">
+                    <option value="2">2+  times</option>
+                    <option value="3" selected>3+  times</option>
+                    <option value="4">4+  times</option>
+                    <option value="5">5+  times</option>
+                    <option value="6">6+  times</option>
+                    <option value="8">8+  times</option>
+                    <option value="10">10+ times</option>
+                </select>
+                <span class="repeat-filter-label" style="margin-left:12px;">Draws to scan:</span>
+                <select class="repeat-filter-select" id="repeat-draws-scope" onchange="runSmartSearch()">
+                    <option value="10">Last 10</option>
+                    <option value="20" selected>Last 20</option>
+                    <option value="50">Last 50</option>
+                    <option value="all">All saved</option>
+                </select>
+            </div>
+
+            <!-- Number match input (shown for "number-search" mode) -->
+            <div id="number-search-row" style="display:none;margin-bottom:14px;">
+                <div class="search-number-input-row">
+                    <div class="form-group" style="margin:0;flex:1;min-width:200px;">
+                        <label>Insert Numbers to Search (space or comma separated)</label>
+                        <input type="text" id="number-search-input" placeholder="e.g. 5 12 23" oninput="runSmartSearch()" />
+                    </div>
+                    <div class="form-group" style="margin:0;min-width:160px;">
+                        <label>Match at least</label>
+                        <select id="number-search-min-match" onchange="runSmartSearch()">
+                            <option value="1">1 number</option>
+                            <option value="2" selected>2 numbers</option>
+                            <option value="3">3 numbers</option>
+                            <option value="4">4 numbers</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary btn-sm" onclick="runSmartSearch()" style="margin-bottom:14px;">&#128270; Search</button>
+
+            <div class="search-results-area" id="smart-search-results">
+                <p class="text-muted text-sm">Choose a search mode and click <strong>Search</strong>, or save draws from the Paste Canvas first.</p>
+            </div>
+        </div>
+
+        <!-- Saved Pattern Draws -->
+        <div class="card">
+            <div class="pattern-section-title">&#128190; Saved Draw Patterns <span id="spd-count-badge" class="paste-count-badge" style="font-size:0.75rem;"></span></div>
+            <div class="algo-info" style="margin-bottom:12px;">
+                Draws saved here from the Paste Canvas are used by the Smart Search, pattern analysis, and suggestion engine. They are stored locally and persist across sessions.
+            </div>
+            <div class="flex gap-10 flex-wrap" style="margin-bottom:14px;">
+                <select id="spd-format-filter" onchange="renderSavedPatternDraws()" style="width:auto;min-width:185px;">
+                    <option value="all">All Formats</option>
+                </select>
+                <button class="btn btn-danger btn-sm" onclick="clearAllSavedPatternDraws()">&#128465;&#65039; Clear All</button>
+            </div>
+            <div id="saved-pattern-draws-list">
+                <p class="text-muted text-sm text-center" style="padding:20px 0;">No saved draws yet. Use the <strong>Save to Patterns</strong> button in the Paste Draw Results Canvas (Live Draws tab) to save parsed results here.</p>
+            </div>
+        </div>
+
         <div id="pattern-results">
             <p class="text-muted text-center mt-14">Select a lottery and add at least 3 draw results on the <strong>Live Draws</strong> tab to analyse patterns.</p>
         </div>
@@ -789,6 +919,7 @@ let state = {
     stats:                {},
     customDraws:          [],
     recentDraws:          [],
+    savedPatternDraws:    [],
     pendingSaveTicket:    null,
     manualPicked:         [],
     manualBonusPicked:    [],
@@ -958,7 +1089,8 @@ function persist() {
         localStorage.setItem('lotto_state', JSON.stringify({
             tickets: state.tickets, budget: state.budget, stats: state.stats,
             customDraws: state.customDraws, reverseHistory: state.reverseHistory,
-            seedHistory: state.seedHistory, recentDraws: state.recentDraws
+            seedHistory: state.seedHistory, recentDraws: state.recentDraws,
+            savedPatternDraws: state.savedPatternDraws
         }));
     } catch(e) {}
     syncToFirestore();
@@ -969,13 +1101,14 @@ function loadPersisted() {
         var raw = localStorage.getItem('lotto_state');
         if (!raw) return;
         var d = JSON.parse(raw);
-        state.tickets        = d.tickets        || [];
-        state.budget         = d.budget         || { limit:0, currency:'R' };
-        state.stats          = d.stats          || {};
-        state.customDraws    = d.customDraws    || [];
-        state.recentDraws    = d.recentDraws    || [];
-        state.reverseHistory = d.reverseHistory || [];
-        state.seedHistory    = d.seedHistory    || [];
+        state.tickets           = d.tickets           || [];
+        state.budget            = d.budget            || { limit:0, currency:'R' };
+        state.stats             = d.stats             || {};
+        state.customDraws       = d.customDraws       || [];
+        state.recentDraws       = d.recentDraws       || [];
+        state.reverseHistory    = d.reverseHistory    || [];
+        state.seedHistory       = d.seedHistory       || [];
+        state.savedPatternDraws = d.savedPatternDraws || [];
     } catch(e) {}
 }
 
@@ -993,7 +1126,7 @@ function switchTab(key) {
     if (key === 'budget')    renderBudget();
     if (key === 'schedule')  renderSchedule();
     if (key === 'livedraws') renderLiveDraws();
-    if (key === 'patterns')  runPatternDetector();
+    if (key === 'patterns')  { runPatternDetector(); renderSavedPatternDraws(); }
 }
 
 function switchSeedSub(idx) {
@@ -1020,7 +1153,7 @@ function buildFormatGrids() {
         var el = document.getElementById(id);
         if (el) el.innerHTML = FORMATS.map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
-    ['tkt-filter-format','stats-format-filter','live-draws-format-filter'].forEach(function(id) {
+    ['tkt-filter-format','stats-format-filter','live-draws-format-filter','spd-format-filter'].forEach(function(id) {
         var el = document.getElementById(id);
         if (!el) return;
         el.innerHTML = '<option value="all">All Formats</option>' + FORMATS.map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
@@ -1969,6 +2102,7 @@ function parsePasteCanvas() {
     }
 
     renderPasteCanvasPreview(_pasteCanvasParsed, errors);
+    updatePasteWorkspaceStatus();
 }
 
 function renderPasteCanvasPreview(draws, errors) {
@@ -2009,7 +2143,8 @@ function renderPasteCanvasPreview(draws, errors) {
         });
         html += '</div>';
         html += '<div class="btn-row" style="margin-top:14px;">';
-        html += '<button class="btn btn-primary" onclick="importPastedDraws()">&#128190; Import ' + draws.length + ' Draw' + (draws.length !== 1 ? 's' : '') + '</button>';
+        html += '<button class="btn btn-primary" onclick="importPastedDraws()">&#128190; Import ' + draws.length + ' Draw' + (draws.length !== 1 ? 's' : '') + ' to Live Draws</button>';
+        html += '<button class="btn btn-success" onclick="saveParsedToPatterns()">&#128190; Save ' + draws.length + ' Draw' + (draws.length !== 1 ? 's' : '') + ' to Patterns</button>';
         html += '<button class="btn btn-secondary" onclick="clearPasteCanvas()">&#10006; Cancel</button>';
         html += '</div>';
     }
@@ -2059,6 +2194,7 @@ function importPastedDraws() {
     _pasteCanvasParsed = [];
     document.getElementById('paste-canvas').value = '';
     document.getElementById('paste-canvas-preview').innerHTML = '';
+    updatePasteWorkspaceStatus();
 
     if (imported > 0) {
         showToast(imported + ' draw result' + (imported !== 1 ? 's' : '') + ' imported!', 'success');
@@ -2071,6 +2207,414 @@ function clearPasteCanvas() {
     document.getElementById('paste-canvas').value = '';
     document.getElementById('paste-canvas-preview').innerHTML = '';
     _pasteCanvasParsed = [];
+    updatePasteWorkspaceStatus();
+}
+
+/* Called on textarea input to update status dot */
+function onPasteCanvasInput() {
+    var txt = document.getElementById('paste-canvas').value.trim();
+    var dot = document.getElementById('paste-status-dot');
+    var lbl = document.getElementById('paste-status-label');
+    var saveBtn = document.getElementById('btn-save-to-patterns');
+    if (txt.length > 0) {
+        if (dot) { dot.className = 'paste-status-dot parsed'; }
+        if (lbl) lbl.textContent = 'Text entered — click Parse';
+    } else {
+        if (dot) { dot.className = 'paste-status-dot'; }
+        if (lbl) lbl.textContent = 'Ready';
+        if (saveBtn) saveBtn.style.display = 'none';
+    }
+}
+
+function updatePasteWorkspaceStatus() {
+    var dot = document.getElementById('paste-status-dot');
+    var lbl = document.getElementById('paste-status-label');
+    var saveBtn = document.getElementById('btn-save-to-patterns');
+    var savedCountEl = document.getElementById('paste-saved-count-val');
+    if (savedCountEl) savedCountEl.textContent = state.savedPatternDraws.length;
+    if (_pasteCanvasParsed.length > 0) {
+        if (dot) { dot.className = 'paste-status-dot ready'; }
+        if (lbl) lbl.textContent = _pasteCanvasParsed.length + ' draw' + (_pasteCanvasParsed.length !== 1 ? 's' : '') + ' parsed';
+        if (saveBtn) saveBtn.style.display = '';
+    } else {
+        var txt = document.getElementById('paste-canvas') ? document.getElementById('paste-canvas').value.trim() : '';
+        if (txt.length > 0) {
+            if (dot) { dot.className = 'paste-status-dot parsed'; }
+            if (lbl) lbl.textContent = 'Text entered — click Parse';
+        } else {
+            if (dot) { dot.className = 'paste-status-dot'; }
+            if (lbl) lbl.textContent = 'Ready';
+        }
+        if (saveBtn) saveBtn.style.display = 'none';
+    }
+}
+
+/* Save parsed draws from the paste canvas to state.savedPatternDraws */
+function saveParsedToPatterns() {
+    if (!_pasteCanvasParsed.length) { showToast('Parse some draws first', 'error'); return; }
+    var added = 0;
+    _pasteCanvasParsed.forEach(function(d) {
+        /* Skip duplicates: same format + same date + same time */
+        var exists = state.savedPatternDraws.some(function(r) {
+            return r.formatId === d.formatId && r.date === d.date && r.drawTime === d.drawTime;
+        });
+        if (exists) return;
+        state.savedPatternDraws.unshift({
+            id:       (typeof crypto !== 'undefined' && crypto.randomUUID)
+                        ? crypto.randomUUID()
+                        : String(Date.now()) + '-' + Math.random().toString(36).substring(2, 11) + '-' + Math.random().toString(36).substring(2, 11),
+            formatId: d.formatId,
+            fmt:      d.fmt,
+            rawName:  d.rawName,
+            date:     d.date,
+            drawTime: d.drawTime,
+            numbers:  d.numbers,
+            bonus:    d.bonus,
+            savedAt:  new Date().toISOString()
+        });
+        added++;
+    });
+    /* Cap at MAX_SAVED_PATTERN_DRAWS to stay within localStorage limits */
+    if (state.savedPatternDraws.length > MAX_SAVED_PATTERN_DRAWS) state.savedPatternDraws = state.savedPatternDraws.slice(0, MAX_SAVED_PATTERN_DRAWS);
+    persist();
+    updatePasteWorkspaceStatus();
+    renderSavedPatternDraws();
+    if (added > 0) {
+        showToast(added + ' draw' + (added !== 1 ? 's' : '') + ' saved to Pattern Detector!', 'success');
+    } else {
+        showToast('All draws were already saved — nothing added.', 'info');
+    }
+}
+
+/* Render the saved pattern draws list */
+function renderSavedPatternDraws() {
+    var container = document.getElementById('saved-pattern-draws-list');
+    if (!container) return;
+    var badge = document.getElementById('spd-count-badge');
+    var savedCountEl = document.getElementById('paste-saved-count-val');
+    if (savedCountEl) savedCountEl.textContent = state.savedPatternDraws.length;
+
+    var filterEl = document.getElementById('spd-format-filter');
+    var fmtFilter = filterEl ? filterEl.value : 'all';
+
+    var draws = fmtFilter === 'all'
+        ? state.savedPatternDraws
+        : state.savedPatternDraws.filter(function(d) { return d.formatId === fmtFilter; });
+
+    if (badge) badge.textContent = state.savedPatternDraws.length + ' total';
+
+    if (!draws.length) {
+        container.innerHTML = '<p class="text-muted text-sm text-center" style="padding:20px 0;">No saved draws' + (fmtFilter !== 'all' ? ' for this format' : '') + '. Use the <strong>Save to Patterns</strong> button in the Paste Draw Results Canvas to save parsed results here.</p>';
+        return;
+    }
+
+    var html = '<div class="saved-patterns-container">';
+    draws.forEach(function(d) {
+        var f       = d.fmt || {};
+        var flag    = f.flag || '&#127921;';
+        var fmtName = f.name || d.rawName;
+        var dateObj = new Date(d.date + 'T00:00:00');
+        var dateLbl = dateObj.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+        html += '<div class="spd-card">';
+        html += '<div class="spd-header">';
+        html += '<div class="spd-meta">';
+        html += '<span class="ticket-format-badge">' + flag + ' ' + fmtName + '</span>';
+        html += '<span class="draw-result-date">&#128197; ' + dateLbl + '</span>';
+        html += '<span class="paste-draw-time-badge">&#128336; ' + d.drawTime + '</span>';
+        html += '<span class="spd-source-badge">&#128190; Saved</span>';
+        html += '</div>';
+        html += '<button class="spd-del-btn" onclick="deleteSavedPatternDraw(\'' + d.id + '\')" title="Remove this draw">&#128465;&#65039;</button>';
+        html += '</div>';
+        html += '<div class="balls-row">';
+        d.numbers.forEach(function(n) {
+            html += '<span class="ball ball-main ball-sm animate">' + n + '</span>';
+        });
+        if (d.bonus && d.bonus.length) {
+            html += '<span class="ball-separator">+</span>';
+            d.bonus.forEach(function(n) {
+                html += '<span class="ball ' + (f.bonusColor || 'ball-bonus') + ' ball-sm animate">' + n + '</span>';
+            });
+        }
+        html += '</div></div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function deleteSavedPatternDraw(id) {
+    state.savedPatternDraws = state.savedPatternDraws.filter(function(d) { return d.id !== id; });
+    persist();
+    renderSavedPatternDraws();
+    showToast('Draw removed from saved patterns.', 'info');
+}
+
+function clearAllSavedPatternDraws() {
+    if (!state.savedPatternDraws.length) { showToast('No saved draws to clear.', 'info'); return; }
+    if (!confirm('Clear all ' + state.savedPatternDraws.length + ' saved pattern draws? This cannot be undone.')) return;
+    state.savedPatternDraws = [];
+    persist();
+    renderSavedPatternDraws();
+    updatePasteWorkspaceStatus();
+    showToast('All saved pattern draws cleared.', 'success');
+}
+
+/* ── Smart Search ─────────────────────────────────────────────────────────── */
+
+var _currentSearchMode = 'repeated';
+
+function setSearchMode(btn, mode) {
+    _currentSearchMode = mode;
+    document.querySelectorAll('.search-filter-chip').forEach(function(el) { el.classList.remove('active'); });
+    btn.classList.add('active');
+    /* Show/hide context UI */
+    var repeatRow = document.getElementById('repeat-filter-row');
+    var numberRow = document.getElementById('number-search-row');
+    if (repeatRow) repeatRow.style.display = (mode === 'repeated') ? '' : 'none';
+    if (numberRow) numberRow.style.display = (mode === 'number-search') ? '' : 'none';
+    runSmartSearch();
+}
+
+/* Get the pool of draws to search */
+function getSearchDrawPool() {
+    var scopeEl = document.getElementById('repeat-draws-scope');
+    var scope = scopeEl ? scopeEl.value : '20';
+    var all = state.savedPatternDraws.concat(
+        state.recentDraws.filter(function(r) {
+            return !state.savedPatternDraws.some(function(s) { return s.id === r.id; });
+        })
+    );
+    if (scope === 'all') return all;
+    return all.slice(0, parseInt(scope, 10));
+}
+
+function runSmartSearch() {
+    var container = document.getElementById('smart-search-results');
+    if (!container) return;
+    var pool = getSearchDrawPool();
+
+    if (!pool.length) {
+        container.innerHTML = '<p class="text-muted text-sm">No draws found. Save draws from the Paste Canvas or add draws on the Live Draws tab.</p>';
+        return;
+    }
+
+    switch (_currentSearchMode) {
+        case 'repeated':    renderRepeatedSearch(container, pool); break;
+        case 'chromatic':   renderChromaticSearch(container, pool); break;
+        case 'pentatonic':  renderPentatonicSearch(container, pool); break;
+        case 'odd':         renderOddEvenSearch(container, pool, 'odd'); break;
+        case 'even':        renderOddEvenSearch(container, pool, 'even'); break;
+        case 'number-search': renderNumberMatchSearch(container, pool); break;
+        default: container.innerHTML = ''; break;
+    }
+}
+
+/* Numbers that appeared >= minCount times across the pool */
+function renderRepeatedSearch(container, pool) {
+    var minCountEl = document.getElementById('repeat-min-count');
+    var minCount = minCountEl ? parseInt(minCountEl.value, 10) : 3;
+
+    var freq = {};
+    pool.forEach(function(d) {
+        (d.numbers || []).forEach(function(n) { freq[n] = (freq[n] || 0) + 1; });
+        (d.bonus   || []).forEach(function(n) { freq[n] = (freq[n] || 0) + 1; });
+    });
+
+    var hot = Object.keys(freq).map(Number).filter(function(n) { return freq[n] >= minCount; })
+        .sort(function(a,b) { return freq[b] - freq[a]; });
+
+    if (!hot.length) {
+        container.innerHTML = '<p class="text-muted text-sm">No numbers appeared ' + minCount + '+ times in the scanned draws. Try a lower threshold or scan more draws.</p>';
+        return;
+    }
+
+    var maxFreq = freq[hot[0]] || 1;
+    var html = '<div class="pattern-card">';
+    html += '<div class="pattern-card-title">&#128293; Numbers Repeated ' + minCount + '+ Times (' + hot.length + ' found in ' + pool.length + ' draws)</div>';
+
+    /* frequency bars */
+    hot.forEach(function(n) {
+        var pct = Math.round((freq[n] / maxFreq) * 100);
+        html += '<div class="pattern-bar-row">';
+        html += '<span class="pattern-bar-label" style="width:45px;">' + n + '</span>';
+        html += '<div class="pattern-bar-wrap"><div class="pattern-bar-fill" style="width:' + pct + '%;background:linear-gradient(90deg,#f59e0b,#ef4444);"></div></div>';
+        html += '<span class="pattern-bar-val">' + freq[n] + '&#215;</span>';
+        html += '</div>';
+    });
+
+    /* ball display */
+    html += '<div class="balls-row" style="margin-top:14px;">';
+    hot.slice(0, 20).forEach(function(n) {
+        html += '<span class="ball ball-main ball-sm animate" title="Appeared ' + freq[n] + ' times">' + n + '</span>';
+    });
+    html += '</div></div>';
+    container.innerHTML = html;
+}
+
+/* Chromatic search: draws containing runs of 3+ consecutive numbers */
+function renderChromaticSearch(container, pool) {
+    var results = [];
+    pool.forEach(function(d) {
+        var sorted = (d.numbers || []).slice().sort(function(a,b){ return a-b; });
+        var maxRun = 1; var curRun = 1;
+        for (var i = 1; i < sorted.length; i++) {
+            if (sorted[i] === sorted[i-1] + 1) { curRun++; maxRun = Math.max(maxRun, curRun); } else { curRun = 1; }
+        }
+        if (maxRun >= 3) results.push({ draw: d, maxRun: maxRun });
+    });
+    results.sort(function(a,b){ return b.maxRun - a.maxRun; });
+
+    if (!results.length) {
+        container.innerHTML = '<p class="text-muted text-sm">No draws found with 3+ consecutive (chromatic) numbers in the scanned pool.</p>';
+        return;
+    }
+
+    var html = '<div class="pattern-card">';
+    html += '<div class="pattern-card-title">&#127929; Draws with Chromatic (Consecutive) Sequences — ' + results.length + ' found</div>';
+    results.forEach(function(r) {
+        html += _renderSearchDrawCard(r.draw, null, '&#127929; Max run: ' + r.maxRun);
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+/* Pentatonic search: numbers fitting pentatonic intervals (gaps of 2,2,3,2,3 or similar musical steps) */
+function renderPentatonicSearch(container, pool) {
+    /* Pentatonic scale steps from any root: 0,2,4,7,9 (semitones) or numerically: gaps of 2,2,3,2,3 */
+    function isPentatonicSet(nums) {
+        var s = nums.slice().sort(function(a,b){ return a-b; });
+        if (s.length < 5) return false;
+        /* check any 5-subset */
+        for (var start = 0; start <= s.length - 5; start++) {
+            var sub = s.slice(start, start + 5);
+            var diffs = [];
+            for (var k = 1; k < sub.length; k++) diffs.push(sub[k] - sub[k-1]);
+            /* 5 sorted notes → 4 consecutive intervals (diffs has 4 elements).
+               Pentatonic patterns are rotations of the major/minor pentatonic
+               step sequences: [2,2,3,2] = major, [3,2,2,3] = minor, plus
+               common hybrids — each stored as a 4-element array to match diffs. */
+            var patterns = [
+                [2,2,3,2],[2,3,2,3],[3,2,3,2],[2,3,2,2],[3,2,2,3]
+            ];
+            for (var p = 0; p < patterns.length; p++) {
+                if (diffs.every(function(d,i){ return d === patterns[p][i]; })) return true;
+            }
+        }
+        return false;
+    }
+
+    var results = pool.filter(function(d) { return isPentatonicSet(d.numbers || []); });
+
+    if (!results.length) {
+        container.innerHTML = '<p class="text-muted text-sm">No draws found with pentatonic interval patterns (gaps of 2-2-3-2-3) in the scanned pool.</p>';
+        return;
+    }
+
+    var html = '<div class="pattern-card">';
+    html += '<div class="pattern-card-title">&#127926; Draws Matching Pentatonic Intervals — ' + results.length + ' found</div>';
+    results.forEach(function(d) { html += _renderSearchDrawCard(d, null, '&#127926; Pentatonic'); });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+/* Odd/Even-heavy draws */
+function renderOddEvenSearch(container, pool, type) {
+    var results = pool.map(function(d) {
+        var nums = d.numbers || [];
+        var oddC  = nums.filter(function(n){ return n % 2 !== 0; }).length;
+        var evenC = nums.length - oddC;
+        return { draw: d, oddC: oddC, evenC: evenC, total: nums.length };
+    }).filter(function(r) {
+        if (!r.total) return false;
+        var ratio = type === 'odd' ? r.oddC / r.total : r.evenC / r.total;
+        return ratio > 0.6;
+    }).sort(function(a,b) {
+        var ra = type === 'odd' ? b.oddC - a.oddC : b.evenC - a.evenC;
+        return ra;
+    });
+
+    var icon  = type === 'odd' ? '&#9899;' : '&#9898;';
+    var label = type === 'odd' ? 'Odd-Heavy (>60% odd)' : 'Even-Heavy (>60% even)';
+
+    if (!results.length) {
+        container.innerHTML = '<p class="text-muted text-sm">No draws found with ' + label.toLowerCase() + ' in the scanned pool.</p>';
+        return;
+    }
+
+    var html = '<div class="pattern-card">';
+    html += '<div class="pattern-card-title">' + icon + ' ' + label + ' — ' + results.length + ' draws</div>';
+    results.forEach(function(r) {
+        var tag = icon + ' ' + r.oddC + ' odd / ' + r.evenC + ' even';
+        html += _renderSearchDrawCard(r.draw, null, tag);
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+/* Number match search: find draws containing the inserted numbers */
+function renderNumberMatchSearch(container, pool) {
+    var inputEl = document.getElementById('number-search-input');
+    var minMatchEl = document.getElementById('number-search-min-match');
+    var raw = inputEl ? inputEl.value : '';
+    var minMatch = minMatchEl ? parseInt(minMatchEl.value, 10) : 2;
+
+    var searchNums = raw.split(/[\s,]+/).map(function(s){ return parseInt(s.trim(), 10); })
+        .filter(function(n){ return !isNaN(n) && n > 0; });
+
+    if (!searchNums.length) {
+        container.innerHTML = '<p class="text-muted text-sm">Enter one or more numbers above to search for matching draws.</p>';
+        return;
+    }
+
+    var results = pool.map(function(d) {
+        var allNums = (d.numbers || []).concat(d.bonus || []);
+        var matched = searchNums.filter(function(n){ return allNums.indexOf(n) !== -1; });
+        return { draw: d, matched: matched };
+    }).filter(function(r){ return r.matched.length >= minMatch; })
+      .sort(function(a,b){ return b.matched.length - a.matched.length; });
+
+    if (!results.length) {
+        container.innerHTML = '<p class="text-muted text-sm">No draws found containing at least ' + minMatch + ' of the numbers: <strong>' + searchNums.join(', ') + '</strong>.</p>';
+        return;
+    }
+
+    var html = '<div class="pattern-card">';
+    html += '<div class="pattern-card-title">&#128269; Draws Matching ' + searchNums.join(', ') + ' — ' + results.length + ' found</div>';
+    results.forEach(function(r) {
+        html += _renderSearchDrawCard(r.draw, r.matched, '&#128269; Matched: ' + r.matched.join(', ') + ' (' + r.matched.length + '/' + searchNums.length + ')');
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+/* Helper: render a single draw card inside search results, highlighting matchedNums */
+function _renderSearchDrawCard(d, matchedNums, tagText) {
+    var f       = d.fmt || {};
+    var flag    = f.flag || '&#127921;';
+    var fmtName = f.name || d.rawName || d.formatId || '';
+    var dateObj = new Date((d.date || '1970-01-01') + 'T00:00:00');
+    var dateLbl = dateObj.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+
+    var html = '<div class="spd-card" style="margin-bottom:10px;">';
+    html += '<div class="spd-header"><div class="spd-meta">';
+    html += '<span class="ticket-format-badge">' + flag + ' ' + fmtName + '</span>';
+    html += '<span class="draw-result-date">&#128197; ' + dateLbl + '</span>';
+    if (d.drawTime) html += '<span class="paste-draw-time-badge">&#128336; ' + d.drawTime + '</span>';
+    if (tagText) html += '<span class="match-badge">' + tagText + '</span>';
+    html += '</div></div>';
+    html += '<div class="balls-row">';
+    (d.numbers || []).forEach(function(n) {
+        var hi = matchedNums && matchedNums.indexOf(n) !== -1;
+        html += '<span class="ball ball-main ball-sm animate' + (hi ? ' ball-highlight' : '') + '">' + n + '</span>';
+    });
+    if (d.bonus && d.bonus.length) {
+        html += '<span class="ball-separator">+</span>';
+        d.bonus.forEach(function(n) {
+            var hi = matchedNums && matchedNums.indexOf(n) !== -1;
+            html += '<span class="ball ' + (f.bonusColor || 'ball-bonus') + ' ball-sm animate' + (hi ? ' ball-highlight' : '') + '">' + n + '</span>';
+        });
+    }
+    html += '</div></div>';
+    return html;
 }
 
 /* ---- APIVerve Lottery Numbers API --------------------------------------- */
@@ -3342,7 +3886,9 @@ async function fetchArgentinaQuiniela(count, fromDate) {
 
 
 
-var MIN_DRAWS_FOR_ANALYSIS = 3;
+var MIN_DRAWS_FOR_ANALYSIS  = 3;
+/* Maximum number of draws stored in savedPatternDraws (keeps localStorage usage bounded) */
+var MAX_SAVED_PATTERN_DRAWS = 500;
 
 /* Shared helper: compute pattern analytics for a given format ID.
    Returns null when there are not enough recorded draws. */
@@ -3595,6 +4141,8 @@ document.addEventListener('DOMContentLoaded', function() {
     renderReverseHistory();
     renderSeedHistory();
     updateHeader();
+    renderSavedPatternDraws();
+    updatePasteWorkspaceStatus();
     /* initialise bonus group for add-draw form */
     var grp = document.getElementById('add-draw-bonus-group');
     if (grp) grp.style.display = 'none';
