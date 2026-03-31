@@ -1866,12 +1866,13 @@ function pasteCanvasMatchFormat(rawName) {
 
 /* Split a concatenated number string (e.g. "2716412645305") into exactly
    `count` unique integers in range [1, maxVal] using backtracking.
-   Tries 2-digit numbers first (greedy) then falls back to 1-digit. */
+   Tries 2-digit numbers first (greedy) then falls back to 1-digit.
+   Returns null if no valid split exists. */
 function pasteCanvasSplitNumbers(str, count, maxVal) {
     var digits = str.replace(/\D/g, '');
     function bt(pos, acc) {
         if (acc.length === count && pos === digits.length) return acc.slice();
-        if (acc.length >= count || pos >= digits.length) return null;
+        if (acc.length > count || pos >= digits.length) return null;
         if (pos + 2 <= digits.length) {
             var two = parseInt(digits.substring(pos, pos + 2), 10);
             if (two >= 1 && two <= maxVal && acc.indexOf(two) === -1) {
@@ -1953,7 +1954,8 @@ function parsePasteCanvas() {
         }
 
         var mainNums  = nums.slice(0, mainCount);
-        var bonusNums = nums.slice(mainCount);
+        /* bonusCount may have been reset to 0 above if the retry without bonus succeeded */
+        var bonusNums = bonusCount > 0 ? nums.slice(mainCount) : [];
 
         _pasteCanvasParsed.push({
             formatId:  fmt ? fmt.id : rawName,
