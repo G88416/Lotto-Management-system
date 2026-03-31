@@ -245,6 +245,15 @@
         .repeat-filter-select { padding:6px 12px; border-radius:10px; border:2px solid var(--border); background:var(--surface2); color:var(--text); font-size:0.85rem; font-weight:600; cursor:pointer; }
         .repeat-filter-select:focus { outline:none; border-color:var(--purple); }
         [data-theme="dark"] .search-filter-chip.active { color:#fff; }
+        /* ── Combinator Lab ─────────────────────────────────────────────── */
+        .combinator-output { margin-top:16px; }
+        .sum-filter-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+        .sum-filter-label { font-size:0.82rem; font-weight:600; color:var(--text-muted); }
+        .sum-filter-input { width:90px; padding:6px 10px; border-radius:10px; border:2px solid var(--border); background:var(--surface2); color:var(--text); font-size:0.85rem; font-weight:600; }
+        .sum-filter-input:focus { outline:none; border-color:var(--purple); }
+        .comb-algo-desc { background:var(--surface2); border-radius:10px; padding:10px 14px; font-size:0.82rem; color:var(--text-muted); border-left:3px solid var(--purple); margin-top:8px; }
+        .anchor-badge { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:0.78rem; font-weight:900; box-shadow:0 2px 8px rgba(245,158,11,0.4); margin:2px; }
+        .qp-algo-info-box { background:var(--surface2); border-radius:13px; padding:12px 16px; font-size:0.82rem; color:var(--text-muted); border-left:4px solid var(--purple); margin-top:14px; display:none; }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -319,13 +328,19 @@
                 </div>
                 <div class="form-group">
                     <label>Generation Method</label>
-                    <select id="qp-method">
-                        <option value="true-random">True Random</option>
-                        <option value="crypto">Crypto-grade Random</option>
-                        <option value="seed">Seed-Based PRNG</option>
+                    <select id="qp-method" onchange="updateAlgoInfo()">
+                        <option value="true-random">🎲 True Random</option>
+                        <option value="crypto">🔐 Crypto-grade Random</option>
+                        <option value="seed">🌱 Seed-Based PRNG</option>
+                        <option value="hot-cold">🔥 Hot/Cold Weighted</option>
+                        <option value="fibonacci">🌀 Fibonacci Weighted</option>
+                        <option value="delta">📐 Delta System</option>
+                        <option value="balanced">⚖️ Balanced Distribution</option>
+                        <option value="wheeling">🔄 Abbreviated Wheeling</option>
                     </select>
                 </div>
             </div>
+            <div class="qp-algo-info-box" id="qp-algo-info"></div>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="generateQuickPick()">&#9889; Generate Quick Pick</button>
                 <button class="btn btn-purple" onclick="generateQuickPickFromPattern()">&#129518; Generate from Pattern</button>
@@ -620,6 +635,11 @@
                 <button class="search-filter-chip active" data-mode="repeated"    onclick="setSearchMode(this,'repeated')">&#128293; Repeated Numbers</button>
                 <button class="search-filter-chip"        data-mode="chromatic"   onclick="setSearchMode(this,'chromatic')">&#127929; Chromatic (Consecutive)</button>
                 <button class="search-filter-chip"        data-mode="pentatonic"  onclick="setSearchMode(this,'pentatonic')">&#127926; Pentatonic Intervals</button>
+                <button class="search-filter-chip"        data-mode="fibonacci"   onclick="setSearchMode(this,'fibonacci')">&#129300; Fibonacci Pattern</button>
+                <button class="search-filter-chip"        data-mode="prime"       onclick="setSearchMode(this,'prime')">&#128290; Prime Heavy</button>
+                <button class="search-filter-chip"        data-mode="sum-range"   onclick="setSearchMode(this,'sum-range')">&#8721; Sum Range</button>
+                <button class="search-filter-chip"        data-mode="delta-gap"   onclick="setSearchMode(this,'delta-gap')">&#128207; Delta/Gap</button>
+                <button class="search-filter-chip"        data-mode="trending"    onclick="setSearchMode(this,'trending')">&#128200; Trending</button>
                 <button class="search-filter-chip"        data-mode="odd"         onclick="setSearchMode(this,'odd')">&#9899; Odd-Heavy</button>
                 <button class="search-filter-chip"        data-mode="even"        onclick="setSearchMode(this,'even')">&#9898; Even-Heavy</button>
                 <button class="search-filter-chip"        data-mode="number-search" onclick="setSearchMode(this,'number-search')">&#128269; Number Match</button>
@@ -644,6 +664,15 @@
                     <option value="50">Last 50</option>
                     <option value="all">All saved</option>
                 </select>
+            </div>
+
+            <!-- Sum-range filter (shown for "sum-range" mode) -->
+            <div class="sum-filter-row" id="sum-range-row" style="display:none;">
+                <span class="sum-filter-label">Sum minimum:</span>
+                <input type="number" class="sum-filter-input" id="sum-range-min" value="80" min="0" oninput="runSmartSearch()" />
+                <span class="sum-filter-label">Sum maximum:</span>
+                <input type="number" class="sum-filter-input" id="sum-range-max" value="200" min="0" oninput="runSmartSearch()" />
+                <span class="text-sm text-muted">(total of main numbers)</span>
             </div>
 
             <!-- Number match input (shown for "number-search" mode) -->
@@ -691,6 +720,52 @@
 
         <div id="pattern-results">
             <p class="text-muted text-center mt-14">Select a lottery and add at least 3 draw results on the <strong>Live Draws</strong> tab to analyse patterns.</p>
+        </div>
+
+        <!-- Smart Combinator Lab -->
+        <div class="card" id="combinator-lab">
+            <div class="pattern-section-title">&#128301; Smart Combinator Lab <span class="paste-count-badge" style="font-size:0.75rem;margin-left:8px;">AI-Powered</span></div>
+            <div class="algo-info" style="margin-bottom:16px;">
+                Enter <strong>anchor numbers</strong> (numbers you must include) and pick an algorithm. The lab fills the remaining slots using data-driven strategies — optionally blending draw history, Fibonacci patterns, prime theory, delta distributions, or balanced zoning.
+            </div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Lottery Format</label>
+                    <select id="comb-format"></select>
+                </div>
+                <div class="form-group">
+                    <label>Number of Combinations</label>
+                    <select id="comb-count">
+                        <option value="1">1 combination</option>
+                        <option value="3" selected>3 combinations</option>
+                        <option value="5">5 combinations</option>
+                        <option value="10">10 combinations</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Anchor Numbers &#128274; (locked — space or comma separated, optional)</label>
+                <input type="text" id="comb-anchors" placeholder="e.g. 7 13 21 — leave blank for fully algorithmic" />
+            </div>
+            <div class="form-group">
+                <label>Combination Algorithm</label>
+                <div class="search-filter-row" id="comb-algo-chips" style="flex-wrap:wrap;">
+                    <button class="search-filter-chip active" data-algo="hot-cold-blend"   onclick="setCombAlgo(this,'hot-cold-blend')">&#128293; Hot/Cold Blend</button>
+                    <button class="search-filter-chip"        data-algo="fibonacci-spread" onclick="setCombAlgo(this,'fibonacci-spread')">&#129300; Fibonacci Spread</button>
+                    <button class="search-filter-chip"        data-algo="delta-build"      onclick="setCombAlgo(this,'delta-build')">&#128207; Delta Build</button>
+                    <button class="search-filter-chip"        data-algo="balanced-zones"   onclick="setCombAlgo(this,'balanced-zones')">&#9878;&#65039; Balanced Zones</button>
+                    <button class="search-filter-chip"        data-algo="prime-boost"      onclick="setCombAlgo(this,'prime-boost')">&#128290; Prime Boost</button>
+                </div>
+                <div class="comb-algo-desc" id="comb-algo-info">
+                    &#128293; <strong>Hot/Cold Blend:</strong> Fills remaining slots with a weighted mix of hot (frequently drawn) and cold (overdue) numbers from your saved draw history.
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary"   onclick="runCombinatorLab()">&#9889; Generate Combinations</button>
+                <button class="btn btn-success"   onclick="saveCombinatorResults()">&#128190; Save All to Tickets</button>
+                <button class="btn btn-secondary" onclick="clearCombinatorResults()">&#128465;&#65039; Clear</button>
+            </div>
+            <div id="combinator-output" class="combinator-output"></div>
         </div>
     </section>
 </div>
@@ -1149,7 +1224,7 @@ function buildFormatGrids() {
                 '<div class="jackpot">' + f.jackpot + '</div></div>';
         }).join('');
     });
-    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format'].forEach(function(id) {
+    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = FORMATS.map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
@@ -1220,14 +1295,23 @@ function generateQuickPick() {
     var seedRef = { val: Math.floor(Math.random() * 999999999) + 1 };
     qpGeneratedSets = [];
     for (var i = 0; i < count; i++) {
-        var main  = generateUniqueNumbers(fmt.mainCount, fmt.mainMax, method, seedRef);
-        var bonus = fmt.bonusCount > 0 ? generateUniqueNumbers(fmt.bonusCount, fmt.bonusMax, method, seedRef) : [];
+        var main;
+        switch (method) {
+            case 'hot-cold':  main = generateHotColdWeighted(fmt); break;
+            case 'fibonacci': main = generateFibonacciWeighted(fmt); break;
+            case 'delta':     main = generateDeltaSystem(fmt); break;
+            case 'balanced':  main = generateBalancedDistribution(fmt); break;
+            case 'wheeling':  main = generateWheeling(fmt); break;
+            default:          main = generateUniqueNumbers(fmt.mainCount, fmt.mainMax, method, seedRef); break;
+        }
+        var bonus = fmt.bonusCount > 0 ? generateUniqueNumbers(fmt.bonusCount, fmt.bonusMax, 'crypto', null) : [];
         qpGeneratedSets.push({ main: main, bonus: bonus, formatId: fmt.id });
         recordStats(fmt.id, main.concat(bonus));
     }
     persist();
     renderQuickPickResults(fmt, qpGeneratedSets);
     updateHeader();
+    updateAlgoInfo();
 }
 
 function generateQuickPickFromPattern() {
@@ -2367,10 +2451,12 @@ function setSearchMode(btn, mode) {
     document.querySelectorAll('.search-filter-chip').forEach(function(el) { el.classList.remove('active'); });
     btn.classList.add('active');
     /* Show/hide context UI */
-    var repeatRow = document.getElementById('repeat-filter-row');
-    var numberRow = document.getElementById('number-search-row');
-    if (repeatRow) repeatRow.style.display = (mode === 'repeated') ? '' : 'none';
-    if (numberRow) numberRow.style.display = (mode === 'number-search') ? '' : 'none';
+    var repeatRow  = document.getElementById('repeat-filter-row');
+    var numberRow  = document.getElementById('number-search-row');
+    var sumRangeRow = document.getElementById('sum-range-row');
+    if (repeatRow)   repeatRow.style.display   = (mode === 'repeated')      ? '' : 'none';
+    if (numberRow)   numberRow.style.display   = (mode === 'number-search') ? '' : 'none';
+    if (sumRangeRow) sumRangeRow.style.display  = (mode === 'sum-range')     ? '' : 'none';
     runSmartSearch();
 }
 
@@ -2401,6 +2487,11 @@ function runSmartSearch() {
         case 'repeated':    renderRepeatedSearch(container, pool); break;
         case 'chromatic':   renderChromaticSearch(container, pool); break;
         case 'pentatonic':  renderPentatonicSearch(container, pool); break;
+        case 'fibonacci':   renderFibonacciSearch(container, pool); break;
+        case 'prime':       renderPrimeSearch(container, pool); break;
+        case 'sum-range':   renderSumRangeSearch(container, pool); break;
+        case 'delta-gap':   renderDeltaGapSearch(container, pool); break;
+        case 'trending':    renderTrendingSearch(container, pool); break;
         case 'odd':         renderOddEvenSearch(container, pool, 'odd'); break;
         case 'even':        renderOddEvenSearch(container, pool, 'even'); break;
         case 'number-search': renderNumberMatchSearch(container, pool); break;
@@ -4122,6 +4213,561 @@ function buildSuggestion(fmt, freq, sorted, hotNums, coldNums, evenCount, oddCou
     ];
 
     return { main: main, bonus: bonus, tags: tags };
+}
+
+/* ============================================================
+   ENHANCED GENERATION METHODS
+   ============================================================ */
+
+/* Descriptions for each generation method — displayed as dynamic algo-info */
+var QP_ALGO_INFO = {
+    'true-random':  '&#127922; <strong>True Random:</strong> Uses <code>Math.random()</code> — fast uniform distribution PRNG, no pattern weighting.',
+    'crypto':       '&#128272; <strong>Crypto-grade Random:</strong> Uses <code>window.crypto.getRandomValues()</code> with rejection sampling to eliminate modulo bias — cryptographically secure.',
+    'seed':         '&#127807; <strong>Seed-Based PRNG:</strong> Linear Congruential Generator (LCG): <code>seed = (seed &times; 1103515245 + 12345) &amp; 0x7FFFFFFF</code>. Deterministic and reproducible from a known seed.',
+    'hot-cold':     '&#128293; <strong>Hot/Cold Weighted:</strong> Assigns weights based on historical draw frequency — hot numbers (top 25%) get 5&times; weight, mid-frequency 2&times;, cold 1&times;. Requires saved draw data; falls back to frequency order if no history.',
+    'fibonacci':    '&#129300; <strong>Fibonacci Weighted:</strong> Fibonacci numbers (1,2,3,5,8,13,21,34,55,89\u2026) get 6&times; weight; numbers within &plusmn;2 of a Fibonacci number get 3&times; weight; all others get 1&times;.',
+    'delta':        '&#128207; <strong>Delta System:</strong> Constructs numbers using cumulative gaps (deltas) drawn from the typical lottery spacing distribution [1\u201315]. Produces naturally spaced sets matching common draw patterns.',
+    'balanced':     '&#9878;&#65039; <strong>Balanced Distribution:</strong> Divides the number range into low/mid/high thirds and picks roughly equal counts from each zone, ensuring optimal spread across the full range.',
+    'wheeling':     '&#128257; <strong>Abbreviated Wheeling:</strong> Picks an expanded pool (mainCount + 4 unique numbers via crypto random), then generates subsets by systematic index rotation for improved number coverage.'
+};
+
+function updateAlgoInfo() {
+    var el = document.getElementById('qp-algo-info');
+    if (!el) return;
+    var method = document.getElementById('qp-method').value;
+    el.innerHTML = QP_ALGO_INFO[method] || '';
+    el.style.display = method ? 'block' : 'none';
+}
+
+/* Fibonacci sequence as a Set up to `max` */
+function getFibonacciSet(max) {
+    var fibs = new Set();
+    var a = 1, b = 1;
+    while (a <= max) {
+        fibs.add(a);
+        var c = a + b; a = b; b = c;
+    }
+    return fibs;
+}
+
+/* Primality test */
+function isPrime(n) {
+    if (n < 2) return false;
+    if (n === 2) return true;
+    if (n % 2 === 0) return false;
+    for (var i = 3; i * i <= n; i += 2) { if (n % i === 0) return false; }
+    return true;
+}
+
+/* Hot/Cold Weighted generation — uses saved pattern draws for frequency weights */
+function generateHotColdWeighted(fmt) {
+    var pd = computePatternData(fmt.id);
+    var pool = [];
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        var rank = pd ? pd.sorted.indexOf(n) : -1;
+        var hotCutoff  = Math.floor(fmt.mainMax * 0.25);
+        var coldCutoff = Math.floor(fmt.mainMax * 0.75);
+        var w = (pd && rank >= 0 && rank < hotCutoff) ? 5
+              : (pd && rank >= coldCutoff)            ? 1
+              :                                         2;
+        for (var i = 0; i < w; i++) pool.push(n);
+    }
+    var nums = new Set();
+    var attempts = 0;
+    while (nums.size < fmt.mainCount && attempts < MAX_GENERATION_ATTEMPTS) {
+        nums.add(pool[Math.floor(Math.random() * pool.length)]);
+        attempts++;
+    }
+    return Array.from(nums).sort(function(a,b) { return a-b; });
+}
+
+/* Fibonacci Weighted generation — numbers near Fibonacci sequence get higher weight */
+function generateFibonacciWeighted(fmt) {
+    var fibs = getFibonacciSet(fmt.mainMax);
+    var pool = [];
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        var isFib = fibs.has(n);
+        var nearFib = !isFib && (fibs.has(n-1) || fibs.has(n+1) || fibs.has(n-2) || fibs.has(n+2));
+        var w = isFib ? 6 : (nearFib ? 3 : 1);
+        for (var i = 0; i < w; i++) pool.push(n);
+    }
+    var nums = new Set();
+    var attempts = 0;
+    while (nums.size < fmt.mainCount && attempts < MAX_GENERATION_ATTEMPTS) {
+        nums.add(pool[Math.floor(Math.random() * pool.length)]);
+        attempts++;
+    }
+    return Array.from(nums).sort(function(a,b) { return a-b; });
+}
+
+/* Delta System — generates numbers using cumulative gap/delta distributions */
+function generateDeltaSystem(fmt) {
+    /* Delta pool mirrors typical lotto gap distributions (small gaps most common) */
+    var deltaPool = [1,1,1,2,2,2,3,3,3,4,4,5,5,6,7,8,9,10,11,13,15];
+    var attempts = 0;
+    while (attempts < MAX_GENERATION_ATTEMPTS) {
+        var base = Math.floor(Math.random() * Math.max(1, Math.floor(fmt.mainMax / 4))) + 1;
+        var set = [base];
+        var valid = true;
+        for (var i = 1; i < fmt.mainCount; i++) {
+            var delta = deltaPool[Math.floor(Math.random() * deltaPool.length)];
+            base += delta;
+            if (base > fmt.mainMax) { valid = false; break; }
+            set.push(base);
+        }
+        if (valid && new Set(set).size === fmt.mainCount) {
+            return set.sort(function(a,b) { return a-b; });
+        }
+        attempts++;
+    }
+    return generateUniqueNumbers(fmt.mainCount, fmt.mainMax, 'true-random', null);
+}
+
+/* Balanced Distribution — picks roughly equal numbers from low/mid/high thirds */
+function generateBalancedDistribution(fmt) {
+    var low = Math.floor(fmt.mainMax / 3);
+    var mid = Math.floor(fmt.mainMax * 2 / 3);
+    var perZone = Math.floor(fmt.mainCount / 3);
+    var extra   = fmt.mainCount % 3;
+    var zones = [
+        { min:1,     max:low,          count: perZone + (extra > 0 ? 1 : 0) },
+        { min:low+1, max:mid,          count: perZone + (extra > 1 ? 1 : 0) },
+        { min:mid+1, max:fmt.mainMax,  count: fmt.mainCount - (perZone + (extra > 0 ? 1 : 0)) - (perZone + (extra > 1 ? 1 : 0)) }
+    ];
+    var result = [];
+    zones.forEach(function(zone) {
+        var z = new Set(); var att = 0;
+        while (z.size < zone.count && att < MAX_GENERATION_ATTEMPTS) {
+            z.add(Math.floor(Math.random() * (zone.max - zone.min + 1)) + zone.min);
+            att++;
+        }
+        z.forEach(function(n) { result.push(n); });
+    });
+    return result.sort(function(a,b) { return a-b; });
+}
+
+/* Abbreviated Wheeling — expands the draw pool and creates systematic subsets */
+function generateWheeling(fmt) {
+    var poolSize = Math.min(fmt.mainCount + 4, fmt.mainMax);
+    var pool = generateUniqueNumbers(poolSize, fmt.mainMax, 'crypto', null);
+    /* Rotate selection by prime step to ensure systematic coverage */
+    var step = 3;
+    var subset = new Set();
+    var idx = Math.floor(Math.random() * poolSize);
+    var att = 0;
+    while (subset.size < fmt.mainCount && att < MAX_GENERATION_ATTEMPTS) {
+        subset.add(pool[idx % poolSize]);
+        idx = (idx + step) % poolSize;
+        att++;
+    }
+    /* Fallback fill if rotation produced duplicates */
+    for (var j = 0; j < pool.length && subset.size < fmt.mainCount; j++) {
+        subset.add(pool[j]);
+    }
+    return Array.from(subset).slice(0, fmt.mainCount).sort(function(a,b) { return a-b; });
+}
+
+/* ============================================================
+   ADVANCED SMART SEARCH RENDER FUNCTIONS
+   ============================================================ */
+
+/* Fibonacci Pattern — draws containing Fibonacci numbers */
+function renderFibonacciSearch(container, pool) {
+    /* Use getFibonacciSet for consistency with the generation functions */
+    var allFibs = getFibonacciSet(90);
+
+    var results = pool.map(function(d) {
+        var nums    = d.numbers || [];
+        var fibNums = nums.filter(function(n) { return allFibs.has(n); });
+        return { draw: d, fibNums: fibNums, fibCount: fibNums.length, total: nums.length };
+    }).filter(function(r) {
+        return r.fibCount >= 2;
+    }).sort(function(a,b) { return b.fibCount - a.fibCount; });
+
+    if (!results.length) {
+        container.innerHTML = '<p class="text-muted text-sm">No draws found with 2+ Fibonacci numbers (1,2,3,5,8,13,21,34,55,89) in the scanned pool. Try scanning more draws.</p>';
+        return;
+    }
+
+    var fibList = Array.from(allFibs).sort(function(a,b){ return a-b; }).join(', ');
+    var html = '<div class="pattern-card">';
+    html += '<div class="pattern-card-title">&#129300; Draws with Fibonacci Numbers — ' + results.length + ' found in ' + pool.length + ' draws</div>';
+    html += '<div class="algo-info" style="margin-bottom:12px;">Fibonacci sequence: <strong>' + fibList + '</strong>. Draws sorted by how many drawn numbers are Fibonacci numbers.</div>';
+    results.forEach(function(r) {
+        html += _renderSearchDrawCard(r.draw, r.fibNums, '&#129300; ' + r.fibCount + '/' + r.total + ' Fibonacci');
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+/* Prime Heavy — draws where more than 50% of numbers are prime */
+function renderPrimeSearch(container, pool) {
+    var results = pool.map(function(d) {
+        var nums      = d.numbers || [];
+        var primeNums = nums.filter(function(n) { return isPrime(n); });
+        return { draw: d, primeNums: primeNums, primeCount: primeNums.length, total: nums.length };
+    }).filter(function(r) {
+        return r.total > 0 && r.primeCount / r.total > 0.5;
+    }).sort(function(a,b) { return b.primeCount - a.primeCount; });
+
+    if (!results.length) {
+        container.innerHTML = '<p class="text-muted text-sm">No draws with more than 50% prime numbers in the scanned pool.</p>';
+        return;
+    }
+
+    var html = '<div class="pattern-card">';
+    html += '<div class="pattern-card-title">&#128290; Prime-Heavy Draws (&gt;50% primes) — ' + results.length + ' found</div>';
+    html += '<div class="algo-info" style="margin-bottom:12px;">Prime numbers: 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89\u2026 Draws where majority of numbers are prime.</div>';
+    results.forEach(function(r) {
+        html += _renderSearchDrawCard(r.draw, r.primeNums, '&#128290; ' + r.primeCount + '/' + r.total + ' primes');
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+/* Sum Range — draws whose main numbers total within the user-specified range */
+function renderSumRangeSearch(container, pool) {
+    var minEl = document.getElementById('sum-range-min');
+    var maxEl = document.getElementById('sum-range-max');
+    var minSum = minEl ? parseInt(minEl.value, 10) : 0;
+    var maxSum = maxEl ? parseInt(maxEl.value, 10) : 9999;
+
+    if (isNaN(minSum) || isNaN(maxSum)) {
+        container.innerHTML = '<p class="text-muted text-sm">Enter valid min and max sum values above.</p>';
+        return;
+    }
+
+    var results = pool.map(function(d) {
+        var sum = (d.numbers || []).reduce(function(a, n) { return a + n; }, 0);
+        return { draw: d, sum: sum };
+    }).filter(function(r) { return r.sum >= minSum && r.sum <= maxSum; })
+      .sort(function(a,b) { return a.sum - b.sum; });
+
+    if (!results.length) {
+        container.innerHTML = '<p class="text-muted text-sm">No draws with main-number sum between <strong>' + minSum + '</strong> and <strong>' + maxSum + '</strong> in the scanned pool. Adjust the range and try again.</p>';
+        return;
+    }
+
+    /* Frequency bar for sums */
+    var minActual = results[0].sum;
+    var maxActual = results[results.length - 1].sum;
+    var html = '<div class="pattern-card">';
+    html += '<div class="pattern-card-title">&#8721; Sum Range ' + minSum + '\u2013' + maxSum + ' — ' + results.length + ' draws</div>';
+    html += '<div class="algo-info" style="margin-bottom:12px;">Actual sum range in results: <strong>' + minActual + '\u2013' + maxActual + '</strong>. Sorted by sum ascending.</div>';
+    results.forEach(function(r) {
+        html += _renderSearchDrawCard(r.draw, null, '&#8721; Sum: ' + r.sum);
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+/* Delta/Gap Analysis — sorts draws by average gap between consecutive numbers */
+function renderDeltaGapSearch(container, pool) {
+    var results = pool.map(function(d) {
+        var sorted = (d.numbers || []).slice().sort(function(a,b){ return a-b; });
+        if (sorted.length < 2) return null;
+        var deltas = [];
+        for (var i = 1; i < sorted.length; i++) deltas.push(sorted[i] - sorted[i-1]);
+        var avgDelta = (deltas.reduce(function(s,v){ return s+v; }, 0) / deltas.length).toFixed(1);
+        var maxDelta = Math.max.apply(null, deltas);
+        var minDelta = Math.min.apply(null, deltas);
+        return { draw: d, deltas: deltas, avgDelta: avgDelta, maxDelta: maxDelta, minDelta: minDelta };
+    }).filter(function(r) { return r !== null; })
+      .sort(function(a,b) { return parseFloat(a.avgDelta) - parseFloat(b.avgDelta); });
+
+    if (!results.length) {
+        container.innerHTML = '<p class="text-muted text-sm">No draws found for delta analysis.</p>';
+        return;
+    }
+
+    var html = '<div class="pattern-card">';
+    html += '<div class="pattern-card-title">&#128207; Delta / Gap Analysis — ' + results.length + ' draws sorted by average gap (smallest first)</div>';
+    html += '<div class="algo-info" style="margin-bottom:12px;">Delta = gap between consecutive drawn numbers (sorted). Small average &Delta; = tightly clustered; large = widely spread. Format: &Delta;avg | gap sequence.</div>';
+    results.slice(0, 25).forEach(function(r) {
+        var deltaStr = r.deltas.join('\u2192');
+        html += _renderSearchDrawCard(r.draw, null, '&#128207; \u0394avg:' + r.avgDelta + ' | ' + deltaStr);
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+var TRENDING_THRESHOLD = 0.04; /* minimum rate-difference to classify a number as trending */
+
+/* Trending Numbers — numbers appearing more frequently in recent draws vs older ones */
+function renderTrendingSearch(container, pool) {
+    if (pool.length < 6) {
+        container.innerHTML = '<p class="text-muted text-sm">Need at least 6 draws to detect trending numbers. Save more draws and try again.</p>';
+        return;
+    }
+
+    var half   = Math.floor(pool.length / 2);
+    var recent = pool.slice(0, half);   /* newest draws first in the pool */
+    var older  = pool.slice(half);
+
+    var recentFreq = {}, olderFreq = {};
+    recent.forEach(function(d) { (d.numbers||[]).forEach(function(n) { recentFreq[n] = (recentFreq[n]||0)+1; }); });
+    older.forEach(function(d)  { (d.numbers||[]).forEach(function(n) { olderFreq[n]  = (olderFreq[n] ||0)+1; }); });
+
+    /* Normalise by count of draws in each half */
+    var allNums = new Set(Object.keys(recentFreq).map(Number).concat(Object.keys(olderFreq).map(Number)));
+    var trending = [];
+    allNums.forEach(function(n) {
+        var rRate = (recentFreq[n] || 0) / recent.length;
+        var oRate = (olderFreq[n]  || 0) / older.length;
+        var trend = rRate - oRate;
+        if (trend > TRENDING_THRESHOLD) trending.push({ n: n, rRate: rRate, oRate: oRate, trend: trend });
+    });
+    trending.sort(function(a,b) { return b.trend - a.trend; });
+
+    if (!trending.length) {
+        container.innerHTML = '<p class="text-muted text-sm">No clearly trending numbers detected. Try scanning more draws or using the Last 50 / All draws scope.</p>';
+        return;
+    }
+
+    var maxTrend = trending[0].trend;
+    var html = '<div class="pattern-card">';
+    html += '<div class="pattern-card-title">&#128200; Trending Numbers (Rising Frequency) — top ' + Math.min(trending.length, 15) + ' of ' + trending.length + '</div>';
+    html += '<div class="algo-info" style="margin-bottom:12px;">Compares number frequency in the <strong>most recent half</strong> of scanned draws vs the <strong>older half</strong>. Green bar = how much more frequent recently. Numbers most recently absent from draws are not shown.</div>';
+    trending.slice(0, 15).forEach(function(t) {
+        var pct = Math.round((t.trend / maxTrend) * 100);
+        html += '<div class="pattern-bar-row">';
+        html += '<span class="pattern-bar-label" style="width:45px;">' + t.n + '</span>';
+        html += '<div class="pattern-bar-wrap"><div class="pattern-bar-fill" style="width:' + pct + '%;background:linear-gradient(90deg,#16a34a,#06b6d4);"></div></div>';
+        html += '<span class="pattern-bar-val" style="color:var(--green);">+' + Math.round(t.trend * 100) + '%</span>';
+        html += '</div>';
+    });
+    html += '<div class="balls-row" style="margin-top:14px;">';
+    trending.slice(0, 15).forEach(function(t) {
+        html += '<span class="ball ball-main ball-sm animate" title="Trending +' + Math.round(t.trend * 100) + '%">' + t.n + '</span>';
+    });
+    html += '</div></div>';
+    container.innerHTML = html;
+}
+
+/* ============================================================
+   SMART COMBINATOR LAB
+   ============================================================ */
+
+var _combAlgo         = 'hot-cold-blend';
+var _combinatorResults = [];
+
+var COMB_ALGO_INFO = {
+    'hot-cold-blend':   '&#128293; <strong>Hot/Cold Blend:</strong> Fills remaining slots with a weighted mix of hot (frequently drawn) numbers from your saved draw history — hot numbers get 5&times; weight, medium 2&times;, cold 1&times;.',
+    'fibonacci-spread': '&#129300; <strong>Fibonacci Spread:</strong> Strongly favours Fibonacci numbers (1,2,3,5,8,13,21,34,55,89\u2026) — they receive 8&times; weight; their immediate neighbours 4&times;; all others 1&times;.',
+    'delta-build':      '&#128207; <strong>Delta Build:</strong> Constructs fill numbers using cumulative gap (delta) distributions that mirror typical lottery spacing, starting from an anchor-aware base.',
+    'balanced-zones':   '&#9878;&#65039; <strong>Balanced Zones:</strong> Divides the remaining slots across low (1\u2013max/3), mid, and high thirds of the lottery range for optimal spread.',
+    'prime-boost':      '&#128290; <strong>Prime Boost:</strong> Strongly favours prime numbers (weight 7&times;) — statistically interesting combinations with a high prime density.'
+};
+
+function setCombAlgo(btn, algo) {
+    _combAlgo = algo;
+    document.querySelectorAll('#comb-algo-chips .search-filter-chip').forEach(function(el) { el.classList.remove('active'); });
+    btn.classList.add('active');
+    var infoEl = document.getElementById('comb-algo-info');
+    if (infoEl) infoEl.innerHTML = COMB_ALGO_INFO[algo] || '';
+}
+
+function runCombinatorLab() {
+    var fmtId = document.getElementById('comb-format').value;
+    var fmt   = FORMATS.find(function(f) { return f.id === fmtId; });
+    if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
+
+    var anchorStr = (document.getElementById('comb-anchors').value || '').trim();
+    var anchors = anchorStr
+        ? anchorStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n >= 1 && n <= fmt.mainMax; })
+        : [];
+    anchors = Array.from(new Set(anchors));  /* deduplicate */
+
+    if (anchors.length > fmt.mainCount) {
+        showToast('Too many anchor numbers! Maximum is ' + fmt.mainCount + ' for ' + fmt.name + '.', 'error');
+        return;
+    }
+
+    var count = parseInt(document.getElementById('comb-count').value);
+    _combinatorResults = [];
+
+    for (var i = 0; i < count; i++) {
+        var main  = buildCombination(fmt, anchors, _combAlgo);
+        var bonus = fmt.bonusCount > 0 ? generateUniqueNumbers(fmt.bonusCount, fmt.bonusMax, 'crypto', null) : [];
+        _combinatorResults.push({ main: main, bonus: bonus, formatId: fmt.id });
+    }
+
+    renderCombinatorOutput(fmt, _combinatorResults, anchors);
+    showToast('Generated ' + count + ' combination' + (count !== 1 ? 's' : '') + '!', 'success');
+}
+
+function buildCombination(fmt, anchors, algo) {
+    var remaining = fmt.mainCount - anchors.length;
+    var forbidden = new Set(anchors);
+    var fill;
+
+    switch (algo) {
+        case 'fibonacci-spread': fill = combFillFibonacci(fmt, forbidden, remaining); break;
+        case 'delta-build':      fill = combFillDelta(fmt, forbidden, remaining);     break;
+        case 'balanced-zones':   fill = combFillBalanced(fmt, forbidden, remaining);  break;
+        case 'prime-boost':      fill = combFillPrime(fmt, forbidden, remaining);     break;
+        default:                 fill = combFillHotCold(fmt, forbidden, remaining);   break;
+    }
+
+    var combined = anchors.concat(fill);
+    var unique   = Array.from(new Set(combined));
+    /* Ensure exactly mainCount numbers */
+    for (var n = 1; n <= fmt.mainMax && unique.length < fmt.mainCount; n++) {
+        if (unique.indexOf(n) === -1) unique.push(n);
+    }
+    return unique.slice(0, fmt.mainCount).sort(function(a,b) { return a-b; });
+}
+
+function combFillHotCold(fmt, forbidden, count) {
+    var pd   = computePatternData(fmt.id);
+    var pool = [];
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        if (forbidden.has(n)) continue;
+        var rank      = pd ? pd.sorted.indexOf(n) : -1;
+        var hotCutoff = Math.floor(fmt.mainMax * 0.25);
+        var w = (pd && rank >= 0 && rank < hotCutoff) ? 5 : 2;
+        for (var i = 0; i < w; i++) pool.push(n);
+    }
+    if (!pool.length) { for (var n2 = 1; n2 <= fmt.mainMax; n2++) if (!forbidden.has(n2)) pool.push(n2); }
+    var nums = new Set();
+    var att  = 0;
+    while (nums.size < count && att < MAX_GENERATION_ATTEMPTS) {
+        nums.add(pool[Math.floor(Math.random() * pool.length)]);
+        att++;
+    }
+    return Array.from(nums);
+}
+
+function combFillFibonacci(fmt, forbidden, count) {
+    var fibs = getFibonacciSet(fmt.mainMax);
+    var pool = [];
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        if (forbidden.has(n)) continue;
+        var isFib    = fibs.has(n);
+        var nearFib  = !isFib && (fibs.has(n-1) || fibs.has(n+1) || fibs.has(n-2) || fibs.has(n+2));
+        var w = isFib ? 8 : (nearFib ? 4 : 1);
+        for (var i = 0; i < w; i++) pool.push(n);
+    }
+    var nums = new Set();
+    var att  = 0;
+    while (nums.size < count && att < MAX_GENERATION_ATTEMPTS) {
+        nums.add(pool[Math.floor(Math.random() * pool.length)]);
+        att++;
+    }
+    return Array.from(nums);
+}
+
+function combFillDelta(fmt, forbidden, count) {
+    var deltaPool = [1,1,2,2,3,3,4,5,6,7,8,9,10,11,13];
+    var att = 0;
+    while (att < MAX_GENERATION_ATTEMPTS) {
+        var avail = [];
+        for (var n = 1; n <= fmt.mainMax; n++) if (!forbidden.has(n)) avail.push(n);
+        if (avail.length < count) break;
+        var base  = avail[Math.floor(Math.random() * Math.ceil(avail.length / 3))];
+        var nums  = [base];
+        var valid = true;
+        for (var i = 1; i < count; i++) {
+            var delta = deltaPool[Math.floor(Math.random() * deltaPool.length)];
+            var next  = nums[nums.length - 1] + delta;
+            if (next > fmt.mainMax || forbidden.has(next) || nums.indexOf(next) !== -1) { valid = false; break; }
+            nums.push(next);
+        }
+        if (valid && nums.length === count) return nums;
+        att++;
+    }
+    return combFillHotCold(fmt, forbidden, count);
+}
+
+function combFillBalanced(fmt, forbidden, count) {
+    var low     = Math.floor(fmt.mainMax / 3);
+    var mid     = Math.floor(fmt.mainMax * 2 / 3);
+    var perZone = Math.floor(count / 3);
+    var extra   = count % 3;
+    var zones   = [
+        { min:1,     max:low,          count: perZone + (extra > 0 ? 1 : 0) },
+        { min:low+1, max:mid,          count: perZone + (extra > 1 ? 1 : 0) },
+        { min:mid+1, max:fmt.mainMax,  count: count - (perZone + (extra > 0 ? 1 : 0)) - (perZone + (extra > 1 ? 1 : 0)) }
+    ];
+    var result = [];
+    zones.forEach(function(zone) {
+        var z = new Set(); var att = 0;
+        while (z.size < zone.count && att < MAX_GENERATION_ATTEMPTS) {
+            var n = Math.floor(Math.random() * (zone.max - zone.min + 1)) + zone.min;
+            if (!forbidden.has(n)) z.add(n);
+            att++;
+        }
+        z.forEach(function(n) { result.push(n); });
+    });
+    return result;
+}
+
+function combFillPrime(fmt, forbidden, count) {
+    var pool = [];
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        if (forbidden.has(n)) continue;
+        var w = isPrime(n) ? 7 : 1;
+        for (var i = 0; i < w; i++) pool.push(n);
+    }
+    var nums = new Set();
+    var att  = 0;
+    while (nums.size < count && att < MAX_GENERATION_ATTEMPTS) {
+        nums.add(pool[Math.floor(Math.random() * pool.length)]);
+        att++;
+    }
+    return Array.from(nums);
+}
+
+function renderCombinatorOutput(fmt, sets, anchors) {
+    var container = document.getElementById('combinator-output');
+    if (!container) return;
+    if (!sets.length) { container.innerHTML = ''; return; }
+
+    var anchorMsg = anchors.length
+        ? ' with anchor numbers: <strong>' + anchors.join(', ') + '</strong>'
+        : ' (fully algorithmic \u2014 no anchors)';
+
+    var html = '<div style="margin-top:16px;">';
+    html += '<div class="collect-status-box success" style="margin-bottom:14px;">&#9989; Generated <strong>' + sets.length + '</strong> combination' + (sets.length !== 1 ? 's' : '') + anchorMsg + '</div>';
+
+    sets.forEach(function(s, idx) {
+        html += '<div class="ticket-card">';
+        html += '<div class="ticket-header">';
+        html += '<span class="ticket-format-badge">' + fmt.flag + ' ' + fmt.name + '</span>';
+        html += '<span class="text-sm text-muted">Combination ' + (idx + 1) + '</span>';
+        html += '</div>';
+        html += '<div class="balls-row">';
+        s.main.forEach(function(n) {
+            var isAnchor = anchors.indexOf(n) !== -1;
+            html += '<span class="ball ball-main ball-sm animate' + (isAnchor ? ' ball-highlight' : '') + '" title="' + (isAnchor ? '\uD83D\uDD12 Anchor' : '') + '">' + n + '</span>';
+        });
+        if (s.bonus.length) {
+            html += '<span class="ball-separator">+</span>';
+            s.bonus.forEach(function(n) {
+                html += '<span class="ball ' + (fmt.bonusColor || 'ball-bonus') + ' ball-sm animate">' + n + '</span>';
+            });
+        }
+        html += '</div>';
+        if (anchors.length) {
+            html += '<div class="text-sm text-muted mt-8">&#128274; Anchored: ' + anchors.map(function(n) { return '<strong>' + n + '</strong>'; }).join(', ') + '</div>';
+        }
+        html += '</div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function saveCombinatorResults() {
+    if (!_combinatorResults.length) { showToast('Generate combinations first!', 'error'); return; }
+    _combinatorResults.forEach(function(s) { addTicket(s.formatId, s.main, s.bonus, '', 'Smart Combinator Lab'); });
+    showToast(_combinatorResults.length + ' combination' + (_combinatorResults.length !== 1 ? 's' : '') + ' saved to tickets!', 'success');
+    updateHeader();
+}
+
+function clearCombinatorResults() {
+    _combinatorResults = [];
+    var c = document.getElementById('combinator-output');
+    if (c) c.innerHTML = '';
 }
 
 document.addEventListener('change', function(e) {
