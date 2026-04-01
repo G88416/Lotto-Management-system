@@ -706,9 +706,18 @@
                             <option value="2" selected>2 numbers</option>
                             <option value="3">3 numbers</option>
                             <option value="4">4 numbers</option>
+                            <option value="5">5 numbers</option>
+                            <option value="6">6 numbers</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;min-width:170px;">
+                        <label>Format filter</label>
+                        <select id="number-search-format-filter" onchange="runSmartSearch()">
+                            <option value="all">All Formats</option>
                         </select>
                     </div>
                 </div>
+                <div id="number-search-scope-info" class="text-muted text-sm" style="margin-top:6px;"></div>
             </div>
 
             <button class="btn btn-primary btn-sm" onclick="runSmartSearch()" style="margin-bottom:14px;">&#128270; Search</button>
@@ -1383,7 +1392,7 @@ function buildFormatGrids() {
         var el = document.getElementById(id);
         if (el) el.innerHTML = getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
-    ['tkt-filter-format','stats-format-filter','live-draws-format-filter','spd-format-filter','matrix-reconstruct-format'].forEach(function(id) {
+    ['tkt-filter-format','stats-format-filter','live-draws-format-filter','spd-format-filter','matrix-reconstruct-format','number-search-format-filter'].forEach(function(id) {
         var el = document.getElementById(id);
         if (!el) return;
         el.innerHTML = '<option value="all">All Formats</option>' + getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
@@ -2563,6 +2572,7 @@ function renderSavedPatternDraws() {
         html += '<span class="spd-source-badge">&#128190; Saved</span>';
         html += '</div>';
         html += '<button class="spd-del-btn" onclick="deleteSavedPatternDraw(\'' + d.id + '\')" title="Remove this draw">&#128465;&#65039;</button>';
+        html += '<button class="spd-del-btn" onclick="searchWithDraw(\'' + d.id + '\')" title="Find draws matching these numbers" style="font-size:0.8rem;margin-left:4px;">&#128269; Search</button>';
         html += '</div>';
         html += '<div class="balls-row">';
         d.numbers.forEach(function(n) {
@@ -2598,6 +2608,44 @@ function clearAllSavedPatternDraws() {
 }
 
 /* ── Smart Search ─────────────────────────────────────────────────────────── */
+
+/* Use a saved draw as the Number Match search template */
+function searchWithDraw(id) {
+    var draw = state.savedPatternDraws.find(function(d) { return d.id === id; });
+    if (!draw) return;
+
+    /* Populate input with this draw's main numbers */
+    var inputEl = document.getElementById('number-search-input');
+    if (inputEl) inputEl.value = (draw.numbers || []).join(' ');
+
+    /* Set min-match to half the draw's numbers (minimum 2, maximum 6) */
+    var minMatchEl = document.getElementById('number-search-min-match');
+    if (minMatchEl) {
+        var MIN_MATCH_FLOOR = 2;
+        var MIN_MATCH_CAP = 6;
+        var half = Math.max(MIN_MATCH_FLOOR, Math.floor((draw.numbers || []).length / 2));
+        minMatchEl.value = String(Math.min(half, MIN_MATCH_CAP));
+    }
+
+    /* Set format filter to match this draw's format */
+    var formatFilterEl = document.getElementById('number-search-format-filter');
+    if (formatFilterEl && draw.formatId) formatFilterEl.value = draw.formatId;
+
+    /* Switch to number-search mode */
+    var chip = document.querySelector('.search-filter-chip[data-mode="number-search"]');
+    if (chip) {
+        setSearchMode(chip, 'number-search');
+    } else {
+        _currentSearchMode = 'number-search';
+        var numberRow = document.getElementById('number-search-row');
+        if (numberRow) numberRow.style.display = '';
+        runSmartSearch();
+    }
+
+    /* Scroll search panel into view */
+    var panel = document.querySelector('.smart-search-panel') || document.getElementById('smart-search-results');
+    if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 var _currentSearchMode = 'repeated';
 
@@ -2798,6 +2846,24 @@ function renderOddEvenSearch(container, pool, type) {
 
 /* Number match search: find draws containing the inserted numbers */
 function renderNumberMatchSearch(container, pool) {
+    /* Always deep-search ALL saved draws, ignoring the scope selector */
+    var fullPool = state.savedPatternDraws.concat(
+        state.recentDraws.filter(function(r) {
+            return !state.savedPatternDraws.some(function(s) { return s.id === r.id; });
+        })
+    );
+
+    /* Format filter */
+    var formatFilterEl = document.getElementById('number-search-format-filter');
+    var formatFilter = formatFilterEl ? formatFilterEl.value : 'all';
+    if (formatFilter !== 'all') {
+        fullPool = fullPool.filter(function(d) { return d.formatId === formatFilter; });
+    }
+
+    /* Update scope info label */
+    var scopeInfo = document.getElementById('number-search-scope-info');
+    if (scopeInfo) scopeInfo.innerHTML = '&#128202; Searching all ' + fullPool.length + ' saved draw' + (fullPool.length !== 1 ? 's' : '') + (formatFilter !== 'all' ? ' for this format' : '') + '.';
+
     var inputEl = document.getElementById('number-search-input');
     var minMatchEl = document.getElementById('number-search-min-match');
     var raw = inputEl ? inputEl.value : '';
@@ -2811,22 +2877,41 @@ function renderNumberMatchSearch(container, pool) {
         return;
     }
 
-    var results = pool.map(function(d) {
-        var allNums = (d.numbers || []).concat(d.bonus || []);
+    var results = fullPool.map(function(d) {
+        var mainNums = d.numbers || [];
+        var bonusNums = d.bonus || [];
+        var allNums = mainNums.concat(bonusNums);
+        var matchedMain = searchNums.filter(function(n){ return mainNums.indexOf(n) !== -1; });
+        var matchedBonus = searchNums.filter(function(n){ return bonusNums.indexOf(n) !== -1; });
         var matched = searchNums.filter(function(n){ return allNums.indexOf(n) !== -1; });
-        return { draw: d, matched: matched };
+        return { draw: d, matched: matched, matchedMain: matchedMain, matchedBonus: matchedBonus };
     }).filter(function(r){ return r.matched.length >= minMatch; })
-      .sort(function(a,b){ return b.matched.length - a.matched.length; });
+      .sort(function(a,b){
+          if (b.matched.length !== a.matched.length) return b.matched.length - a.matched.length;
+          return b.matchedMain.length - a.matchedMain.length;
+      });
+
+    var html = '<div class="pattern-card">';
+    var notFound = searchNums.filter(function(n){
+        return !results.some(function(r){ return r.matched.indexOf(n) !== -1; });
+    });
+    html += '<div class="pattern-card-title">&#128269; Number Match — ' + fullPool.length + ' draws searched — ' + results.length + ' matched</div>';
+
+    if (notFound.length) {
+        html += '<p class="text-muted text-sm" style="margin-bottom:8px;">Numbers not found in any draw: <strong>' + notFound.join(', ') + '</strong></p>';
+    }
 
     if (!results.length) {
-        container.innerHTML = '<p class="text-muted text-sm">No draws found containing at least ' + minMatch + ' of the numbers: <strong>' + searchNums.join(', ') + '</strong>.</p>';
+        html += '<p class="text-muted text-sm">No draws found containing at least ' + minMatch + ' of the numbers: <strong>' + searchNums.join(', ') + '</strong>.</p>';
+        html += '</div>';
+        container.innerHTML = html;
         return;
     }
 
-    var html = '<div class="pattern-card">';
-    html += '<div class="pattern-card-title">&#128269; Draws Matching ' + searchNums.join(', ') + ' — ' + results.length + ' found</div>';
     results.forEach(function(r) {
-        html += _renderSearchDrawCard(r.draw, r.matched, '&#128269; Matched: ' + r.matched.join(', ') + ' (' + r.matched.length + '/' + searchNums.length + ')');
+        var tag = '&#128269; Matched ' + r.matched.length + '/' + searchNums.length;
+        if (r.matchedBonus.length) tag += ' (incl. ' + r.matchedBonus.length + ' bonus)';
+        html += _renderSearchDrawCard(r.draw, r.matched, tag);
     });
     html += '</div>';
     container.innerHTML = html;
