@@ -4136,12 +4136,27 @@ var MIN_DRAWS_FOR_ANALYSIS  = 3;
 /* Maximum number of draws stored in savedPatternDraws (keeps localStorage usage bounded) */
 var MAX_SAVED_PATTERN_DRAWS = 500;
 
+/* Helper: merge savedPatternDraws and recentDraws for a given format, deduplicating by id.
+   Pass a format ID to filter by format, or omit/pass 'all' to get draws for all formats. */
+function getCombinedDrawsForFormat(fmtId) {
+    var filterAll = !fmtId || fmtId === 'all';
+    var saved  = filterAll
+        ? state.savedPatternDraws.slice()
+        : state.savedPatternDraws.filter(function(d) { return d.formatId === fmtId; });
+    var recent = filterAll
+        ? state.recentDraws.slice()
+        : state.recentDraws.filter(function(d) { return d.formatId === fmtId; });
+    var savedIds = new Set(saved.map(function(d) { return d.id; }));
+    var extra    = recent.filter(function(d) { return !savedIds.has(d.id); });
+    return saved.concat(extra);
+}
+
 /* Shared helper: compute pattern analytics for a given format ID.
    Returns null when there are not enough recorded draws. */
 function computePatternData(fmtId) {
     var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) return null;
-    var draws = state.recentDraws.filter(function(d) { return d.formatId === fmtId; }).slice(0, 15);
+    var draws = getCombinedDrawsForFormat(fmtId);
     if (draws.length < MIN_DRAWS_FOR_ANALYSIS) return null;
 
     var allNums = [];
@@ -4179,11 +4194,11 @@ function runPatternDetector() {
     var fmtId = fmtEl.value;
     var fmt   = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt)  return;
-    var draws = state.recentDraws.filter(function(d) { return d.formatId === fmtId; }).slice(0, 15);
+    var draws = getCombinedDrawsForFormat(fmtId);
     var container = document.getElementById('pattern-results');
 
     if (draws.length < MIN_DRAWS_FOR_ANALYSIS) {
-        container.innerHTML = '<div class="no-draws-hint"><div style="font-size:2.5rem;margin-bottom:10px;">&#128202;</div><div class="fw-700">Not enough data</div><div class="text-sm" style="margin-top:6px;">Add at least ' + MIN_DRAWS_FOR_ANALYSIS + ' draw results for <strong>' + fmt.flag + ' ' + fmt.name + '</strong> on the <strong>Live Draws</strong> tab.</div></div>';
+        container.innerHTML = '<div class="no-draws-hint"><div style="font-size:2.5rem;margin-bottom:10px;">&#128202;</div><div class="fw-700">Not enough data</div><div class="text-sm" style="margin-top:6px;">Add at least ' + MIN_DRAWS_FOR_ANALYSIS + ' draw results for <strong>' + fmt.flag + ' ' + fmt.name + '</strong> on the <strong>Live Draws</strong> tab or save draws in the <strong>Patterns</strong> tab.</div></div>';
         return;
     }
 
@@ -5404,7 +5419,7 @@ function matrixFillReverseCold(fmt, forbidden, count) {
 }
 
 function matrixFillPatternEcho(fmt, forbidden, count) {
-    var draws = state.recentDraws.filter(function(d) { return d.formatId === fmt.id; }).slice(0, 10);
+    var draws = getCombinedDrawsForFormat(fmt.id).slice(0, 10);
     if (draws.length < 3) return combFillHotCold(fmt, forbidden, count);
     var pairs = {};
     draws.forEach(function(d) {
@@ -5437,7 +5452,7 @@ function matrixFillPatternEcho(fmt, forbidden, count) {
 }
 
 function matrixFillMirrorDraw(fmt, forbidden, count) {
-    var lastDraw = state.recentDraws.filter(function(d) { return d.formatId === fmt.id; })[0];
+    var lastDraw = getCombinedDrawsForFormat(fmt.id)[0];
     if (!lastDraw || !lastDraw.numbers || lastDraw.numbers.length < 2) {
         return combFillDelta(fmt, forbidden, count);
     }
@@ -5540,12 +5555,10 @@ function renderMatrixReconstructorDrawList() {
     if (!container) return;
 
     var fmtFilter = (document.getElementById('matrix-reconstruct-format') || {}).value || 'all';
-    var draws     = state.recentDraws.filter(function(d) {
-        return fmtFilter === 'all' || d.formatId === fmtFilter;
-    }).slice(0, 40);
+    var draws     = getCombinedDrawsForFormat(fmtFilter);
 
     if (!draws.length) {
-        container.innerHTML = '<p class="text-muted text-sm text-center" style="padding:20px 0;">No draws found. Add draws via the <strong>Live Draws</strong> tab then save them to Patterns.</p>';
+        container.innerHTML = '<p class="text-muted text-sm text-center" style="padding:20px 0;">No draws found. Add draws via the <strong>Live Draws</strong> tab or save draws in the <strong>Patterns</strong> tab.</p>';
         return;
     }
 
@@ -5563,9 +5576,7 @@ function renderMatrixReconstructorDrawList() {
 function selectReconstructDraw(idx) {
     _reconstructSelectedIdx = idx;
     var fmtFilter = (document.getElementById('matrix-reconstruct-format') || {}).value || 'all';
-    var draws     = state.recentDraws.filter(function(d) {
-        return fmtFilter === 'all' || d.formatId === fmtFilter;
-    }).slice(0, 40);
+    var draws     = getCombinedDrawsForFormat(fmtFilter);
     _matrixReconstructDraw = draws[idx] || null;
     renderMatrixReconstructorDrawList();
     if (_matrixReconstructDraw) runDrawReconstruction();
@@ -5727,7 +5738,7 @@ function scoreDrawAgainstFormulas(nums, fmt, sum, even, odd, primes, fibCount, f
 
     /* 10. Pattern Echo */
     var echoScore = 0;
-    var echoDraws = state.recentDraws.filter(function(d) { return d.formatId === fmt.id; }).slice(1, 10);
+    var echoDraws = getCombinedDrawsForFormat(fmt.id).slice(1, 10);
     echoDraws.forEach(function(d) {
         var overlap = nums.filter(function(n) { return (d.numbers||[]).indexOf(n) !== -1; }).length;
         echoScore += overlap * 5;
@@ -5736,7 +5747,7 @@ function scoreDrawAgainstFormulas(nums, fmt, sum, even, odd, primes, fibCount, f
 
     /* 11. Mirror Draw */
     var mirrorScore = 0;
-    var latestDraw  = state.recentDraws.filter(function(d) { return d.formatId === fmt.id; })[0];
+    var latestDraw  = getCombinedDrawsForFormat(fmt.id)[0];
     if (latestDraw && latestDraw.numbers) {
         var latestSorted = latestDraw.numbers.slice().sort(function(a,b){return a-b;});
         var latestGaps   = [];
@@ -5765,7 +5776,7 @@ function runNextDrawPredictor() {
     if (!container) return;
 
     if (!pd) {
-        container.innerHTML = '<div class="no-draws-hint"><div style="font-size:2.5rem;margin-bottom:10px;">&#128202;</div><div class="fw-700">Not enough data</div><div class="text-sm" style="margin-top:6px;">Add at least 3 draws for <strong>' + fmt.flag + ' ' + fmt.name + '</strong> via the Live Draws tab.</div></div>';
+        container.innerHTML = '<div class="no-draws-hint"><div style="font-size:2.5rem;margin-bottom:10px;">&#128202;</div><div class="fw-700">Not enough data</div><div class="text-sm" style="margin-top:6px;">Add at least 3 draws for <strong>' + fmt.flag + ' ' + fmt.name + '</strong> via the Live Draws tab or save draws in the Patterns tab.</div></div>';
         return;
     }
 
