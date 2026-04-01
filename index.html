@@ -2618,11 +2618,13 @@ function searchWithDraw(id) {
     var inputEl = document.getElementById('number-search-input');
     if (inputEl) inputEl.value = (draw.numbers || []).join(' ');
 
-    /* Set min-match to half the draw's numbers (minimum 2) */
+    /* Set min-match to half the draw's numbers (minimum 2, maximum 6) */
     var minMatchEl = document.getElementById('number-search-min-match');
     if (minMatchEl) {
-        var half = Math.max(2, Math.floor((draw.numbers || []).length / 2));
-        minMatchEl.value = String(Math.min(half, 6));
+        var MIN_MATCH_FLOOR = 2;
+        var MIN_MATCH_CAP = 6;
+        var half = Math.max(MIN_MATCH_FLOOR, Math.floor((draw.numbers || []).length / 2));
+        minMatchEl.value = String(Math.min(half, MIN_MATCH_CAP));
     }
 
     /* Set format filter to match this draw's format */
@@ -2860,7 +2862,7 @@ function renderNumberMatchSearch(container, pool) {
 
     /* Update scope info label */
     var scopeInfo = document.getElementById('number-search-scope-info');
-    if (scopeInfo) scopeInfo.textContent = '&#128202; Searching all ' + fullPool.length + ' saved draw' + (fullPool.length !== 1 ? 's' : '') + (formatFilter !== 'all' ? ' for this format' : '') + '.';
+    if (scopeInfo) scopeInfo.innerHTML = '&#128202; Searching all ' + fullPool.length + ' saved draw' + (fullPool.length !== 1 ? 's' : '') + (formatFilter !== 'all' ? ' for this format' : '') + '.';
 
     var inputEl = document.getElementById('number-search-input');
     var minMatchEl = document.getElementById('number-search-min-match');
