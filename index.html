@@ -254,6 +254,17 @@
         .comb-algo-desc { background:var(--surface2); border-radius:10px; padding:10px 14px; font-size:0.82rem; color:var(--text-muted); border-left:3px solid var(--purple); margin-top:8px; }
         .anchor-badge { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:0.78rem; font-weight:900; box-shadow:0 2px 8px rgba(245,158,11,0.4); margin:2px; }
         .qp-algo-info-box { background:var(--surface2); border-radius:13px; padding:12px 16px; font-size:0.82rem; color:var(--text-muted); border-left:4px solid var(--purple); margin-top:14px; display:none; }
+        /* ── Combi-Matrix Lab ─────────────────────────────────────────── */
+        .matrix-formula-grid { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+        .matrix-multi-hint { font-size:0.78rem; color:var(--text-muted); margin-bottom:6px; font-style:italic; }
+        .reconstruct-draw-list { max-height:320px; overflow-y:auto; padding-right:4px; }
+        .matrix-redirect-card { background:linear-gradient(135deg,rgba(139,92,246,0.08),rgba(6,182,212,0.06)); border:2px dashed rgba(139,92,246,0.35); border-radius:18px; padding:24px; text-align:center; margin-bottom:16px; }
+        .matrix-redirect-card h3 { font-size:1.1rem; font-weight:800; color:var(--purple); margin-bottom:8px; }
+        .matrix-redirect-card p { font-size:0.88rem; color:var(--text-muted); margin-bottom:14px; }
+        .confidence-badge { display:inline-flex; align-items:center; gap:5px; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px; border:1px solid; }
+        .confidence-high   { background:#f0fdf4; color:#166534; border-color:#bbf7d0; }
+        .confidence-medium { background:#fffbeb; color:#92400e; border-color:#fde68a; }
+        .confidence-low    { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -305,6 +316,7 @@
         <button class="tab-btn" onclick="switchTab('schedule')">&#128197; Draws</button>
         <button class="tab-btn" onclick="switchTab('livedraws')">&#128995; Live Draws</button>
         <button class="tab-btn" onclick="switchTab('patterns')">&#129302; Patterns</button>
+        <button class="tab-btn" onclick="switchTab('combimatrix')">&#128300; Combi-Matrix</button>
     </nav>
 
     <!-- QUICK PICK -->
@@ -727,50 +739,117 @@
             <p class="text-muted text-center mt-14">Select a lottery and add at least 3 draw results on the <strong>Live Draws</strong> tab to analyse patterns.</p>
         </div>
 
-        <!-- Smart Combinator Lab -->
-        <div class="card" id="combinator-lab">
-            <div class="pattern-section-title">&#128301; Smart Combinator Lab <span class="paste-count-badge" style="font-size:0.75rem;margin-left:8px;">AI-Powered</span></div>
-            <div class="algo-info" style="margin-bottom:16px;">
-                Enter <strong>anchor numbers</strong> (numbers you must include) and pick an algorithm. The lab fills the remaining slots using data-driven strategies — optionally blending draw history, Fibonacci patterns, prime theory, delta distributions, or balanced zoning.
+        <!-- Combi-Matrix Lab redirect -->
+        <div class="matrix-redirect-card" id="combinator-lab">
+            <div style="font-size:2.5rem;margin-bottom:10px;">&#128300;</div>
+            <h3>Combi-Matrix Lab has moved!</h3>
+            <p>The advanced combination calculator has been upgraded to the full <strong>Combi-Matrix Lab</strong> — with 12 formulas, draw reconstruction, and a multi-formula next-draw predictor.</p>
+            <button class="btn btn-primary" onclick="switchTab('combimatrix')">&#128300; Open Combi-Matrix Lab</button>
+        </div>
+    </section>
+
+    <!-- COMBI-MATRIX LAB -->
+    <section id="sec-combimatrix" class="section">
+        <div class="section-title">&#128300; Combi-Matrix Lab</div>
+        <div class="algo-info" style="margin-bottom:20px;">
+            The advanced combination engine with <strong>12 mathematical formulas</strong>, draw-history reconstruction, and a multi-formula next-draw predictor. Select draws from the Pattern tab to discover which formula best explains them, then generate predictions with combined formula confidence.
+        </div>
+
+        <!-- Sub-navigation -->
+        <div class="tab-nav" style="margin-bottom:20px;">
+            <button class="tab-btn active" id="matrix-sub-btn-0" onclick="switchMatrixSub(0)">&#9889; Matrix Generator</button>
+            <button class="tab-btn" id="matrix-sub-btn-1" onclick="switchMatrixSub(1)">&#128270; Draw Reconstructor</button>
+            <button class="tab-btn" id="matrix-sub-btn-2" onclick="switchMatrixSub(2)">&#127919; Next Draw Predictor</button>
+        </div>
+
+        <!-- ── Sub 0: Matrix Generator ───────────────────────────── -->
+        <div id="matrix-sub-0" class="matrix-sub">
+            <div class="card">
+                <div class="pattern-section-title">&#9889; Multi-Formula Combination Generator</div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Lottery Format</label>
+                        <select id="matrix-format"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Combinations</label>
+                        <select id="matrix-count">
+                            <option value="1">1 combination</option>
+                            <option value="3" selected>3 combinations</option>
+                            <option value="5">5 combinations</option>
+                            <option value="10">10 combinations</option>
+                            <option value="20">20 combinations</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Anchor Numbers &#128274; (locked — space or comma separated, optional)</label>
+                    <input type="text" id="matrix-anchors" placeholder="e.g. 7 13 21 — leave blank for fully algorithmic" />
+                </div>
+                <div class="form-group">
+                    <label>Formula Selection <span class="paste-count-badge" style="font-size:0.7rem;margin-left:6px;">Multi-Select</span></label>
+                    <div class="matrix-multi-hint">Select one or more formulas — combinations are distributed evenly across your chosen formulas.</div>
+                    <div class="matrix-formula-grid" id="matrix-algo-chips">
+                        <button class="search-filter-chip active" data-algo="hot-cold-blend"   onclick="toggleMatrixAlgo(this,'hot-cold-blend')">&#128293; Hot/Cold Blend</button>
+                        <button class="search-filter-chip"        data-algo="fibonacci-spread" onclick="toggleMatrixAlgo(this,'fibonacci-spread')">&#129300; Fibonacci Spread</button>
+                        <button class="search-filter-chip"        data-algo="delta-build"      onclick="toggleMatrixAlgo(this,'delta-build')">&#128207; Delta Build</button>
+                        <button class="search-filter-chip"        data-algo="balanced-zones"   onclick="toggleMatrixAlgo(this,'balanced-zones')">&#9878;&#65039; Balanced Zones</button>
+                        <button class="search-filter-chip"        data-algo="prime-boost"      onclick="toggleMatrixAlgo(this,'prime-boost')">&#128290; Prime Boost</button>
+                        <button class="search-filter-chip"        data-algo="sum-target"       onclick="toggleMatrixAlgo(this,'sum-target')">&#8721; Sum Target</button>
+                        <button class="search-filter-chip"        data-algo="golden-ratio"     onclick="toggleMatrixAlgo(this,'golden-ratio')">&#128208; Golden Ratio</button>
+                        <button class="search-filter-chip"        data-algo="modular-step"     onclick="toggleMatrixAlgo(this,'modular-step')">&#128260; Modular Step</button>
+                        <button class="search-filter-chip"        data-algo="reverse-cold"     onclick="toggleMatrixAlgo(this,'reverse-cold')">&#10052;&#65039; Reverse Cold</button>
+                        <button class="search-filter-chip"        data-algo="pattern-echo"     onclick="toggleMatrixAlgo(this,'pattern-echo')">&#128257; Pattern Echo</button>
+                        <button class="search-filter-chip"        data-algo="mirror-draw"      onclick="toggleMatrixAlgo(this,'mirror-draw')">&#129695; Mirror Draw</button>
+                        <button class="search-filter-chip"        data-algo="entropy-blend"    onclick="toggleMatrixAlgo(this,'entropy-blend')">&#127754; Entropy Blend</button>
+                    </div>
+                    <div class="comb-algo-desc" id="matrix-algo-info">
+                        &#128293; <strong>Hot/Cold Blend:</strong> Fills slots with a weighted mix of frequently drawn (hot, 5&times;) and rarely drawn (cold, 1&times;) numbers from your saved draw history.
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary"   onclick="runMatrixLab()">&#9889; Generate Combinations</button>
+                    <button class="btn btn-success"   onclick="saveMatrixResults()">&#128190; Save All to Tickets</button>
+                    <button class="btn btn-secondary" onclick="clearMatrixResults()">&#128465;&#65039; Clear</button>
+                </div>
             </div>
-            <div class="grid-2">
+            <div id="matrix-output"></div>
+        </div>
+
+        <!-- ── Sub 1: Draw Reconstructor ─────────────────────────── -->
+        <div id="matrix-sub-1" class="matrix-sub" style="display:none;">
+            <div class="card">
+                <div class="pattern-section-title">&#128270; Draw Reconstruction Analysis</div>
+                <div class="algo-info" style="margin-bottom:14px;">
+                    Select any saved draw below. The engine analyses its mathematical properties and scores every formula to reveal <strong>which formula best explains how those numbers were created</strong>.
+                </div>
+                <div class="form-group">
+                    <label>Lottery Format Filter</label>
+                    <select id="matrix-reconstruct-format" onchange="renderMatrixReconstructorDrawList()"></select>
+                </div>
+                <div class="reconstruct-draw-list" id="matrix-reconstruct-draw-list">
+                    <p class="text-muted text-sm text-center" style="padding:20px 0;">No draws found. Add draws via the <strong>Live Draws</strong> tab, then save them to Patterns.</p>
+                </div>
+            </div>
+            <div id="matrix-reconstruct-output"></div>
+        </div>
+
+        <!-- ── Sub 2: Next Draw Predictor ────────────────────────── -->
+        <div id="matrix-sub-2" class="matrix-sub" style="display:none;">
+            <div class="card">
+                <div class="pattern-section-title">&#127919; Multi-Formula Next Draw Predictor</div>
+                <div class="algo-info" style="margin-bottom:14px;">
+                    Runs all 12 formulas against the saved draw history, scores each by historical-pattern confidence, and combines their outputs into a <strong>consensus prediction</strong> — the numbers most commonly selected across all formulas.
+                </div>
                 <div class="form-group">
                     <label>Lottery Format</label>
-                    <select id="comb-format"></select>
+                    <select id="matrix-predict-format"></select>
                 </div>
-                <div class="form-group">
-                    <label>Number of Combinations</label>
-                    <select id="comb-count">
-                        <option value="1">1 combination</option>
-                        <option value="3" selected>3 combinations</option>
-                        <option value="5">5 combinations</option>
-                        <option value="10">10 combinations</option>
-                    </select>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="runNextDrawPredictor()">&#127919; Predict Next Draw</button>
                 </div>
             </div>
-            <div class="form-group">
-                <label>Anchor Numbers &#128274; (locked — space or comma separated, optional)</label>
-                <input type="text" id="comb-anchors" placeholder="e.g. 7 13 21 — leave blank for fully algorithmic" />
-            </div>
-            <div class="form-group">
-                <label>Combination Algorithm</label>
-                <div class="search-filter-row" id="comb-algo-chips" style="flex-wrap:wrap;">
-                    <button class="search-filter-chip active" data-algo="hot-cold-blend"   onclick="setCombAlgo(this,'hot-cold-blend')">&#128293; Hot/Cold Blend</button>
-                    <button class="search-filter-chip"        data-algo="fibonacci-spread" onclick="setCombAlgo(this,'fibonacci-spread')">&#129300; Fibonacci Spread</button>
-                    <button class="search-filter-chip"        data-algo="delta-build"      onclick="setCombAlgo(this,'delta-build')">&#128207; Delta Build</button>
-                    <button class="search-filter-chip"        data-algo="balanced-zones"   onclick="setCombAlgo(this,'balanced-zones')">&#9878;&#65039; Balanced Zones</button>
-                    <button class="search-filter-chip"        data-algo="prime-boost"      onclick="setCombAlgo(this,'prime-boost')">&#128290; Prime Boost</button>
-                </div>
-                <div class="comb-algo-desc" id="comb-algo-info">
-                    &#128293; <strong>Hot/Cold Blend:</strong> Fills remaining slots with a weighted mix of hot (frequently drawn) and cold (overdue) numbers from your saved draw history.
-                </div>
-            </div>
-            <div class="btn-row">
-                <button class="btn btn-primary"   onclick="runCombinatorLab()">&#9889; Generate Combinations</button>
-                <button class="btn btn-success"   onclick="saveCombinatorResults()">&#128190; Save All to Tickets</button>
-                <button class="btn btn-secondary" onclick="clearCombinatorResults()">&#128465;&#65039; Clear</button>
-            </div>
-            <div id="combinator-output" class="combinator-output"></div>
+            <div id="matrix-predict-output"></div>
         </div>
     </section>
 </div>
@@ -1262,7 +1341,7 @@ function loadPersisted() {
     } catch(e) {}
 }
 
-var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns'];
+var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix'];
 
 function switchTab(key) {
     TAB_KEYS.forEach(function(k, i) {
@@ -1277,6 +1356,7 @@ function switchTab(key) {
     if (key === 'schedule')  renderSchedule();
     if (key === 'livedraws') renderLiveDraws();
     if (key === 'patterns')  { runPatternDetector(); renderSavedPatternDraws(); }
+    if (key === 'combimatrix') { renderMatrixReconstructorDrawList(); }
 }
 
 function switchSeedSub(idx) {
@@ -1299,11 +1379,11 @@ function buildFormatGrids() {
                 '<div class="jackpot">' + f.jackpot + '</div></div>';
         }).join('');
     });
-    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format'].forEach(function(id) {
+    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
-    ['tkt-filter-format','stats-format-filter','live-draws-format-filter','spd-format-filter'].forEach(function(id) {
+    ['tkt-filter-format','stats-format-filter','live-draws-format-filter','spd-format-filter','matrix-reconstruct-format'].forEach(function(id) {
         var el = document.getElementById(id);
         if (!el) return;
         el.innerHTML = '<option value="all">All Formats</option>' + getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
@@ -5099,26 +5179,28 @@ function generateQuickPickFromSmartSearch() {
    ============================================================ */
 
 function generateQuickPickFromCombination() {
-    if (!_combinatorResults.length) {
-        showToast('No combinations available. Go to the Patterns tab \u2192 Smart Combinator Lab and generate combinations first.', 'error');
+    /* Prefer Combi-Matrix results; fall back to old combinator results */
+    var source = _matrixResults.length ? _matrixResults : _combinatorResults;
+    if (!source.length) {
+        showToast('No combinations available. Go to the \u128300 Combi-Matrix Lab and generate combinations first.', 'error');
         return;
     }
 
     var fmt = getAllFormats().find(function(f) { return f.id === state.selectedFormatQP; });
     if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
 
-    /* Use the combinator results directly as quick-pick sets */
-    qpGeneratedSets = _combinatorResults.map(function(s) {
+    /* Use the results directly as quick-pick sets */
+    qpGeneratedSets = source.map(function(s) {
         return { main: s.main.slice(), bonus: s.bonus.slice(), formatId: s.formatId };
     });
 
     /* If formats differ, warn but still show */
-    var combFmtId = _combinatorResults[0].formatId;
+    var combFmtId = source[0].formatId;
     var combFmt   = getAllFormats().find(function(f) { return f.id === combFmtId; }) || fmt;
     if (combFmtId !== state.selectedFormatQP) {
-        showToast('Showing ' + qpGeneratedSets.length + ' combination(s) from ' + combFmt.name + ' (Combinator Lab format).', 'success');
+        showToast('Showing ' + qpGeneratedSets.length + ' combination(s) from ' + combFmt.name + ' (Combi-Matrix format).', 'success');
     } else {
-        showToast('Loaded ' + qpGeneratedSets.length + ' combination' + (qpGeneratedSets.length > 1 ? 's' : '') + ' from Smart Combinator Lab!', 'success');
+        showToast('Loaded ' + qpGeneratedSets.length + ' combination' + (qpGeneratedSets.length > 1 ? 's' : '') + ' from Combi-Matrix Lab!', 'success');
     }
 
     /* Record stats for current QP format perspective and render */
@@ -5126,6 +5208,720 @@ function generateQuickPickFromCombination() {
     persist();
     renderQuickPickResults(combFmt, qpGeneratedSets);
     updateHeader();
+}
+
+/* ============================================================
+   COMBI-MATRIX LAB
+   ============================================================ */
+
+var _matrixAlgos   = ['hot-cold-blend'];
+var _matrixResults = [];
+var _matrixReconstructDraw  = null;
+var _reconstructSelectedIdx = -1;
+var _lastConsensusNums      = null;
+var _lastTop5Predictions    = [];
+
+var MATRIX_ALGO_INFO = {
+    'hot-cold-blend':   '&#128293; <strong>Hot/Cold Blend:</strong> Weighted mix — hot numbers (top 25% frequency) get 5&times; weight, mid 2&times;, cold 1&times;.',
+    'fibonacci-spread': '&#129300; <strong>Fibonacci Spread:</strong> Fibonacci numbers get 8&times; weight; immediate neighbours 4&times;; all others 1&times;.',
+    'delta-build':      '&#128207; <strong>Delta Build:</strong> Constructs picks using cumulative gap (delta) distributions mirroring typical lottery spacing.',
+    'balanced-zones':   '&#9878;&#65039; <strong>Balanced Zones:</strong> Divides the range into low / mid / high thirds; picks roughly equally from each.',
+    'prime-boost':      '&#128290; <strong>Prime Boost:</strong> Prime numbers get 7&times; weight — creates high-prime-density combinations.',
+    'sum-target':       '&#8721; <strong>Sum Target:</strong> Generates picks that aim for the historical average sum of past draws.',
+    'golden-ratio':     '&#128208; <strong>Golden Ratio:</strong> Numbers near &phi;&times;k multiples (1.618&times;k) get 6&times; weight.',
+    'modular-step':     '&#128260; <strong>Modular Step:</strong> Arithmetic sequence with a random step and modular wrapping for even spacing.',
+    'reverse-cold':     '&#10052;&#65039; <strong>Reverse Cold:</strong> Contrarian strategy — prioritises the least-frequently drawn numbers (8&times; weight).',
+    'pattern-echo':     '&#128257; <strong>Pattern Echo:</strong> Echoes numbers from recurring pairs/triplets found in recent saved draws.',
+    'mirror-draw':      '&#129695; <strong>Mirror Draw:</strong> Mirrors the gap structure of the most recent draw from a new starting point.',
+    'entropy-blend':    '&#127754; <strong>Entropy Blend:</strong> Multi-layer randomness — combines crypto-grade random values with historical frequency weighting.'
+};
+
+/* ── Sub-navigation ─────────────────────────────────────────────── */
+function switchMatrixSub(idx) {
+    [0,1,2].forEach(function(i) {
+        var sub = document.getElementById('matrix-sub-' + i);
+        var btn = document.getElementById('matrix-sub-btn-' + i);
+        if (sub) sub.style.display = i === idx ? 'block' : 'none';
+        if (btn) btn.classList.toggle('active', i === idx);
+    });
+    if (idx === 1) renderMatrixReconstructorDrawList();
+}
+
+/* ── Formula multi-select toggle ────────────────────────────────── */
+function toggleMatrixAlgo(btn, algo) {
+    var idx = _matrixAlgos.indexOf(algo);
+    if (idx === -1) {
+        _matrixAlgos.push(algo);
+        btn.classList.add('active');
+    } else if (_matrixAlgos.length > 1) {
+        _matrixAlgos.splice(idx, 1);
+        btn.classList.remove('active');
+    }
+    var infoEl = document.getElementById('matrix-algo-info');
+    if (infoEl) infoEl.innerHTML = _matrixAlgos.map(function(a) { return MATRIX_ALGO_INFO[a] || ''; }).join('<br>');
+}
+
+/* ── Main generator ─────────────────────────────────────────────── */
+function runMatrixLab() {
+    var fmtId = document.getElementById('matrix-format').value;
+    var fmt   = getAllFormats().find(function(f) { return f.id === fmtId; });
+    if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
+
+    var anchorStr = (document.getElementById('matrix-anchors').value || '').trim();
+    var anchors   = anchorStr
+        ? anchorStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n >= 1 && n <= fmt.mainMax; })
+        : [];
+    anchors = Array.from(new Set(anchors));
+
+    if (anchors.length > fmt.mainCount) {
+        showToast('Too many anchor numbers! Maximum is ' + fmt.mainCount + ' for ' + fmt.name + '.', 'error');
+        return;
+    }
+
+    var count     = parseInt(document.getElementById('matrix-count').value);
+    _matrixResults = [];
+    var perAlgo   = Math.ceil(count / _matrixAlgos.length);
+    var generated = 0;
+
+    _matrixAlgos.forEach(function(algo) {
+        var algoCount = Math.min(perAlgo, count - generated);
+        for (var i = 0; i < algoCount; i++) {
+            var main  = buildMatrixCombination(fmt, anchors, algo);
+            var bonus = fmt.bonusCount > 0 ? generateUniqueNumbers(fmt.bonusCount, fmt.bonusMax, 'crypto', null) : [];
+            _matrixResults.push({ main: main, bonus: bonus, formatId: fmt.id, algo: algo });
+        }
+        generated += algoCount;
+    });
+
+    renderMatrixOutput(fmt, _matrixResults, anchors);
+    showToast('Generated ' + _matrixResults.length + ' combination' + (_matrixResults.length !== 1 ? 's' : '') + ' using ' + _matrixAlgos.length + ' formula' + (_matrixAlgos.length !== 1 ? 's' : '') + '!', 'success');
+}
+
+function buildMatrixCombination(fmt, anchors, algo) {
+    var remaining = fmt.mainCount - anchors.length;
+    var forbidden = new Set(anchors);
+    var fill;
+    switch (algo) {
+        case 'fibonacci-spread': fill = combFillFibonacci(fmt, forbidden, remaining); break;
+        case 'delta-build':      fill = combFillDelta(fmt, forbidden, remaining);     break;
+        case 'balanced-zones':   fill = combFillBalanced(fmt, forbidden, remaining);  break;
+        case 'prime-boost':      fill = combFillPrime(fmt, forbidden, remaining);     break;
+        case 'sum-target':       fill = matrixFillSumTarget(fmt, forbidden, remaining); break;
+        case 'golden-ratio':     fill = matrixFillGoldenRatio(fmt, forbidden, remaining); break;
+        case 'modular-step':     fill = matrixFillModular(fmt, forbidden, remaining); break;
+        case 'reverse-cold':     fill = matrixFillReverseCold(fmt, forbidden, remaining); break;
+        case 'pattern-echo':     fill = matrixFillPatternEcho(fmt, forbidden, remaining); break;
+        case 'mirror-draw':      fill = matrixFillMirrorDraw(fmt, forbidden, remaining); break;
+        case 'entropy-blend':    fill = matrixFillEntropyBlend(fmt, forbidden, remaining); break;
+        default:                 fill = combFillHotCold(fmt, forbidden, remaining);   break;
+    }
+    var combined = anchors.concat(fill);
+    var unique   = Array.from(new Set(combined));
+    for (var n = 1; n <= fmt.mainMax && unique.length < fmt.mainCount; n++) {
+        if (unique.indexOf(n) === -1) unique.push(n);
+    }
+    return unique.slice(0, fmt.mainCount).sort(function(a, b) { return a - b; });
+}
+
+/* ── 7 new fill algorithms ──────────────────────────────────────── */
+
+function matrixFillSumTarget(fmt, forbidden, count) {
+    var pd = computePatternData(fmt.id);
+    var avgSum;
+    if (pd && pd.draws.length > 0) {
+        var sums = pd.draws.map(function(d) { return d.numbers.reduce(function(s, n) { return s + n; }, 0); });
+        avgSum = sums.reduce(function(s, n) { return s + n; }, 0) / sums.length;
+    } else {
+        avgSum = count * (fmt.mainMax + 1) / 2;
+    }
+    var best = null, bestDiff = Infinity;
+    for (var attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
+        var pool = [];
+        for (var n = 1; n <= fmt.mainMax; n++) { if (!forbidden.has(n)) pool.push(n); }
+        if (pool.length < count) break;
+        for (var j = pool.length - 1; j > 0; j--) {
+            var ri = Math.floor(Math.random() * (j + 1));
+            var tmp = pool[j]; pool[j] = pool[ri]; pool[ri] = tmp;
+        }
+        var arr  = pool.slice(0, count);
+        var diff = Math.abs(arr.reduce(function(a, b) { return a + b; }, 0) - avgSum);
+        if (diff < bestDiff) { bestDiff = diff; best = arr; }
+        if (diff < fmt.mainCount) break;
+    }
+    return best || combFillHotCold(fmt, forbidden, count);
+}
+
+function matrixFillGoldenRatio(fmt, forbidden, count) {
+    var phi = 1.6180339887;
+    var pool = [];
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        if (forbidden.has(n)) continue;
+        var isNearPhi = false;
+        for (var k = 1; k * phi <= fmt.mainMax + 2; k++) {
+            if (Math.abs(n - Math.round(k * phi)) <= 1) { isNearPhi = true; break; }
+        }
+        var w = isNearPhi ? 6 : 1;
+        for (var i = 0; i < w; i++) pool.push(n);
+    }
+    if (!pool.length) { for (var n2 = 1; n2 <= fmt.mainMax; n2++) if (!forbidden.has(n2)) pool.push(n2); }
+    var nums = new Set(); var att = 0;
+    while (nums.size < count && att < MAX_GENERATION_ATTEMPTS) {
+        nums.add(pool[Math.floor(Math.random() * pool.length)]); att++;
+    }
+    return Array.from(nums);
+}
+
+function matrixFillModular(fmt, forbidden, count) {
+    for (var att = 0; att < MAX_GENERATION_ATTEMPTS; att++) {
+        var step  = Math.floor(Math.random() * Math.max(2, Math.floor(fmt.mainMax / (count + 1)))) + 2;
+        var start = Math.floor(Math.random() * step) + 1;
+        var nums  = [];
+        for (var i = 0; i < count; i++) {
+            var n = ((start + i * step - 1) % fmt.mainMax) + 1;
+            if (!forbidden.has(n) && nums.indexOf(n) === -1) nums.push(n);
+        }
+        if (nums.length === count) return nums;
+    }
+    return combFillHotCold(fmt, forbidden, count);
+}
+
+function matrixFillReverseCold(fmt, forbidden, count) {
+    var pd   = computePatternData(fmt.id);
+    var pool = [];
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        if (forbidden.has(n)) continue;
+        var rank       = pd ? pd.sorted.indexOf(n) : -1;
+        var coldCutoff = Math.floor(fmt.mainMax * 0.75);
+        var w = (pd && rank >= coldCutoff) ? 8 : (pd && rank >= Math.floor(fmt.mainMax * 0.50)) ? 3 : 1;
+        for (var i = 0; i < w; i++) pool.push(n);
+    }
+    if (!pool.length) { for (var n2 = 1; n2 <= fmt.mainMax; n2++) if (!forbidden.has(n2)) pool.push(n2); }
+    var nums = new Set(); var att = 0;
+    while (nums.size < count && att < MAX_GENERATION_ATTEMPTS) {
+        nums.add(pool[Math.floor(Math.random() * pool.length)]); att++;
+    }
+    return Array.from(nums);
+}
+
+function matrixFillPatternEcho(fmt, forbidden, count) {
+    var draws = state.recentDraws.filter(function(d) { return d.formatId === fmt.id; }).slice(0, 10);
+    if (draws.length < 3) return combFillHotCold(fmt, forbidden, count);
+    var pairs = {};
+    draws.forEach(function(d) {
+        var ns = d.numbers.slice().sort(function(a, b) { return a - b; });
+        for (var a = 0; a < ns.length; a++) {
+            for (var b = a + 1; b < ns.length; b++) {
+                var key = ns[a] + ',' + ns[b];
+                pairs[key] = (pairs[key] || 0) + 1;
+            }
+        }
+    });
+    var pairNums = {};
+    Object.keys(pairs).forEach(function(key) {
+        if (pairs[key] >= 2) {
+            key.split(',').map(Number).forEach(function(n) { pairNums[n] = (pairNums[n] || 0) + pairs[key]; });
+        }
+    });
+    var pool = [];
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        if (forbidden.has(n)) continue;
+        var w = pairNums[n] ? Math.min(pairNums[n] * 3, 12) : 1;
+        for (var i = 0; i < w; i++) pool.push(n);
+    }
+    if (!pool.length) { for (var n2 = 1; n2 <= fmt.mainMax; n2++) if (!forbidden.has(n2)) pool.push(n2); }
+    var nums = new Set(); var att = 0;
+    while (nums.size < count && att < MAX_GENERATION_ATTEMPTS) {
+        nums.add(pool[Math.floor(Math.random() * pool.length)]); att++;
+    }
+    return Array.from(nums);
+}
+
+function matrixFillMirrorDraw(fmt, forbidden, count) {
+    var lastDraw = state.recentDraws.filter(function(d) { return d.formatId === fmt.id; })[0];
+    if (!lastDraw || !lastDraw.numbers || lastDraw.numbers.length < 2) {
+        return combFillDelta(fmt, forbidden, count);
+    }
+    var sorted = lastDraw.numbers.slice().sort(function(a, b) { return a - b; });
+    var gaps   = [];
+    for (var i = 1; i < sorted.length; i++) gaps.push(sorted[i] - sorted[i - 1]);
+    for (var att = 0; att < MAX_GENERATION_ATTEMPTS; att++) {
+        var gapsToUse = gaps.slice(0, count - 1);
+        var maxStart  = fmt.mainMax - gapsToUse.reduce(function(s, g) { return s + g; }, 0);
+        if (maxStart < 1) continue;
+        var start = Math.floor(Math.random() * maxStart) + 1;
+        var nums  = [start]; var valid = true;
+        gapsToUse.forEach(function(g) {
+            var next = nums[nums.length - 1] + g;
+            if (next > fmt.mainMax || forbidden.has(next)) valid = false;
+            else nums.push(next);
+        });
+        if (valid && nums.length === count && new Set(nums).size === count) return nums;
+    }
+    return combFillDelta(fmt, forbidden, count);
+}
+
+function matrixFillEntropyBlend(fmt, forbidden, count) {
+    var pd   = computePatternData(fmt.id);
+    var pool = [];
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        if (forbidden.has(n)) continue;
+        var freqW   = pd ? Math.max(1, Math.floor((pd.freq[n] || 0) * 2) + 1) : 1;
+        var cryptoW = 1;
+        try {
+            var buf = new Uint8Array(1);
+            window.crypto.getRandomValues(buf);
+            cryptoW = (buf[0] % 3) + 1;
+        } catch(e) {}
+        var w = Math.min(freqW * cryptoW, 15);
+        for (var i = 0; i < w; i++) pool.push(n);
+    }
+    if (!pool.length) { for (var n2 = 1; n2 <= fmt.mainMax; n2++) if (!forbidden.has(n2)) pool.push(n2); }
+    var nums = new Set(); var att = 0;
+    while (nums.size < count && att < MAX_GENERATION_ATTEMPTS) {
+        nums.add(pool[Math.floor(Math.random() * pool.length)]); att++;
+    }
+    return Array.from(nums);
+}
+
+/* ── Render Matrix Generator output ─────────────────────────────── */
+function renderMatrixOutput(fmt, sets, anchors) {
+    var container = document.getElementById('matrix-output');
+    if (!container) return;
+    if (!sets.length) { container.innerHTML = ''; return; }
+
+    var anchorMsg = anchors.length
+        ? ' with anchors: <strong>' + anchors.join(', ') + '</strong>'
+        : ' (fully algorithmic)';
+
+    var html = '<div style="margin-top:16px;">';
+    html += '<div class="collect-status-box success" style="margin-bottom:14px;">&#9989; Generated <strong>' + sets.length + '</strong> combination' + (sets.length !== 1 ? 's' : '') + anchorMsg + '</div>';
+
+    sets.forEach(function(s, idx) {
+        var algoLabel = (MATRIX_ALGO_INFO[s.algo] || s.algo).replace(/<[^>]+>/g, '').split(':')[0].trim();
+        var sum    = s.main.reduce(function(a, b) { return a + b; }, 0);
+        var even   = s.main.filter(function(n) { return n % 2 === 0; }).length;
+        var primes = s.main.filter(function(n) { return isPrime(n); }).length;
+        html += '<div class="ticket-card">';
+        html += '<div class="ticket-header">';
+        html += '<span class="ticket-format-badge">' + fmt.flag + ' ' + fmt.name + '</span>';
+        html += '<span class="text-sm text-muted">Combination ' + (idx + 1) + '</span>';
+        html += '<span class="paste-count-badge" style="font-size:0.7rem;">' + algoLabel + '</span>';
+        html += '</div><div class="balls-row">';
+        s.main.forEach(function(n) {
+            html += '<span class="ball ball-main ball-sm animate' + (anchors.indexOf(n) !== -1 ? ' ball-highlight' : '') + '">' + n + '</span>';
+        });
+        if (s.bonus.length) {
+            html += '<span class="ball-separator">+</span>';
+            s.bonus.forEach(function(n) { html += '<span class="ball ' + (fmt.bonusColor || 'ball-bonus') + ' ball-sm animate">' + n + '</span>'; });
+        }
+        html += '</div><div class="text-sm text-muted mt-8">Sum: <strong>' + sum + '</strong> &nbsp;|&nbsp; Even/Odd: <strong>' + even + '/' + (s.main.length - even) + '</strong> &nbsp;|&nbsp; Primes: <strong>' + primes + '</strong></div>';
+        html += '</div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function saveMatrixResults() {
+    if (!_matrixResults.length) { showToast('Generate combinations first!', 'error'); return; }
+    _matrixResults.forEach(function(s) { addTicket(s.formatId, s.main, s.bonus, '', 'Combi-Matrix Lab'); });
+    showToast(_matrixResults.length + ' combination' + (_matrixResults.length !== 1 ? 's' : '') + ' saved to tickets!', 'success');
+    updateHeader();
+}
+
+function clearMatrixResults() {
+    _matrixResults = [];
+    var c = document.getElementById('matrix-output');
+    if (c) c.innerHTML = '';
+}
+
+/* ── Draw Reconstructor ─────────────────────────────────────────── */
+function renderMatrixReconstructorDrawList() {
+    var container = document.getElementById('matrix-reconstruct-draw-list');
+    if (!container) return;
+
+    var fmtFilter = (document.getElementById('matrix-reconstruct-format') || {}).value || 'all';
+    var draws     = state.recentDraws.filter(function(d) {
+        return fmtFilter === 'all' || d.formatId === fmtFilter;
+    }).slice(0, 40);
+
+    if (!draws.length) {
+        container.innerHTML = '<p class="text-muted text-sm text-center" style="padding:20px 0;">No draws found. Add draws via the <strong>Live Draws</strong> tab then save them to Patterns.</p>';
+        return;
+    }
+
+    container.innerHTML = draws.map(function(d, idx) {
+        var fmt  = getAllFormats().find(function(f) { return f.id === d.formatId; }) || {};
+        var nums = (d.numbers || []).map(function(n) { return '<span class="ball ball-main ball-sm">' + n + '</span>'; }).join('');
+        return '<div class="spd-card' + (_reconstructSelectedIdx === idx ? ' spd-highlight' : '') + '" onclick="selectReconstructDraw(' + idx + ')" style="cursor:pointer;">' +
+            '<div class="spd-header"><span class="fw-700" style="font-size:0.9rem;">' + (fmt.flag || '&#127920;') + ' ' + (fmt.name || d.formatId) + '</span>' +
+            '<span class="text-sm text-muted">' + (d.date || '') + '</span></div>' +
+            '<div class="balls-row" style="margin-top:6px;">' + nums + '</div>' +
+            '</div>';
+    }).join('');
+}
+
+function selectReconstructDraw(idx) {
+    _reconstructSelectedIdx = idx;
+    var fmtFilter = (document.getElementById('matrix-reconstruct-format') || {}).value || 'all';
+    var draws     = state.recentDraws.filter(function(d) {
+        return fmtFilter === 'all' || d.formatId === fmtFilter;
+    }).slice(0, 40);
+    _matrixReconstructDraw = draws[idx] || null;
+    renderMatrixReconstructorDrawList();
+    if (_matrixReconstructDraw) runDrawReconstruction();
+}
+
+function runDrawReconstruction() {
+    var container = document.getElementById('matrix-reconstruct-output');
+    if (!container) return;
+
+    var draw = _matrixReconstructDraw;
+    if (!draw) { container.innerHTML = '<p class="text-muted text-sm">Select a draw from the list above.</p>'; return; }
+
+    var fmt = getAllFormats().find(function(f) { return f.id === draw.formatId; });
+    if (!fmt) return;
+
+    var nums     = draw.numbers.slice().sort(function(a, b) { return a - b; });
+    var sum      = nums.reduce(function(a, b) { return a + b; }, 0);
+    var even     = nums.filter(function(n) { return n % 2 === 0; }).length;
+    var odd      = nums.length - even;
+    var primes   = nums.filter(function(n) { return isPrime(n); }).length;
+    var fibsSet  = getFibonacciSet(fmt.mainMax);
+    var fibCount = nums.filter(function(n) { return fibsSet.has(n); }).length;
+    var gaps     = [];
+    for (var i = 1; i < nums.length; i++) gaps.push(nums[i] - nums[i - 1]);
+    var avgGap   = gaps.length ? (gaps.reduce(function(a, b) { return a + b; }, 0) / gaps.length).toFixed(1) : 0;
+
+    var low      = Math.floor(fmt.mainMax / 3);
+    var midMax   = Math.floor(fmt.mainMax * 2 / 3);
+    var lowNums  = nums.filter(function(n) { return n <= low; }).length;
+    var midNums  = nums.filter(function(n) { return n > low && n <= midMax; }).length;
+    var highNums = nums.filter(function(n) { return n > midMax; }).length;
+
+    var scores = scoreDrawAgainstFormulas(nums, fmt, sum, even, odd, primes, fibCount, fibsSet, gaps, lowNums, midNums, highNums);
+    scores.sort(function(a, b) { return b.score - a.score; });
+    var maxScore = scores[0].score || 1;
+    var medals   = ['&#127941;', '&#129352;', '&#129353;'];
+
+    var ballsHtml = nums.map(function(n) { return '<span class="ball ball-main ball-sm">' + n + '</span>'; }).join('');
+
+    var html = '<div class="card" style="margin-top:16px;">';
+    html += '<div class="pattern-section-title">&#128270; Reconstruction Analysis</div>';
+    html += '<div class="balls-row" style="margin-bottom:14px;">' + ballsHtml + '</div>';
+
+    var propPct = function(v, of) { return Math.round(v / Math.max(1, of) * 100); };
+
+    html += '<div class="card-grid">';
+    /* Properties card */
+    html += '<div class="pattern-card"><div class="pattern-card-title">&#128202; Draw Properties</div>';
+    html += matBarRow('Sum', sum, Math.min(100, Math.round(sum / (fmt.mainCount * fmt.mainMax) * 250)));
+    html += matBarRow('Even/Odd', even + '/' + odd, propPct(even, nums.length));
+    html += matBarRow('Primes', primes, propPct(primes, nums.length), 'linear-gradient(90deg,#f59e0b,#ef4444)');
+    html += matBarRow('Fibonacci', fibCount, propPct(fibCount, nums.length), 'linear-gradient(90deg,#16a34a,#06b6d4)');
+    html += matBarRow('Avg Gap', avgGap, Math.min(100, Math.round(avgGap / fmt.mainMax * 500)), 'linear-gradient(90deg,#6366f1,#8b5cf6)');
+    html += '<div class="pattern-bar-row"><span class="pattern-bar-label">Zones L/M/H</span><div class="pattern-bar-wrap" style="display:flex;height:12px;">';
+    html += '<div style="width:' + propPct(lowNums, nums.length) + '%;background:linear-gradient(90deg,#8b5cf6,#a78bfa);border-radius:100px 0 0 100px;"></div>';
+    html += '<div style="width:' + propPct(midNums, nums.length) + '%;background:linear-gradient(90deg,#f59e0b,#16a34a);"></div>';
+    html += '<div style="width:' + propPct(highNums, nums.length) + '%;background:linear-gradient(90deg,#16a34a,#06b6d4);border-radius:0 100px 100px 0;"></div>';
+    html += '</div><span class="pattern-bar-val">' + lowNums + '/' + midNums + '/' + highNums + '</span></div>';
+    html += '</div>';
+
+    /* Formula scores card */
+    html += '<div class="pattern-card"><div class="pattern-card-title">&#127942; Formula Match Scores</div>';
+    html += '<div class="text-sm text-muted mb-8">Which formula best explains this draw\u2019s composition:</div>';
+    scores.forEach(function(s, rank) {
+        var pct  = Math.round((s.score / maxScore) * 100);
+        var grad = rank === 0 ? 'linear-gradient(90deg,#8b5cf6,#06b6d4)' :
+                   rank === 1 ? 'linear-gradient(90deg,#f59e0b,#16a34a)' :
+                   rank === 2 ? 'linear-gradient(90deg,#16a34a,#06b6d4)' :
+                                'linear-gradient(90deg,#94a3b8,#64748b)';
+        html += '<div class="pattern-bar-row">';
+        html += '<span class="pattern-bar-label" style="width:145px;">' + (rank < 3 ? medals[rank] : '') + ' ' + s.label + '</span>';
+        html += '<div class="pattern-bar-wrap"><div class="pattern-bar-fill" style="width:' + pct + '%;background:' + grad + ';"></div></div>';
+        html += '<span class="pattern-bar-val">' + s.score + 'pts</span></div>';
+    });
+    html += '</div>';
+    html += '</div>';
+
+    var top = scores[0];
+    html += '<div class="algo-info" style="margin-top:12px;">&#127942; <strong>Best Formula: ' + top.label + '</strong> &mdash; ' + top.explanation + '</div>';
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function matBarRow(label, val, pct, bg) {
+    var style = bg ? 'style="width:' + pct + '%;background:' + bg + ';"' : 'style="width:' + pct + '%;"';
+    return '<div class="pattern-bar-row"><span class="pattern-bar-label">' + label + '</span>' +
+           '<div class="pattern-bar-wrap"><div class="pattern-bar-fill" ' + style + '></div></div>' +
+           '<span class="pattern-bar-val">' + val + '</span></div>';
+}
+
+function scoreDrawAgainstFormulas(nums, fmt, sum, even, odd, primes, fibCount, fibsSet, gaps, lowNums, midNums, highNums) {
+    var pd      = computePatternData(fmt.id);
+    var results = [];
+
+    /* 1. Hot/Cold Blend */
+    var hotScore = 0;
+    if (pd) {
+        var hotCutoff = Math.floor(pd.sorted.length * 0.25);
+        hotScore = nums.filter(function(n) { return pd.sorted.indexOf(n) < hotCutoff; }).length * 15;
+        hotScore += nums.filter(function(n) { return pd.sorted.indexOf(n) >= Math.floor(pd.sorted.length * 0.75); }).length * 5;
+    } else { hotScore = 20; }
+    results.push({ algo:'hot-cold-blend', label:'Hot/Cold Blend', score: hotScore, explanation: 'Draw contains high-frequency numbers from historical data.' });
+
+    /* 2. Fibonacci Spread */
+    var fibScore = fibCount * 20 + nums.filter(function(n) { return !fibsSet.has(n) && (fibsSet.has(n-1)||fibsSet.has(n+1)||fibsSet.has(n-2)||fibsSet.has(n+2)); }).length * 8;
+    results.push({ algo:'fibonacci-spread', label:'Fibonacci Spread', score: fibScore, explanation: fibCount + ' Fibonacci number(s) present.' });
+
+    /* 3. Delta Build */
+    var deltaScore   = 0;
+    var commonDeltas = [1,2,3,4,5,6,7,8,9,10,11,13,15];
+    gaps.forEach(function(g) { if (commonDeltas.indexOf(g) !== -1) deltaScore += 12; });
+    var avgGapN = gaps.length ? gaps.reduce(function(a,b){return a+b;},0)/gaps.length : 0;
+    if (avgGapN >= 3 && avgGapN <= 12) deltaScore += 20;
+    results.push({ algo:'delta-build', label:'Delta Build', score: deltaScore, explanation: 'Average gap between numbers: ' + avgGapN.toFixed(1) + '.' });
+
+    /* 4. Balanced Zones */
+    var ideal     = nums.length / 3;
+    var zoneScore = Math.max(0, 30 - Math.abs(lowNums - ideal) * 10 - Math.abs(midNums - ideal) * 10 - Math.abs(highNums - ideal) * 10);
+    results.push({ algo:'balanced-zones', label:'Balanced Zones', score: Math.round(zoneScore), explanation: 'Zone split L/M/H = ' + lowNums + '/' + midNums + '/' + highNums + '.' });
+
+    /* 5. Prime Boost */
+    results.push({ algo:'prime-boost', label:'Prime Boost', score: primes * 18, explanation: primes + ' prime number(s) in this draw.' });
+
+    /* 6. Sum Target */
+    var sumScore = 0;
+    if (pd && pd.draws.length > 0) {
+        var sumsArr = pd.draws.map(function(d) { return d.numbers.reduce(function(a,b){return a+b;},0); });
+        var avgSum  = sumsArr.reduce(function(a,b){return a+b;},0) / sumsArr.length;
+        sumScore    = Math.max(0, 50 - Math.abs(sum - avgSum) * 2);
+    } else {
+        sumScore = Math.max(0, 40 - Math.abs(sum - nums.length * (fmt.mainMax + 1) / 2) * 0.5);
+    }
+    results.push({ algo:'sum-target', label:'Sum Target', score: Math.round(sumScore), explanation: 'Sum ' + sum + ' vs historical average.' });
+
+    /* 7. Golden Ratio */
+    var phi      = 1.6180339887;
+    var phiScore = nums.filter(function(n) {
+        for (var k = 1; k * phi <= fmt.mainMax + 2; k++) { if (Math.abs(n - Math.round(k * phi)) <= 1) return true; }
+        return false;
+    }).length * 16;
+    results.push({ algo:'golden-ratio', label:'Golden Ratio', score: phiScore, explanation: Math.round(phiScore/16) + ' number(s) near \u03c6\u00d7k multiples.' });
+
+    /* 8. Modular Step */
+    var modScore = 0;
+    for (var step = 2; step <= 15; step++) {
+        var base  = nums[0] % step;
+        var match = nums.filter(function(n) { return n % step === base; }).length;
+        modScore  = Math.max(modScore, match * 12);
+    }
+    results.push({ algo:'modular-step', label:'Modular Step', score: modScore, explanation: 'Best modular pattern match.' });
+
+    /* 9. Reverse Cold */
+    var coldScore = 0;
+    if (pd) {
+        var coldCutoff = Math.floor(pd.sorted.length * 0.75);
+        coldScore = nums.filter(function(n) { return pd.sorted.indexOf(n) >= coldCutoff; }).length * 18;
+    } else { coldScore = 15; }
+    results.push({ algo:'reverse-cold', label:'Reverse Cold', score: coldScore, explanation: Math.round(coldScore/18) + ' historically cold number(s).' });
+
+    /* 10. Pattern Echo */
+    var echoScore = 0;
+    var echoDraws = state.recentDraws.filter(function(d) { return d.formatId === fmt.id; }).slice(1, 10);
+    echoDraws.forEach(function(d) {
+        var overlap = nums.filter(function(n) { return (d.numbers||[]).indexOf(n) !== -1; }).length;
+        echoScore += overlap * 5;
+    });
+    results.push({ algo:'pattern-echo', label:'Pattern Echo', score: echoScore, explanation: 'Numbers echoed from recent draws.' });
+
+    /* 11. Mirror Draw */
+    var mirrorScore = 0;
+    var latestDraw  = state.recentDraws.filter(function(d) { return d.formatId === fmt.id; })[0];
+    if (latestDraw && latestDraw.numbers) {
+        var latestSorted = latestDraw.numbers.slice().sort(function(a,b){return a-b;});
+        var latestGaps   = [];
+        for (var li = 1; li < latestSorted.length; li++) latestGaps.push(latestSorted[li] - latestSorted[li-1]);
+        var gapMatch = gaps.filter(function(g, gi) { return gi < latestGaps.length && Math.abs(g - latestGaps[gi]) <= 2; }).length;
+        mirrorScore = gapMatch * 14;
+    }
+    results.push({ algo:'mirror-draw', label:'Mirror Draw', score: mirrorScore, explanation: 'Gap structure similarity to previous draw.' });
+
+    /* 12. Entropy Blend */
+    var spread        = nums[nums.length - 1] - nums[0];
+    var entropyScore  = Math.round((spread / Math.max(1, fmt.mainMax - 1)) * 40);
+    results.push({ algo:'entropy-blend', label:'Entropy Blend', score: entropyScore, explanation: 'Number spread: ' + nums[0] + ' to ' + nums[nums.length-1] + ' (range ' + spread + ').' });
+
+    return results;
+}
+
+/* ── Next Draw Predictor ─────────────────────────────────────────── */
+function runNextDrawPredictor() {
+    var fmtId = document.getElementById('matrix-predict-format').value;
+    var fmt   = getAllFormats().find(function(f) { return f.id === fmtId; });
+    if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
+
+    var pd        = computePatternData(fmt.id);
+    var container = document.getElementById('matrix-predict-output');
+    if (!container) return;
+
+    if (!pd) {
+        container.innerHTML = '<div class="no-draws-hint"><div style="font-size:2.5rem;margin-bottom:10px;">&#128202;</div><div class="fw-700">Not enough data</div><div class="text-sm" style="margin-top:6px;">Add at least 3 draws for <strong>' + fmt.flag + ' ' + fmt.name + '</strong> via the Live Draws tab.</div></div>';
+        return;
+    }
+
+    var algos       = Object.keys(MATRIX_ALGO_INFO);
+    var predictions = [];
+
+    algos.forEach(function(algo) {
+        var main  = buildMatrixCombination(fmt, [], algo);
+        var bonus = fmt.bonusCount > 0 ? generateUniqueNumbers(fmt.bonusCount, fmt.bonusMax, 'crypto', null) : [];
+        var sum   = main.reduce(function(a, b) { return a + b; }, 0);
+        var even  = main.filter(function(n) { return n % 2 === 0; }).length;
+        var prs   = main.filter(function(n) { return isPrime(n); }).length;
+        var conf  = computePredictionConfidence(main, fmt, pd);
+        predictions.push({ algo: algo, main: main, bonus: bonus, sum: sum, even: even, primes: prs, confidence: conf });
+    });
+
+    predictions.sort(function(a, b) { return b.confidence - a.confidence; });
+
+    var numFreq = {};
+    predictions.forEach(function(p) {
+        p.main.forEach(function(n) { numFreq[n] = (numFreq[n] || 0) + 1; });
+    });
+    var consensusNums = Object.keys(numFreq).map(Number)
+        .sort(function(a, b) { return numFreq[b] - numFreq[a]; })
+        .slice(0, fmt.mainCount)
+        .sort(function(a, b) { return a - b; });
+    var cSum  = consensusNums.reduce(function(a, b) { return a + b; }, 0);
+    var cEven = consensusNums.filter(function(n) { return n % 2 === 0; }).length;
+    var cPrs  = consensusNums.filter(function(n) { return isPrime(n); }).length;
+
+    var medals = ['&#127941;','&#129352;','&#129353;'];
+    var html   = '<div class="card" style="margin-top:16px;">';
+    html += '<div class="pattern-section-title">&#127919; Next Draw Predictions</div>';
+    html += '<div class="algo-info" style="margin-bottom:16px;">Based on <strong>' + pd.draws.length + '</strong> draws of ' + fmt.flag + ' ' + fmt.name + '. All 12 formulas ran; ranked by historical-pattern confidence.</div>';
+
+    html += '<div class="pattern-card" style="border:2px solid var(--purple);margin-bottom:16px;">';
+    html += '<div class="pattern-card-title" style="color:var(--purple);">&#127775; Consensus Prediction <span class="paste-count-badge" style="margin-left:8px;">All 12 Formulas</span></div>';
+    html += '<div class="text-sm text-muted mb-8">Numbers most frequently selected across all formulas (opacity = agreement level):</div>';
+    html += '<div class="balls-row" style="margin-bottom:10px;">';
+    consensusNums.forEach(function(n) {
+        var opacity = (0.35 + (numFreq[n] / predictions.length) * 0.65).toFixed(2);
+        html += '<span class="ball ball-main ball-sm animate" style="opacity:' + opacity + ';" title="Picked by ' + numFreq[n] + '/' + predictions.length + ' formulas">' + n + '</span>';
+    });
+    html += '</div>';
+    html += '<div class="text-sm text-muted">Sum: <strong>' + cSum + '</strong> &nbsp;|&nbsp; Even/Odd: <strong>' + cEven + '/' + (consensusNums.length - cEven) + '</strong> &nbsp;|&nbsp; Primes: <strong>' + cPrs + '</strong></div>';
+    html += '</div>';
+
+    html += '<div class="pattern-card-title" style="margin-bottom:12px;">&#127942; Top Predictions by Confidence</div>';
+    predictions.slice(0, 5).forEach(function(p, rank) {
+        var algoLabel = (MATRIX_ALGO_INFO[p.algo] || p.algo).replace(/<[^>]+>/g, '').split(':')[0].trim();
+        var confPct   = Math.min(100, Math.round(p.confidence));
+        var confClass = confPct >= 65 ? 'confidence-high' : confPct >= 35 ? 'confidence-medium' : 'confidence-low';
+        var grad      = confPct >= 65 ? 'linear-gradient(90deg,#16a34a,#06b6d4)' : confPct >= 35 ? 'linear-gradient(90deg,#f59e0b,#16a34a)' : 'linear-gradient(90deg,#ef4444,#f59e0b)';
+        html += '<div class="ticket-card" style="margin-bottom:10px;">';
+        html += '<div class="ticket-header">';
+        html += '<span class="ticket-format-badge">' + (rank < 3 ? medals[rank] : '#' + (rank + 1)) + ' ' + algoLabel + '</span>';
+        html += '<span class="confidence-badge ' + confClass + '">Confidence: ' + confPct + '%</span>';
+        html += '</div>';
+        html += '<div class="pattern-bar-row" style="margin-bottom:8px;">';
+        html += '<span class="pattern-bar-label">Confidence</span>';
+        html += '<div class="pattern-bar-wrap"><div class="pattern-bar-fill" style="width:' + confPct + '%;background:' + grad + ';"></div></div>';
+        html += '<span class="pattern-bar-val">' + confPct + '%</span></div>';
+        html += '<div class="balls-row">';
+        p.main.forEach(function(n) { html += '<span class="ball ball-main ball-sm animate">' + n + '</span>'; });
+        if (p.bonus.length) {
+            html += '<span class="ball-separator">+</span>';
+            p.bonus.forEach(function(n) { html += '<span class="ball ball-bonus ball-sm animate">' + n + '</span>'; });
+        }
+        html += '</div>';
+        html += '<div class="text-sm text-muted mt-8">Sum: <strong>' + p.sum + '</strong> &nbsp;|&nbsp; Even/Odd: <strong>' + p.even + '/' + (p.main.length - p.even) + '</strong> &nbsp;|&nbsp; Primes: <strong>' + p.primes + '</strong></div>';
+        html += '</div>';
+    });
+
+    html += '<div class="pattern-card" style="margin-top:12px;">';
+    html += '<div class="pattern-card-title">&#128293; Number Frequency Across All Formulas</div>';
+    html += '<div class="text-sm text-muted mb-8">Most commonly selected numbers across all 12 formulas:</div>';
+    var sortedByFreq = Object.keys(numFreq).map(Number).sort(function(a, b) { return numFreq[b] - numFreq[a]; }).slice(0, 20);
+    var maxFreqVal   = numFreq[sortedByFreq[0]] || 1;
+    sortedByFreq.forEach(function(n) {
+        var pct = Math.round(numFreq[n] / maxFreqVal * 100);
+        html += '<div class="pattern-bar-row"><span class="pattern-bar-label">' + n + '</span><div class="pattern-bar-wrap"><div class="pattern-bar-fill" style="width:' + pct + '%;"></div></div><span class="pattern-bar-val">' + numFreq[n] + '/' + predictions.length + '</span></div>';
+    });
+    html += '</div>';
+
+    html += '<div class="btn-row" style="margin-top:12px;">';
+    html += '<button class="btn btn-primary" onclick="saveMatrixConsensusToTickets()">&#128190; Save Consensus to Tickets</button>';
+    html += '<button class="btn btn-success" onclick="saveMatrixTop5ToTickets()">&#128190; Save Top 5 to Tickets</button>';
+    html += '</div>';
+    html += '</div>';
+    container.innerHTML = html;
+
+    _lastConsensusNums   = { main: consensusNums, bonus: fmt.bonusCount > 0 ? generateUniqueNumbers(fmt.bonusCount, fmt.bonusMax, 'crypto', null) : [], formatId: fmt.id };
+    _lastTop5Predictions = predictions.slice(0, 5).map(function(p) { return { main: p.main, bonus: p.bonus, formatId: fmt.id }; });
+
+    showToast('Predictions generated using all 12 formulas!', 'success');
+}
+
+function computePredictionConfidence(nums, fmt, pd) {
+    if (!pd) return 50;
+    var score = 0;
+
+    /* Hot numbers (0–25 pts) */
+    var hotCutoff = Math.floor(pd.sorted.length * 0.25);
+    score += (nums.filter(function(n) { return pd.sorted.indexOf(n) < hotCutoff; }).length / nums.length) * 25;
+
+    /* Sum proximity to average (0–20 pts) */
+    var sumsC   = pd.draws.map(function(d) { return d.numbers.reduce(function(a,b){return a+b;},0); });
+    var avgSumC = sumsC.reduce(function(a,b){return a+b;},0) / sumsC.length;
+    var sumSDC  = Math.sqrt(sumsC.reduce(function(a,b){return a+Math.pow(b-avgSumC,2);},0)/sumsC.length) || 1;
+    var sumZC   = Math.abs(nums.reduce(function(a,b){return a+b;},0) - avgSumC) / sumSDC;
+    score      += Math.max(0, 20 - sumZC * 10);
+
+    /* Even/odd balance (0–15 pts) */
+    var histER = pd.evenCount / pd.totalNums;
+    var numER  = nums.filter(function(n){return n%2===0;}).length / nums.length;
+    score     += Math.max(0, 15 - Math.abs(numER - histER) * 30);
+
+    /* Zone balance (0–15 pts) */
+    var low    = Math.floor(fmt.mainMax / 3);
+    var midMax = Math.floor(fmt.mainMax * 2 / 3);
+    var hLR = pd.lowCount / pd.totalNums, hMR = pd.midCount / pd.totalNums, hHR = pd.highCount / pd.totalNums;
+    var nLR = nums.filter(function(n){return n<=low;}).length / nums.length;
+    var nMR = nums.filter(function(n){return n>low&&n<=midMax;}).length / nums.length;
+    var nHR = nums.filter(function(n){return n>midMax;}).length / nums.length;
+    score   += Math.max(0, 15 - (Math.abs(nLR-hLR)+Math.abs(nMR-hMR)+Math.abs(nHR-hHR)) * 20);
+
+    /* Pair frequency (0–25 pts) */
+    var pairsC = {};
+    pd.draws.forEach(function(d) {
+        var ns = d.numbers.slice().sort(function(a,b){return a-b;});
+        for (var a = 0; a < ns.length; a++) {
+            for (var b = a+1; b < ns.length; b++) { var kk = ns[a]+'-'+ns[b]; pairsC[kk]=(pairsC[kk]||0)+1; }
+        }
+    });
+    var ns2  = nums.slice().sort(function(a,b){return a-b;});
+    var poverlap = 0;
+    for (var a2 = 0; a2 < ns2.length; a2++) {
+        for (var b2 = a2+1; b2 < ns2.length; b2++) { if ((pairsC[ns2[a2]+'-'+ns2[b2]]||0) >= 2) poverlap++; }
+    }
+    score += Math.min(25, poverlap * 8);
+
+    return Math.min(100, Math.max(5, score));
+}
+
+function saveMatrixConsensusToTickets() {
+    if (!_lastConsensusNums) { showToast('Run predictions first!', 'error'); return; }
+    addTicket(_lastConsensusNums.formatId, _lastConsensusNums.main, _lastConsensusNums.bonus, '', 'Combi-Matrix Consensus');
+    updateHeader();
+    showToast('Consensus prediction saved to tickets!', 'success');
+}
+
+function saveMatrixTop5ToTickets() {
+    if (!_lastTop5Predictions.length) { showToast('Run predictions first!', 'error'); return; }
+    _lastTop5Predictions.forEach(function(p) { addTicket(p.formatId, p.main, p.bonus, '', 'Combi-Matrix Prediction'); });
+    updateHeader();
+    showToast(_lastTop5Predictions.length + ' predictions saved to tickets!', 'success');
 }
 
 document.addEventListener('DOMContentLoaded', function() {
