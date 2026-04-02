@@ -1392,7 +1392,7 @@ function buildFormatGrids() {
         var el = document.getElementById(id);
         if (el) el.innerHTML = getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
-    ['tkt-filter-format','stats-format-filter','live-draws-format-filter','spd-format-filter','matrix-reconstruct-format','number-search-format-filter'].forEach(function(id) {
+    ['tkt-filter-format','stats-format-filter','live-draws-format-filter','matrix-reconstruct-format','number-search-format-filter'].forEach(function(id) {
         var el = document.getElementById(id);
         if (!el) return;
         el.innerHTML = '<option value="all">All Formats</option>' + getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
@@ -2535,12 +2535,44 @@ function saveParsedToPatterns() {
 }
 
 /* Render the saved pattern draws list */
+function updateSpdFormatFilter() {
+    var filterEl = document.getElementById('spd-format-filter');
+    if (!filterEl) return;
+    var prev = filterEl.value;
+    /* Collect unique formatIds that actually have saved draws */
+    var seen = {};
+    var fmtsWithDraws = [];
+    var allFmts = getAllFormats();
+    state.savedPatternDraws.forEach(function(d) {
+        if (!seen[d.formatId]) {
+            seen[d.formatId] = true;
+            var fmt = (d.fmt && d.fmt.id) ? d.fmt : allFmts.find(function(f) { return f.id === d.formatId; });
+            fmtsWithDraws.push({ id: d.formatId, flag: (fmt && fmt.flag) || '🎯', name: (fmt && fmt.name) || d.rawName || d.formatId });
+        }
+    });
+    /* Sort alphabetically by name */
+    fmtsWithDraws.sort(function(a, b) { return a.name.localeCompare(b.name); });
+    var html = '<option value="all">All Formats</option>';
+    fmtsWithDraws.forEach(function(f) {
+        html += '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>';
+    });
+    filterEl.innerHTML = html;
+    /* Restore previous selection if it still has draws */
+    if (prev && seen[prev]) {
+        filterEl.value = prev;
+    } else {
+        filterEl.value = 'all';
+    }
+}
+
 function renderSavedPatternDraws() {
     var container = document.getElementById('saved-pattern-draws-list');
     if (!container) return;
     var badge = document.getElementById('spd-count-badge');
     var savedCountEl = document.getElementById('paste-saved-count-val');
     if (savedCountEl) savedCountEl.textContent = state.savedPatternDraws.length;
+
+    updateSpdFormatFilter();
 
     var filterEl = document.getElementById('spd-format-filter');
     var fmtFilter = filterEl ? filterEl.value : 'all';
