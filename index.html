@@ -569,26 +569,40 @@
         </div>
         <div id="live-draws-list"></div>
         <div class="card">
-            <div class="section-title" style="font-size:1.15rem;margin-bottom:16px;">&#10133; Add Draw Result</div>
-            <div class="grid-2">
-                <div class="form-group">
-                    <label>Lottery Format</label>
-                    <select id="add-draw-format"></select>
+            <div class="paste-workspace-header">
+                <div class="paste-workspace-title">
+                    <span>&#10133;</span>
+                    Add Draw Result
+                    <span class="paste-count-badge" id="add-draw-count-badge" style="display:none;">&#127919; <span id="add-draw-parsed-count">0</span> ready</span>
                 </div>
-                <div class="form-group">
-                    <label>Draw Date</label>
-                    <input type="date" id="add-draw-date" />
+                <div class="paste-workspace-meta">
+                    <span class="paste-status-dot" id="add-draw-status-dot"></span>
+                    <span class="text-sm text-muted" id="add-draw-status-label">Ready</span>
                 </div>
+            </div>
+            <div class="algo-info" style="margin-bottom:16px;">
+                Select a lottery format then paste or type multiple draw results. Three input styles are supported:<br>
+                <span style="color:var(--text-muted);">&#9312; Single-line (date, numbers, bonus):</span>
+                <code style="font-size:0.82rem;">2026-03-30, 5 12 23 34 41 49, 7</code><br>
+                <span style="color:var(--text-muted);">&#9313; Two-line (date then numbers):</span>
+                <code style="font-size:0.82rem;">30 Mar 2026</code> &nbsp;/&nbsp; <code style="font-size:0.82rem;">5 12 23 34 41 49 7</code><br>
+                <span style="color:var(--text-muted);">&#9314; Canvas format:</span>
+                <code style="font-size:0.82rem;">UK 49s | 30 Mar 2026 at 12:48:00</code> &nbsp;/&nbsp; <code style="font-size:0.82rem;">2716412645305</code>
             </div>
             <div class="form-group">
-                <label>Winning Numbers (space or comma separated)</label>
-                <input type="text" id="add-draw-numbers" placeholder="e.g. 5 12 23 34 41 49" />
+                <label>Lottery Format</label>
+                <select id="add-draw-format" onchange="onAddDrawFormatChange()"></select>
             </div>
-            <div class="form-group" id="add-draw-bonus-group">
-                <label id="add-draw-bonus-label">Bonus Ball</label>
-                <input type="text" id="add-draw-bonus" placeholder="e.g. 7" />
+            <div class="form-group" style="margin-bottom:12px;">
+                <label>Draw Results &mdash; paste or type multiple draws (one per block)</label>
+                <textarea id="add-draw-textarea" class="paste-canvas-textarea" oninput="onAddDrawInput()" placeholder="2026-03-30, 5 12 23 34 41 49, 7&#10;2026-03-29, 3 8 15 22 38 45, 2&#10;2026-03-28, 1 9 17 25 33 47, 5"></textarea>
             </div>
-            <button class="btn btn-primary" onclick="addDrawResult()">&#10133; Add Result</button>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="parseAddDrawCanvas()">&#128269; Parse &amp; Preview</button>
+                <button class="btn btn-success" id="btn-add-to-format" onclick="addParsedDrawsToFormat()" style="display:none;">&#10133; Add to Lottery</button>
+                <button class="btn btn-secondary" onclick="clearAddDrawCanvas()">&#10006; Clear</button>
+            </div>
+            <div id="add-draw-canvas-preview"></div>
         </div>
 
         <!-- PASTE DRAW CANVAS -->
@@ -2024,38 +2038,301 @@ function updateHeader() {
    LIVE RECENT DRAWS
    ============================================================ */
 
-function addDrawResult() {
-    var fmtId  = document.getElementById('add-draw-format').value;
-    var date   = document.getElementById('add-draw-date').value;
-    var numStr = document.getElementById('add-draw-numbers').value.trim();
-    var bonStr = document.getElementById('add-draw-bonus').value.trim();
-    if (!fmtId || !date || !numStr) { showToast('Fill in format, date and numbers', 'error'); return; }
-    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
-    if (!fmt) return;
-    var nums = numStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n >= 1 && n <= fmt.mainMax; });
-    var uniqueNums = Array.from(new Set(nums));
-    if (uniqueNums.length !== fmt.mainCount) { showToast('Enter exactly ' + fmt.mainCount + ' unique numbers (1\u2013' + fmt.mainMax + ')', 'error'); return; }
-    nums = uniqueNums;
-    var bonus = [];
-    if (fmt.bonusCount > 0) {
-        var bonusRaw = bonStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n >= 1 && n <= fmt.bonusMax; });
-        bonus = Array.from(new Set(bonusRaw));
-        if (bonus.length !== fmt.bonusCount) { showToast('Enter exactly ' + fmt.bonusCount + ' unique bonus number(s) (1\u2013' + fmt.bonusMax + ')', 'error'); return; }
+/* ============================================================
+   ADD DRAW RESULT — CANVAS (multi-draw paste)
+   ============================================================ */
+
+var _addDrawCanvasParsed = [];
+
+/* Parse a date string in various formats → "YYYY-MM-DD" or null */
+function parseAddDrawDate(s) {
+    s = (s || '').trim();
+    /* ISO: 2026-03-30 or 2026-3-30 */
+    var iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (iso) return iso[1] + '-' + String(iso[2]).padStart(2,'0') + '-' + String(iso[3]).padStart(2,'0');
+    /* DD/MM/YYYY or DD-MM-YYYY */
+    var dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (dmy) return dmy[3] + '-' + String(dmy[2]).padStart(2,'0') + '-' + String(dmy[1]).padStart(2,'0');
+    /* "DD Mon YYYY" — reuse existing helper */
+    return pasteCanvasParseDate(s);
+}
+
+/* Parse a numbers string for a given format → { numbers, bonus } or null */
+function parseAddDrawNumbers(numStr, fmt) {
+    /* Normalise: replace + with space, remove irrelevant chars */
+    var cleaned = numStr.replace(/\+/g, ' ').trim();
+
+    /* If comma-separated parts, last segment is treated as bonus */
+    var commaParts = cleaned.split(',');
+    var mainStr, bonStr;
+    if (commaParts.length >= 2) {
+        mainStr = commaParts.slice(0, commaParts.length - 1).join(' ');
+        bonStr  = commaParts[commaParts.length - 1];
+    } else {
+        mainStr = cleaned;
+        bonStr  = '';
     }
-    var newDraw = {
-        id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID()
-            : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36),
-        formatId: fmtId, date: date, numbers: nums, bonus: bonus,
-        addedAt: new Date().toISOString()
+
+    var extractValidIntegers = function(s, max) {
+        return s.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n) && n >= 1 && n <= max; });
     };
-    state.recentDraws.unshift(newDraw);
+
+    var mainNums = extractValidIntegers(mainStr, fmt.mainMax);
+    var bonNums  = bonStr ? extractValidIntegers(bonStr, fmt.bonusMax || fmt.mainMax) : [];
+
+    if (mainNums.length === fmt.mainCount && bonNums.length === fmt.bonusCount) {
+        return { numbers: Array.from(new Set(mainNums)), bonus: Array.from(new Set(bonNums)) };
+    }
+
+    /* Try all numbers together: last bonusCount are bonus */
+    var together = extractValidIntegers(cleaned, fmt.mainMax);
+    var total = fmt.mainCount + fmt.bonusCount;
+    if (together.length === total) {
+        return {
+            numbers: Array.from(new Set(together.slice(0, fmt.mainCount))),
+            bonus:   fmt.bonusCount > 0 ? Array.from(new Set(together.slice(fmt.mainCount))) : []
+        };
+    }
+    if (together.length === fmt.mainCount) {
+        return { numbers: Array.from(new Set(together)), bonus: [] };
+    }
+
+    /* Last resort: backtracking split for concatenated digit strings */
+    var digitsOnly = cleaned.replace(/\D/g, '');
+    var btMain = pasteCanvasSplitNumbers(digitsOnly, total, fmt.mainMax);
+    if (btMain) {
+        return {
+            numbers: btMain.slice(0, fmt.mainCount),
+            bonus:   fmt.bonusCount > 0 ? btMain.slice(fmt.mainCount, total) : []
+        };
+    }
+    var btNoBonus = pasteCanvasSplitNumbers(digitsOnly, fmt.mainCount, fmt.mainMax);
+    if (btNoBonus) return { numbers: btNoBonus, bonus: [] };
+
+    return null;
+}
+
+function parseAddDrawCanvas() {
+    var fmtId = document.getElementById('add-draw-format').value;
+    if (!fmtId) { showToast('Please select a lottery format', 'error'); return; }
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
+    if (!fmt) { showToast('Unknown format', 'error'); return; }
+
+    var text = document.getElementById('add-draw-textarea').value.trim();
+    if (!text) { showToast('Please paste or type draw results first', 'error'); return; }
+
+    _addDrawCanvasParsed = [];
+    var errors = [];
+    var lines = text.split(/\r?\n/).map(function(l) { return l.trim(); });
+
+    var i = 0;
+    while (i < lines.length) {
+        var line = lines[i];
+        if (!line) { i++; continue; }
+
+        /* ① Canvas format: "Anything | DD Mon YYYY at HH:MM:SS" */
+        var canvasMatch = line.match(/^(.+?)\s*\|\s*(\d{1,2}\s+\w+\s+\d{4})\s+at\s+(\d{2}:\d{2}:\d{2})\s*$/);
+        if (canvasMatch) {
+            var isoDate = pasteCanvasParseDate(canvasMatch[2].trim());
+            var timeStr = canvasMatch[3].trim();
+            var j = i + 1;
+            while (j < lines.length && !lines[j]) j++;
+            if (j < lines.length && /\d/.test(lines[j]) && lines[j].indexOf('|') === -1) {
+                if (!isoDate) {
+                    errors.push('Could not parse date "' + canvasMatch[2].trim() + '"');
+                    i = j + 1; continue;
+                }
+                var numLine = lines[j].replace(/\s/g, '');
+                var total = fmt.mainCount + fmt.bonusCount;
+                var nums  = pasteCanvasSplitNumbers(numLine, total, fmt.mainMax)
+                         || pasteCanvasSplitNumbers(numLine, fmt.mainCount, fmt.mainMax);
+                if (!nums) {
+                    errors.push('On ' + canvasMatch[2].trim() + ': could not parse numbers');
+                    i = j + 1; continue;
+                }
+                var effectiveBonusCount = nums.length > fmt.mainCount ? fmt.bonusCount : 0;
+                _addDrawCanvasParsed.push({ formatId: fmtId, fmt: fmt, date: isoDate, drawTime: timeStr,
+                    numbers: nums.slice(0, fmt.mainCount), bonus: effectiveBonusCount > 0 ? nums.slice(fmt.mainCount, fmt.mainCount + effectiveBonusCount) : [] });
+                i = j + 1;
+            } else {
+                errors.push('Line ' + (i + 1) + ': header found but no numbers line follows');
+                i++;
+            }
+            continue;
+        }
+
+        /* ② Two-line: date on this line, numbers on the next */
+        var isoDateLine = parseAddDrawDate(line);
+        if (isoDateLine) {
+            var j = i + 1;
+            while (j < lines.length && !lines[j]) j++;
+            if (j < lines.length && /\d/.test(lines[j]) && lines[j].indexOf('|') === -1 && !parseAddDrawDate(lines[j])) {
+                var parsed = parseAddDrawNumbers(lines[j], fmt);
+                if (parsed) {
+                    _addDrawCanvasParsed.push({ formatId: fmtId, fmt: fmt, date: isoDateLine, drawTime: '',
+                        numbers: parsed.numbers, bonus: parsed.bonus });
+                    i = j + 1;
+                } else {
+                    errors.push('On ' + line + ': could not parse numbers from "' + lines[j] + '"');
+                    i = j + 1;
+                }
+            } else {
+                errors.push('Date "' + line + '" found but no numbers line follows');
+                i++;
+            }
+            continue;
+        }
+
+        /* ③ Single-line: "date, numbers [, bonus]" or "date: numbers" */
+        var delim = line.indexOf(',') > 0 ? ',' : (line.indexOf(':') > 0 ? ':' : '');
+        if (delim) {
+            var sepIdx   = line.indexOf(delim);
+            var datePart = line.substring(0, sepIdx).trim();
+            var numPart  = line.substring(sepIdx + 1).trim();
+            var isoDate  = parseAddDrawDate(datePart);
+            if (isoDate) {
+                var parsed = parseAddDrawNumbers(numPart, fmt);
+                if (parsed) {
+                    _addDrawCanvasParsed.push({ formatId: fmtId, fmt: fmt, date: isoDate, drawTime: '',
+                        numbers: parsed.numbers, bonus: parsed.bonus });
+                    i++; continue;
+                }
+            }
+        }
+
+        if (line.length > 0) errors.push('Line ' + (i + 1) + ': could not parse "' + line.substring(0, 50) + (line.length > 50 ? '…' : '') + '"');
+        i++;
+    }
+
+    renderAddDrawCanvasPreview(_addDrawCanvasParsed, errors, fmt);
+    onAddDrawStatusUpdate();
+}
+
+function renderAddDrawCanvasPreview(draws, errors, fmt) {
+    var container = document.getElementById('add-draw-canvas-preview');
+    if (!draws.length && !errors.length) {
+        container.innerHTML = '<div class="collect-status-box error" style="margin-top:16px;">&#10060; No draw results found. Check the format matches the examples above and try again.</div>';
+        return;
+    }
+
+    var html = '<div style="margin-top:16px;">';
+
+    if (draws.length) {
+        html += '<div class="collect-status-box success">&#10003; Parsed <strong>' + draws.length + '</strong> draw result' +
+                (draws.length !== 1 ? 's' : '') + ' for <strong>' + (fmt ? fmt.flag + ' ' + fmt.name : '') +
+                '</strong> — review below, then click <strong>Add to Lottery</strong>.</div>';
+        html += '<div class="paste-canvas-preview-draws">';
+        draws.forEach(function(d) {
+            var f       = d.fmt || {};
+            var flag    = f.flag || '&#127921;';
+            var fmtName = f.name || d.formatId;
+            var dateObj = new Date(d.date + 'T00:00:00');
+            var dateLbl = dateObj.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+            html += '<div class="draw-result-card"><div class="draw-result-header">';
+            html += '<span class="ticket-format-badge">' + flag + ' ' + fmtName + '</span>';
+            html += '<span class="draw-result-date">&#128197; ' + dateLbl + '</span>';
+            if (d.drawTime) html += '<span class="paste-draw-time-badge">&#128336; ' + d.drawTime + '</span>';
+            html += '</div><div class="balls-row">';
+            d.numbers.forEach(function(n) { html += '<span class="ball ball-main ball-sm animate">' + n + '</span>'; });
+            if (d.bonus.length) {
+                html += '<span class="ball-separator">+</span>';
+                d.bonus.forEach(function(n) { html += '<span class="ball ' + (f.bonusColor || 'ball-bonus') + ' ball-sm animate">' + n + '</span>'; });
+            }
+            html += '</div></div>';
+        });
+        html += '</div>';
+        html += '<div class="btn-row" style="margin-top:14px;">';
+        html += '<button class="btn btn-success" onclick="addParsedDrawsToFormat()">&#10133; Add ' + draws.length + ' Draw' +
+                (draws.length !== 1 ? 's' : '') + ' to Lottery</button>';
+        html += '<button class="btn btn-secondary" onclick="clearAddDrawCanvas()">&#10006; Cancel</button>';
+        html += '</div>';
+    }
+
+    if (errors.length) {
+        html += '<div class="collect-status-box error" style="margin-top:12px;"><strong>&#9888;&#65039; ' + errors.length +
+                ' item' + (errors.length !== 1 ? 's' : '') + ' could not be parsed:</strong>';
+        html += '<ul style="margin:8px 0 0 18px;">';
+        errors.forEach(function(e) { html += '<li>' + e + '</li>'; });
+        html += '</ul></div>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function addParsedDrawsToFormat() {
+    if (!_addDrawCanvasParsed.length) { showToast('Parse some draws first', 'error'); return; }
+    var added = 0;
+    _addDrawCanvasParsed.forEach(function(d) {
+        var exists = state.recentDraws.some(function(r) { return r.formatId === d.formatId && r.date === d.date; });
+        if (exists) return;
+        var newDraw = {
+            id: (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36),
+            formatId: d.formatId, date: d.date, drawTime: d.drawTime || '',
+            numbers: d.numbers, bonus: d.bonus, addedAt: new Date().toISOString()
+        };
+        state.recentDraws.unshift(newDraw);
+        fbAddDraw(newDraw);
+        added++;
+    });
     if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
-    fbAddDraw(newDraw);
     persist();
-    document.getElementById('add-draw-numbers').value = '';
-    document.getElementById('add-draw-bonus').value   = '';
     renderLiveDraws();
-    showToast('Draw result added!', 'success');
+    _addDrawCanvasParsed = [];
+    document.getElementById('add-draw-textarea').value = '';
+    document.getElementById('add-draw-canvas-preview').innerHTML = '';
+    onAddDrawStatusUpdate();
+    if (added > 0) {
+        showToast(added + ' draw result' + (added !== 1 ? 's' : '') + ' added!', 'success');
+    } else {
+        showToast('All draws were already in the system — nothing added.', 'info');
+    }
+}
+
+function clearAddDrawCanvas() {
+    document.getElementById('add-draw-textarea').value = '';
+    document.getElementById('add-draw-canvas-preview').innerHTML = '';
+    _addDrawCanvasParsed = [];
+    onAddDrawStatusUpdate();
+}
+
+function onAddDrawInput() {
+    _addDrawCanvasParsed = [];
+    onAddDrawStatusUpdate();
+}
+
+function onAddDrawFormatChange() {
+    _addDrawCanvasParsed = [];
+    document.getElementById('add-draw-canvas-preview').innerHTML = '';
+    onAddDrawStatusUpdate();
+}
+
+function onAddDrawStatusUpdate() {
+    var dot     = document.getElementById('add-draw-status-dot');
+    var lbl     = document.getElementById('add-draw-status-label');
+    var badge   = document.getElementById('add-draw-count-badge');
+    var countEl = document.getElementById('add-draw-parsed-count');
+    var btn     = document.getElementById('btn-add-to-format');
+    var txt     = (document.getElementById('add-draw-textarea') || {}).value || '';
+    if (_addDrawCanvasParsed.length > 0) {
+        if (dot)     dot.className = 'paste-status-dot ready';
+        if (lbl)     lbl.textContent = _addDrawCanvasParsed.length + ' draw' + (_addDrawCanvasParsed.length !== 1 ? 's' : '') + ' parsed';
+        if (badge)   badge.style.display = '';
+        if (countEl) countEl.textContent = _addDrawCanvasParsed.length;
+        if (btn)     btn.style.display = '';
+    } else if (txt.trim().length > 0) {
+        if (dot)   dot.className = 'paste-status-dot parsed';
+        if (lbl)   lbl.textContent = 'Text entered \u2014 click Parse';
+        if (badge) badge.style.display = 'none';
+        if (btn)   btn.style.display = 'none';
+    } else {
+        if (dot)   dot.className = 'paste-status-dot';
+        if (lbl)   lbl.textContent = 'Ready';
+        if (badge) badge.style.display = 'none';
+        if (btn)   btn.style.display = 'none';
+    }
 }
 
 function renderLiveDraws() {
@@ -5059,12 +5336,7 @@ function clearCombinatorResults() {
 
 document.addEventListener('change', function(e) {
     if (e.target && e.target.id === 'add-draw-format') {
-        var fmtId = e.target.value;
-        var fmt = getAllFormats().find(function(f){ return f.id === fmtId; });
-        var grp = document.getElementById('add-draw-bonus-group');
-        var lbl = document.getElementById('add-draw-bonus-label');
-        if (grp) grp.style.display = fmt && fmt.bonusCount > 0 ? 'block' : 'none';
-        if (lbl && fmt && fmt.bonusCount > 0) lbl.textContent = fmt.bonusLabel + ' (1\u2013' + fmt.bonusMax + ')';
+        onAddDrawFormatChange();
     }
 });
 
@@ -6060,9 +6332,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateHeader();
     renderSavedPatternDraws();
     updatePasteWorkspaceStatus();
-    /* initialise bonus group for add-draw form */
-    var grp = document.getElementById('add-draw-bonus-group');
-    if (grp) grp.style.display = 'none';
+    onAddDrawStatusUpdate();
     try {
         var savedTheme = localStorage.getItem('lotto_theme');
         if (savedTheme) {
