@@ -1124,6 +1124,7 @@ const FORMATS = [
 
     /* ---- Philippines ---- */
     { id:'ph-ultra-lotto',      name:'Philippine Ultra Lotto 6/58',flag:'\u{1F1F5}\u{1F1ED}', mainCount:6,  mainMax:58, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:24,   currency:'\u20B1', jackpot:'\u20B149M+', drawDays:[2,5,0],       drawTime:'21:00' },
+    { id:'ph-multi-win',        name:'Multi Win Lotto 6/35',        flag:'\u{1F1F5}\u{1F1ED}', mainCount:6,  mainMax:35, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:12,   currency:'\u20B1', jackpot:'\u20B12M+',  drawDays:[0,1,2,3,4,5,6], drawTime:'21:00' },
 
     /* ---- Israel ---- */
     { id:'il-lotto',            name:'Israel Lotto',               flag:'\u{1F1EE}\u{1F1F1}', mainCount:6,  mainMax:37, bonusCount:1, bonusMax:7,  bonusLabel:'Strong Number',  bonusColor:'ball-lucky', ticketPrice:5.9,  currency:'\u20AA', jackpot:'\u20AA4M+',  drawDays:[1,3,6],       drawTime:'22:00' },
@@ -2200,6 +2201,11 @@ function parseAddDrawCanvas() {
             }
         }
 
+        /* Skip standalone format name/header lines used as separators between entries */
+        var normLine = line.toLowerCase().replace(/\s+/g, ' ');
+        var normFmtName = fmt.name.toLowerCase().replace(/\s+/g, ' ');
+        if (normLine === normFmtName) { i++; continue; }
+
         if (line.length > 0) errors.push('Line ' + (i + 1) + ': could not parse "' + line.substring(0, 50) + (line.length > 50 ? '…' : '') + '"');
         i++;
     }
@@ -2490,7 +2496,9 @@ var PASTE_CANVAS_NAME_MAP = {
     'euro millions':            'euro-millions',
     'uk lotto':                 'uk-lotto',
     'us powerball':             'us-powerball',
-    'mega millions':            'mega-millions'
+    'mega millions':            'mega-millions',
+    'multi win lotto 6/35':     'ph-multi-win',
+    'multi win lotto':          'ph-multi-win'
 };
 
 var PASTE_MONTH_MAP = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
