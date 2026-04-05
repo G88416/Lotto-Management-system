@@ -2281,11 +2281,32 @@ function addParsedDrawsToFormat() {
         };
         state.recentDraws.unshift(newDraw);
         fbAddDraw(newDraw);
+
+        /* Also save to Analyse Lottery Format (savedPatternDraws) */
+        var patternExists = state.savedPatternDraws.some(function(r) {
+            return r.formatId === newDraw.formatId && r.date === newDraw.date && r.drawTime === newDraw.drawTime;
+        });
+        if (!patternExists) {
+            state.savedPatternDraws.unshift({
+                id:      newDraw.id,
+                formatId: newDraw.formatId,
+                fmt:     d.fmt,
+                rawName: d.fmt ? d.fmt.name : newDraw.formatId,
+                date:    newDraw.date,
+                drawTime: newDraw.drawTime,
+                numbers: newDraw.numbers,
+                bonus:   newDraw.bonus,
+                savedAt: newDraw.addedAt
+            });
+        }
+
         added++;
     });
     if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
+    if (state.savedPatternDraws.length > MAX_SAVED_PATTERN_DRAWS) state.savedPatternDraws = state.savedPatternDraws.slice(0, MAX_SAVED_PATTERN_DRAWS);
     persist();
     renderLiveDraws();
+    renderSavedPatternDraws();
     _addDrawCanvasParsed = [];
     document.getElementById('add-draw-textarea').value = '';
     document.getElementById('add-draw-canvas-preview').innerHTML = '';
