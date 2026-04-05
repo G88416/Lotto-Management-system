@@ -2284,18 +2284,18 @@ function addParsedDrawsToFormat() {
 
         /* Also save to Analyse Lottery Format (savedPatternDraws) */
         var patternExists = state.savedPatternDraws.some(function(r) {
-            return r.formatId === d.formatId && r.date === d.date && r.drawTime === (d.drawTime || '');
+            return r.formatId === newDraw.formatId && r.date === newDraw.date && r.drawTime === newDraw.drawTime;
         });
         if (!patternExists) {
             state.savedPatternDraws.unshift({
                 id:      newDraw.id,
-                formatId: d.formatId,
+                formatId: newDraw.formatId,
                 fmt:     d.fmt,
-                rawName: d.fmt ? d.fmt.name : d.formatId,
-                date:    d.date,
-                drawTime: d.drawTime || '',
-                numbers: d.numbers,
-                bonus:   d.bonus,
+                rawName: d.fmt ? d.fmt.name : newDraw.formatId,
+                date:    newDraw.date,
+                drawTime: newDraw.drawTime,
+                numbers: newDraw.numbers,
+                bonus:   newDraw.bonus,
                 savedAt: newDraw.addedAt
             });
         }
