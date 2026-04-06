@@ -1856,6 +1856,18 @@ function renderWheeling() {
    Algorithms: Full Wheel, Abbreviated, Key Number, Balanced
    ============================================================ */
 
+var WHEEL_MAX_POOL           = 20;
+var WHEEL_FULL_COMBO_LIMIT   = 5000;
+var WHEEL_ABBR_COMBO_LIMIT   = 300;
+
+var WHEEL_STRATEGY_LABELS = {
+    hot:      '\uD83D\uDD25 Hot Numbers',
+    cold:     '\u2744\uFE0F Cold Numbers',
+    balanced: '\u2696\uFE0F Balanced Mix',
+    overdue:  '\u23F0 Overdue Numbers',
+    random:   '\uD83C\uDFB2 Statistical Random'
+};
+
 var _wheelState = {
     pool:    [],   // selected numbers
     combos:  [],   // generated combinations
@@ -1910,8 +1922,8 @@ function toggleWheelNumber(num) {
     var algo = (document.getElementById('wheel-algorithm') || {}).value || 'full';
     var idx  = _wheelState.pool.indexOf(num);
     if (idx === -1) {
-        var MAX_POOL = 20;
-        if (_wheelState.pool.length >= MAX_POOL) { showToast('Maximum ' + MAX_POOL + ' numbers in pool', 'error'); return; }
+        var MAX_POOL = WHEEL_MAX_POOL;
+        if (_wheelState.pool.length >= MAX_POOL) { showToast('Maximum of ' + MAX_POOL + ' numbers allowed in pool', 'error'); return; }
         _wheelState.pool.push(num);
         _wheelState.pool.sort(function(a,b){ return a-b; });
         var cell = document.getElementById('wnc-' + num);
@@ -2009,7 +2021,7 @@ function getCombinations(arr, k) {
 /* ---- Full Wheel ---- */
 function wheelFull(pool, k) {
     if (pool.length < k) return [];
-    var COMBO_LIMIT = 5000;
+    var COMBO_LIMIT = WHEEL_FULL_COMBO_LIMIT;
     var combos = getCombinations(pool, k);
     if (combos.length > COMBO_LIMIT) {
         showToast('Full wheel would produce ' + combos.length + ' combos. Showing first ' + COMBO_LIMIT + '.', 'info');
@@ -2029,7 +2041,7 @@ function wheelAbbreviated(pool, k, guarantee) {
     uncovered.forEach(function(s) { uncoveredSet[s] = true; });
     var allCombos   = getCombinations(pool, k);
     var selected    = [];
-    var LIMIT = 300;
+    var LIMIT = WHEEL_ABBR_COMBO_LIMIT;
     while (Object.keys(uncoveredSet).length > 0 && selected.length < LIMIT) {
         var bestCombo = null, bestCover = 0;
         for (var ci = 0; ci < allCombos.length; ci++) {
@@ -2061,7 +2073,7 @@ function wheelBalanced(pool, k, maxCombos) {
     var all   = getCombinations(pool, k);
     var limit = Math.min(parseInt(maxCombos) || 20, all.length);
     if (all.length <= limit) return all;
-    // frequency tracking — pick combos that minimise standard deviation of appearance counts
+    // frequency tracking — pick combos that minimize standard deviation of appearance counts
     var freq  = {};
     pool.forEach(function(n) { freq[n] = 0; });
     var chosen = [];
@@ -2230,14 +2242,7 @@ function runPredictor() {
         entries.push({ num: n, count: freq[n] || 0 });
     }
     var pool;
-    var STRATEGY_LABELS = {
-        hot:      '🔥 Hot Numbers',
-        cold:     '❄️ Cold Numbers',
-        balanced: '⚖️ Balanced Mix',
-        overdue:  '⏰ Overdue Numbers',
-        random:   '🎲 Statistical Random'
-    };
-    var stratLabel = STRATEGY_LABELS[strategy] || strategy;
+    var stratLabel = WHEEL_STRATEGY_LABELS[strategy] || strategy;
     if (strategy === 'hot') {
         pool = entries.slice().sort(function(a,b){ return b.count - a.count; }).slice(0, poolSize);
     } else if (strategy === 'cold') {
