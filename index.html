@@ -292,6 +292,31 @@
         .predict-row { display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--border); }
         .predict-row:last-child { border-bottom:none; }
         .predict-num { width:36px; height:36px; border-radius:50%; background:var(--accent-grad); color:#fff; font-weight:800; font-size:0.9rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        /* ---- Wheel Filter Panel ---- */
+        .wf-panel { background:var(--surface2); border:1.5px dashed var(--border); border-radius:16px; padding:16px; margin-bottom:16px; }
+        .wf-chip-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+        .wf-chip { padding:5px 14px; border-radius:20px; font-size:0.78rem; font-weight:700; border:1.5px solid var(--border); background:var(--surface); cursor:pointer; color:var(--text-muted); transition:all 0.15s; user-select:none; }
+        .wf-chip:hover { border-color:var(--purple); color:var(--purple); }
+        .wf-chip.wf-active { background:var(--accent-grad); color:#fff; border-color:transparent; box-shadow:0 2px 8px rgba(139,92,246,0.25); }
+        .wf-status { font-size:0.8rem; color:var(--text-muted); padding:8px 0 0; font-weight:600; }
+        /* ---- Combo Stat Badges ---- */
+        .cmb { padding:2px 8px; border-radius:12px; font-size:0.7rem; font-weight:700; white-space:nowrap; display:inline-block; }
+        .cmb-sum  { background:rgba(99,102,241,0.12); color:#6366f1; }
+        .cmb-odd  { background:rgba(249,115,22,0.12); color:#ea580c; }
+        .cmb-high { background:rgba(16,185,129,0.12); color:#059669; }
+        .cmb-con  { background:rgba(239,68,68,0.12); color:#dc2626; }
+        /* ---- Quick Select Row ---- */
+        .qs-row { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 4px; }
+        /* ---- Gap Analysis ---- */
+        .gap-row { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); }
+        .gap-row:last-child { border-bottom:none; }
+        .gap-num-ball { width:32px; height:32px; border-radius:50%; background:var(--accent-grad); color:#fff; font-weight:800; font-size:0.85rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .gap-bar-wrap { flex:1; background:var(--border); border-radius:100px; height:7px; overflow:hidden; }
+        .gap-bar-cool { height:100%; border-radius:100px; background:linear-gradient(90deg,#10b981,#3b82f6); transition:width 0.5s; }
+        .gap-bar-warm { height:100%; border-radius:100px; background:linear-gradient(90deg,#f59e0b,#ef4444); transition:width 0.5s; }
+        .gap-lbl { font-size:0.78rem; color:var(--text-muted); white-space:nowrap; min-width:80px; text-align:right; }
+        /* ---- Match filter row ---- */
+        .match-filter-row { display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -470,6 +495,12 @@
                     <span class="fw-700">Number Pool <span id="wheel-pool-count" class="text-muted text-sm fw-700">(0 selected)</span></span>
                     <button class="btn btn-secondary btn-sm" onclick="clearWheelPool()">&#128465;&#65039; Clear</button>
                 </div>
+                <div class="qs-row">
+                    <button class="btn btn-secondary btn-sm" onclick="qsRandom()" title="Pick 8 random numbers">&#127922; Random 8</button>
+                    <button class="btn btn-secondary btn-sm" onclick="qsHot()" title="Pick the 10 most frequently drawn numbers">&#128293; Hot 10</button>
+                    <button class="btn btn-secondary btn-sm" onclick="qsFromLastDraw()" title="Load numbers from the latest saved draw result">&#128203; From Last Draw</button>
+                    <button class="btn btn-secondary btn-sm" onclick="qsEvenSpread()" title="Select 10 numbers evenly spread across the range">&#8596; Even Spread</button>
+                </div>
                 <div id="wheel-number-grid" class="wheel-number-grid"></div>
                 <div class="btn-row mt-14">
                     <button class="btn btn-primary" onclick="runWheeling()">&#127921; Generate Wheel</button>
@@ -477,10 +508,63 @@
             </div>
             <div id="wheel-results-section" style="display:none;">
                 <div class="card-grid" id="wheel-stat-cards" style="margin-bottom:16px;"></div>
+                <!-- Custom Filter Panel -->
+                <div id="wheel-filter-panel" class="card wf-panel" style="display:none;">
+                    <div class="flex justify-between items-center mb-14">
+                        <span class="fw-700">&#128269; Filter Combinations</span>
+                        <button class="btn btn-secondary btn-sm" onclick="resetWheelFilter()">&#8634; Reset Filters</button>
+                    </div>
+                    <div class="grid-2" style="margin-bottom:12px;">
+                        <div>
+                            <label class="label">Min Sum</label>
+                            <input type="number" id="wf-sum-min" placeholder="Any" style="width:100%;" oninput="applyWheelFilter()">
+                        </div>
+                        <div>
+                            <label class="label">Max Sum</label>
+                            <input type="number" id="wf-sum-max" placeholder="Any" style="width:100%;" oninput="applyWheelFilter()">
+                        </div>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label class="label">Odd / Even Balance</label>
+                        <div class="wf-chip-row" id="wf-oe-chips">
+                            <span class="wf-chip wf-active" data-wf-oe="any" onclick="setWfOE(this,'any')">Any</span>
+                            <span class="wf-chip" data-wf-oe="more-odd" onclick="setWfOE(this,'more-odd')">More Odd</span>
+                            <span class="wf-chip" data-wf-oe="equal" onclick="setWfOE(this,'equal')">Equal</span>
+                            <span class="wf-chip" data-wf-oe="more-even" onclick="setWfOE(this,'more-even')">More Even</span>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label class="label">High / Low Balance <span class="text-muted text-sm fw-400">(high = above midpoint)</span></label>
+                        <div class="wf-chip-row" id="wf-hl-chips">
+                            <span class="wf-chip wf-active" data-wf-hl="any" onclick="setWfHL(this,'any')">Any</span>
+                            <span class="wf-chip" data-wf-hl="more-high" onclick="setWfHL(this,'more-high')">More High</span>
+                            <span class="wf-chip" data-wf-hl="equal" onclick="setWfHL(this,'equal')">Equal</span>
+                            <span class="wf-chip" data-wf-hl="more-low" onclick="setWfHL(this,'more-low')">More Low</span>
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div>
+                            <label class="label">Max Consecutive Numbers</label>
+                            <select id="wf-max-consec" onchange="applyWheelFilter()" style="width:100%;">
+                                <option value="0">No Limit</option>
+                                <option value="1">No Consecutive</option>
+                                <option value="2">&#8804; 2 Consecutive (1 Pair)</option>
+                                <option value="3">&#8804; 3 Consecutive</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label">Must Include Number</label>
+                            <input type="number" id="wf-must-include" placeholder="e.g. 7" min="1" style="width:100%;" oninput="applyWheelFilter()">
+                        </div>
+                    </div>
+                    <div id="wf-status" class="wf-status"></div>
+                </div>
                 <div class="card">
                     <div class="flex justify-between items-center flex-wrap gap-10 mb-14">
                         <span class="fw-700">Generated Combinations</span>
                         <div class="flex gap-10">
+                            <button class="btn btn-secondary btn-sm" onclick="toggleWheelFilter()">&#128269; Filter</button>
+                            <button class="btn btn-secondary btn-sm" onclick="exportWheelCSV()">&#128196; Export CSV</button>
                             <button class="btn btn-secondary btn-sm" onclick="saveWheelToTickets()">&#128190; Save All to Tickets</button>
                             <button class="btn btn-secondary btn-sm" onclick="clearWheelResults()">&#128465;&#65039; Clear</button>
                         </div>
@@ -503,7 +587,23 @@
                     <label class="label">Bonus / Powerball Number (optional)</label>
                     <input type="text" id="match-bonus-input" placeholder="e.g. 7" style="width:140px;">
                 </div>
-                <button class="btn btn-primary" onclick="runMatchSearch()">&#128270; Search Matches</button>
+                <div class="flex gap-10 flex-wrap">
+                    <button class="btn btn-primary" onclick="runMatchSearch()">&#128270; Search Matches</button>
+                    <button class="btn btn-secondary" onclick="loadLatestDrawToMatch()" title="Auto-fill from your latest saved draw result">&#128203; Load Latest Draw</button>
+                </div>
+                <div class="match-filter-row">
+                    <div>
+                        <label class="label">Show Minimum Matches</label>
+                        <select id="match-min-filter" style="width:160px;" onchange="applyMatchMinFilter()">
+                            <option value="0">All Combinations</option>
+                            <option value="1">&#8805; 1 match</option>
+                            <option value="2">&#8805; 2 matches</option>
+                            <option value="3">&#8805; 3 matches</option>
+                            <option value="4">&#8805; 4 matches</option>
+                            <option value="5">&#8805; 5 matches</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             <div id="match-no-wheel-msg" class="card" style="display:none; text-align:center;">
                 <p class="text-muted">&#9888;&#65039; No wheel generated yet. Go to <strong>Wheel Generator</strong> first.</p>
@@ -538,9 +638,21 @@
                         </select>
                     </div>
                 </div>
-                <div style="margin-bottom:14px;">
-                    <label class="label">Pool Size (numbers to suggest)</label>
-                    <input type="number" id="predict-pool-size" value="10" min="6" max="20" style="width:120px;">
+                <div class="grid-2" style="margin-bottom:14px;">
+                    <div>
+                        <label class="label">Pool Size (numbers to suggest)</label>
+                        <input type="number" id="predict-pool-size" value="10" min="6" max="20" style="width:120px;">
+                    </div>
+                    <div>
+                        <label class="label">Analyse Last N Draws</label>
+                        <select id="predict-draws-scope" style="width:100%;">
+                            <option value="10">Last 10 draws</option>
+                            <option value="20" selected>Last 20 draws</option>
+                            <option value="50">Last 50 draws</option>
+                            <option value="100">Last 100 draws</option>
+                            <option value="0">All draws</option>
+                        </select>
+                    </div>
                 </div>
                 <button class="btn btn-primary" onclick="runPredictor()">&#128302; Predict Numbers</button>
             </div>
@@ -550,6 +662,11 @@
                     <div id="predictor-pool-display" class="wheel-number-grid" style="margin-bottom:16px;"></div>
                     <div id="predictor-analysis" style="margin-bottom:16px;"></div>
                     <button class="btn btn-primary" onclick="usePoolInWheel()">&#127921; Use in Wheel Generator</button>
+                </div>
+                <div class="card" id="gap-analysis-card">
+                    <div class="fw-700 mb-8">&#9200; Gap Analysis <span class="text-muted text-sm fw-700" id="gap-scope-label"></span></div>
+                    <p class="text-muted text-sm mb-14">How many draws have passed since each predicted number last appeared. Longer bars = more overdue.</p>
+                    <div id="gap-analysis-list"></div>
                 </div>
             </div>
         </div>
@@ -2131,22 +2248,22 @@ function renderWheelResults(combos, fmt, algo) {
     var statEl = document.getElementById('wheel-stat-cards');
     var cost   = combos.length * (fmt ? fmt.ticketPrice : 0);
     var cur    = fmt ? fmt.currency : '';
+    var mainMax = fmt ? fmt.mainMax : 99;
+    var totalSum = combos.reduce(function(s, c) { return s + c.reduce(function(a,b){ return a+b; }, 0); }, 0);
+    var avgSum   = combos.length ? Math.round(totalSum / combos.length) : 0;
     if (statEl) {
         statEl.innerHTML =
             '<div class="wheel-stat-card"><div class="wheel-stat-val">' + combos.length + '</div><div class="wheel-stat-lbl">Combinations</div></div>' +
             '<div class="wheel-stat-card"><div class="wheel-stat-val">' + _wheelState.pool.length + '</div><div class="wheel-stat-lbl">Pool Size</div></div>' +
             '<div class="wheel-stat-card"><div class="wheel-stat-val">' + (fmt ? fmt.mainCount : '?') + '</div><div class="wheel-stat-lbl">Numbers per Ticket</div></div>' +
-            '<div class="wheel-stat-card"><div class="wheel-stat-val">' + cur + cost.toFixed(0) + '</div><div class="wheel-stat-lbl">Est. Cost</div></div>';
+            '<div class="wheel-stat-card"><div class="wheel-stat-val">' + cur + cost.toFixed(0) + '</div><div class="wheel-stat-lbl">Est. Cost</div></div>' +
+            '<div class="wheel-stat-card"><div class="wheel-stat-val">' + avgSum + '</div><div class="wheel-stat-lbl">Avg Sum</div></div>';
     }
-    var listEl = document.getElementById('wheel-combos-list');
-    if (listEl) {
-        listEl.innerHTML = combos.map(function(combo, i) {
-            var balls = combo.map(function(n) {
-                return '<span class="ball ball-main ball-sm">' + n + '</span>';
-            }).join(' ');
-            return '<div class="wheel-combo-item"><span class="text-muted text-sm fw-700">#' + (i+1) + '</span><div style="display:flex;gap:6px;flex-wrap:wrap;">' + balls + '</div></div>';
-        }).join('');
-    }
+    // Reset filter state
+    _wfOE = 'any'; _wfHL = 'any';
+    var fpEl = document.getElementById('wheel-filter-panel');
+    if (fpEl) fpEl.style.display = 'none';
+    renderFilteredCombos(combos, fmt, null);
     var resEl = document.getElementById('wheel-results-section');
     if (resEl) resEl.style.display = 'block';
 }
@@ -2155,6 +2272,8 @@ function clearWheelResults() {
     _wheelState.combos = [];
     var resEl = document.getElementById('wheel-results-section');
     if (resEl) resEl.style.display = 'none';
+    var fpEl = document.getElementById('wheel-filter-panel');
+    if (fpEl) fpEl.style.display = 'none';
 }
 
 function saveWheelToTickets() {
@@ -2169,6 +2288,9 @@ function saveWheelToTickets() {
 }
 
 /* ---- Match Number Search ---- */
+var _matchResults = [];
+var _matchDrawn   = [];
+
 function runMatchSearch() {
     if (!_wheelState.combos.length) {
         document.getElementById('match-no-wheel-msg').style.display    = 'block';
@@ -2185,24 +2307,41 @@ function runMatchSearch() {
     drawn.forEach(function(n) { drawnSet[n] = true; });
     var bonusSet = {};
     bonus.forEach(function(n) { bonusSet[n] = true; });
-    var results = _wheelState.combos.map(function(combo, idx) {
+    _matchDrawn = drawn;
+    _matchResults = _wheelState.combos.map(function(combo, idx) {
         var mainMatches  = combo.filter(function(n) { return drawnSet[n]; }).length;
         var bonusMatches = combo.filter(function(n) { return bonusSet[n]; }).length;
         return { combo: combo, idx: idx, mainMatches: mainMatches, bonusMatches: bonusMatches };
     });
-    results.sort(function(a,b) {
+    _matchResults.sort(function(a,b) {
         if (b.mainMatches !== a.mainMatches) return b.mainMatches - a.mainMatches;
         return b.bonusMatches - a.bonusMatches;
     });
+    renderMatchResults(_matchResults, drawn, drawnSet);
+}
+
+function applyMatchMinFilter() {
+    if (!_matchResults.length) return;
+    var minFilter = parseInt((document.getElementById('match-min-filter') || {}).value) || 0;
+    var filtered  = minFilter > 0 ? _matchResults.filter(function(r) { return r.mainMatches >= minFilter; }) : _matchResults;
+    var drawnSet  = {};
+    _matchDrawn.forEach(function(n) { drawnSet[n] = true; });
+    renderMatchResults(filtered, _matchDrawn, drawnSet);
+}
+
+function renderMatchResults(results, drawn, drawnSet) {
     var byMatch = {};
     results.forEach(function(r) {
         var key = r.mainMatches;
         if (!byMatch[key]) byMatch[key] = 0;
         byMatch[key]++;
     });
+    var totalCombos = _wheelState.combos.length;
+    var matchRate   = totalCombos ? Math.round((results.filter(function(r){ return r.mainMatches > 0; }).length / totalCombos) * 100) : 0;
     var statsHtml = Object.keys(byMatch).sort(function(a,b){ return b-a; }).map(function(m) {
         return '<div class="wheel-stat-card"><div class="wheel-stat-val">' + byMatch[m] + '</div><div class="wheel-stat-lbl">' + m + '-match combos</div></div>';
     }).join('');
+    statsHtml += '<div class="wheel-stat-card"><div class="wheel-stat-val">' + matchRate + '%</div><div class="wheel-stat-lbl">Have ≥ 1 match</div></div>';
     document.getElementById('match-stat-cards').innerHTML = statsHtml;
     var listHtml = results.map(function(r) {
         var m     = r.mainMatches;
@@ -2219,9 +2358,22 @@ function runMatchSearch() {
             '<div style="display:flex;gap:6px;align-items:center;"><span class="match-badge ' + badgeCls + '">' + m + ' match' + (m!==1?'es':'') + '</span>' + bonusTxt + '</div>' +
             '</div>';
     }).join('');
-    document.getElementById('match-combos-list').innerHTML = listHtml || '<p class="text-muted text-center">No combinations to display.</p>';
-    document.getElementById('match-results-label').textContent = '(' + results.length + ' combinations vs ' + drawn.join(', ') + ')';
+    document.getElementById('match-combos-list').innerHTML = listHtml || '<p class="text-muted text-center">No combinations match the current filter.</p>';
+    document.getElementById('match-results-label').textContent = '(' + results.length + ' of ' + totalCombos + ' combinations vs ' + drawn.join(', ') + ')';
     document.getElementById('match-results-section').style.display = 'block';
+}
+
+function loadLatestDrawToMatch() {
+    var fmtId = _wheelState.fmtId;
+    if (!fmtId) { showToast('Generate a wheel first to set the format', 'error'); return; }
+    var draws = (state.recentDraws || []).filter(function(d){ return d.formatId === fmtId; });
+    if (!draws.length) { showToast('No saved draws for this format. Use the Draws tab to add results.', 'error'); return; }
+    var last = draws[0]; // recentDraws is stored newest-first
+    document.getElementById('match-drawn-input').value = (last.numbers || []).join(' ');
+    if (last.bonus && last.bonus.length) {
+        document.getElementById('match-bonus-input').value = last.bonus.join(' ');
+    }
+    showToast('Latest draw loaded — click Search Matches to run', 'success');
 }
 
 /* ---- Wheel Number Predictor ---- */
@@ -2229,13 +2381,25 @@ function runPredictor() {
     var fmtEl     = document.getElementById('predict-format-filter');
     var stratEl   = document.getElementById('predict-strategy');
     var poolSzEl  = document.getElementById('predict-pool-size');
+    var scopeEl   = document.getElementById('predict-draws-scope');
     if (!fmtEl || !stratEl || !poolSzEl) return;
     var fmtId     = fmtEl.value;
     var strategy  = stratEl.value;
     var poolSize  = Math.max(6, Math.min(20, parseInt(poolSzEl.value) || 10));
+    var drawsScope = scopeEl ? (parseInt(scopeEl.value) || 0) : 0;
     var fmt       = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) { showToast('Select a format', 'error'); return; }
-    var freq    = state.stats[fmtId] || state.stats['all'] || {};
+    // Build frequency from recentDraws scoped to drawsScope, falling back to state.stats
+    var scopedDraws = (state.recentDraws || []).filter(function(d){ return d.formatId === fmtId; });
+    if (drawsScope > 0) scopedDraws = scopedDraws.slice(0, drawsScope);
+    var freq    = {};
+    if (scopedDraws.length > 0) {
+        scopedDraws.forEach(function(d) {
+            (d.numbers || []).forEach(function(n) { freq[n] = (freq[n] || 0) + 1; });
+        });
+    } else {
+        freq = state.stats[fmtId] || state.stats['all'] || {};
+    }
     var maxNum  = fmt.mainMax;
     var entries = [];
     for (var n = 1; n <= maxNum; n++) {
@@ -2252,7 +2416,6 @@ function runPredictor() {
         var half    = Math.ceil(poolSize / 2);
         pool = sorted.slice(0, half).concat(sorted.slice(-Math.floor(poolSize/2)));
     } else if (strategy === 'overdue') {
-        var avgGap  = entries.reduce(function(s,e){ return s + e.count; }, 0) / entries.length || 1;
         pool = entries.slice().sort(function(a,b){ return a.count - b.count; }).slice(0, poolSize);
     } else {
         var shuffled = entries.slice().sort(function() { return Math.random() - 0.5; });
@@ -2284,6 +2447,7 @@ function runPredictor() {
     if (resEl) resEl.style.display = 'block';
     _predictedPool = pool.map(function(e){ return e.num; });
     _predictedFmtId = fmtId;
+    renderGapAnalysis(_predictedPool, fmtId, drawsScope, scopedDraws);
 }
 
 var _predictedPool   = [];
@@ -2298,6 +2462,234 @@ function usePoolInWheel() {
     buildWheelNumberGrid();
     switchWheelSub(0);
     showToast('Pool loaded into Wheel Generator', 'success');
+}
+
+/* ---- Gap Analysis ---- */
+function renderGapAnalysis(pool, fmtId, drawsScope, scopedDraws) {
+    var gapList = document.getElementById('gap-analysis-list');
+    var scopeLabelEl = document.getElementById('gap-scope-label');
+    if (!gapList) return;
+    var draws = scopedDraws || (state.recentDraws || []).filter(function(d){ return d.formatId === fmtId; });
+    if (scopeLabelEl) scopeLabelEl.textContent = draws.length ? '— ' + draws.length + ' draw' + (draws.length !== 1 ? 's' : '') + ' analysed' : '';
+    if (!draws.length) {
+        gapList.innerHTML = '<p class="text-muted text-sm">No draws recorded for this format. Save draw results on the <strong>Draws</strong> tab to enable gap analysis.</p>';
+        return;
+    }
+    var gapData = pool.map(function(num) {
+        var gap = draws.length; // default: never appeared
+        for (var i = 0; i < draws.length; i++) {
+            if ((draws[i].numbers || []).indexOf(num) !== -1) {
+                gap = i; // 0 = appeared in most recent draw
+                break;
+            }
+        }
+        return { num: num, gap: gap };
+    });
+    var maxGap = Math.max.apply(null, gapData.map(function(e){ return e.gap; })) || 1;
+    gapData.sort(function(a,b){ return b.gap - a.gap; });
+    gapList.innerHTML = gapData.map(function(e) {
+        var pct      = maxGap ? Math.round((e.gap / maxGap) * 100) : 0;
+        var barClass = pct > 60 ? 'gap-bar-warm' : 'gap-bar-cool';
+        var label    = e.gap === 0 ? '&#9889; Last draw' : (e.gap + ' draw' + (e.gap !== 1 ? 's' : '') + ' ago');
+        return '<div class="gap-row">' +
+               '<div class="gap-num-ball">' + e.num + '</div>' +
+               '<div class="gap-bar-wrap"><div class="' + barClass + '" style="width:' + pct + '%;"></div></div>' +
+               '<div class="gap-lbl">' + label + '</div>' +
+               '</div>';
+    }).join('');
+}
+
+/* ---- Wheel Filter Logic ---- */
+var _wfOE = 'any';
+var _wfHL = 'any';
+
+function getComboStats(combo, mainMax) {
+    var sum      = combo.reduce(function(s, n) { return s + n; }, 0);
+    var mid      = Math.floor(mainMax / 2);
+    var oddCount = combo.filter(function(n) { return n % 2 !== 0; }).length;
+    var highCount = combo.filter(function(n) { return n > mid; }).length;
+    var sorted   = combo.slice().sort(function(a,b){ return a-b; });
+    var maxRun   = 1, run = 1;
+    for (var i = 1; i < sorted.length; i++) {
+        if (sorted[i] === sorted[i-1] + 1) { run++; if (run > maxRun) maxRun = run; } else { run = 1; }
+    }
+    return { sum: sum, oddCount: oddCount, evenCount: combo.length - oddCount,
+             highCount: highCount, lowCount: combo.length - highCount, maxRun: maxRun };
+}
+
+function renderFilteredCombos(combos, fmt, statusText) {
+    var listEl = document.getElementById('wheel-combos-list');
+    if (!listEl) return;
+    var mainMax = fmt ? fmt.mainMax : 99;
+    listEl.innerHTML = combos.map(function(combo, i) {
+        var stats = getComboStats(combo, mainMax);
+        var balls = combo.map(function(n) {
+            return '<span class="ball ball-main ball-sm">' + n + '</span>';
+        }).join(' ');
+        var meta = '<span class="cmb cmb-sum">Σ' + stats.sum + '</span>' +
+                   '<span class="cmb cmb-odd">' + stats.oddCount + 'O/' + stats.evenCount + 'E</span>' +
+                   '<span class="cmb cmb-high">' + stats.highCount + 'H/' + stats.lowCount + 'L</span>' +
+                   (stats.maxRun > 1 ? '<span class="cmb cmb-con">C' + stats.maxRun + '</span>' : '');
+        return '<div class="wheel-combo-item">' +
+               '<span class="text-muted text-sm fw-700">#' + (i+1) + '</span>' +
+               '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + balls + '</div>' +
+               '<div style="display:flex;gap:4px;flex-wrap:wrap;">' + meta + '</div>' +
+               '</div>';
+    }).join('') || '<p class="text-muted text-center">No combinations match the current filters.</p>';
+    var statusEl = document.getElementById('wf-status');
+    if (statusEl) statusEl.textContent = statusText || '';
+}
+
+function toggleWheelFilter() {
+    var fpEl = document.getElementById('wheel-filter-panel');
+    if (!fpEl) return;
+    fpEl.style.display = fpEl.style.display === 'none' ? 'block' : 'none';
+}
+
+function setWfOE(el, val) {
+    _wfOE = val;
+    document.querySelectorAll('#wf-oe-chips .wf-chip').forEach(function(c) { c.classList.toggle('wf-active', c === el); });
+    applyWheelFilter();
+}
+
+function setWfHL(el, val) {
+    _wfHL = val;
+    document.querySelectorAll('#wf-hl-chips .wf-chip').forEach(function(c) { c.classList.toggle('wf-active', c === el); });
+    applyWheelFilter();
+}
+
+function applyWheelFilter() {
+    if (!_wheelState.combos.length) return;
+    var fmt    = getAllFormats().find(function(f) { return f.id === _wheelState.fmtId; });
+    var mainMax = fmt ? fmt.mainMax : 99;
+    var sumMinEl = document.getElementById('wf-sum-min');
+    var sumMaxEl = document.getElementById('wf-sum-max');
+    var consEl   = document.getElementById('wf-max-consec');
+    var incEl    = document.getElementById('wf-must-include');
+    var sumMin   = sumMinEl && sumMinEl.value !== '' ? parseInt(sumMinEl.value) : null;
+    var sumMax   = sumMaxEl && sumMaxEl.value !== '' ? parseInt(sumMaxEl.value) : null;
+    var maxConsec = consEl ? (parseInt(consEl.value) || 0) : 0;
+    var mustInc  = incEl && incEl.value !== '' ? parseInt(incEl.value) : null;
+    var filtered = _wheelState.combos.filter(function(combo) {
+        var s = getComboStats(combo, mainMax);
+        if (sumMin !== null && s.sum < sumMin) return false;
+        if (sumMax !== null && s.sum > sumMax) return false;
+        if (_wfOE === 'more-odd'  && s.oddCount <= s.evenCount) return false;
+        if (_wfOE === 'more-even' && s.evenCount <= s.oddCount) return false;
+        if (_wfOE === 'equal'     && s.oddCount !== s.evenCount) return false;
+        if (_wfHL === 'more-high' && s.highCount <= s.lowCount) return false;
+        if (_wfHL === 'more-low'  && s.lowCount <= s.highCount) return false;
+        if (_wfHL === 'equal'     && s.highCount !== s.lowCount) return false;
+        if (maxConsec > 0 && s.maxRun > maxConsec) return false;
+        if (mustInc !== null && combo.indexOf(mustInc) === -1) return false;
+        return true;
+    });
+    renderFilteredCombos(filtered, fmt, filtered.length + ' of ' + _wheelState.combos.length + ' combinations shown');
+}
+
+function resetWheelFilter() {
+    var sumMinEl = document.getElementById('wf-sum-min');
+    var sumMaxEl = document.getElementById('wf-sum-max');
+    var consEl   = document.getElementById('wf-max-consec');
+    var incEl    = document.getElementById('wf-must-include');
+    if (sumMinEl) sumMinEl.value = '';
+    if (sumMaxEl) sumMaxEl.value = '';
+    if (consEl)  consEl.value   = '0';
+    if (incEl)   incEl.value    = '';
+    _wfOE = 'any'; _wfHL = 'any';
+    document.querySelectorAll('#wf-oe-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-wf-oe') === 'any');
+    });
+    document.querySelectorAll('#wf-hl-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-wf-hl') === 'any');
+    });
+    var fmt = getAllFormats().find(function(f) { return f.id === _wheelState.fmtId; });
+    renderFilteredCombos(_wheelState.combos, fmt, null);
+}
+
+/* ---- Export CSV ---- */
+function exportWheelCSV() {
+    if (!_wheelState.combos.length) { showToast('No combinations to export', 'error'); return; }
+    var fmt = getAllFormats().find(function(f) { return f.id === _wheelState.fmtId; });
+    var header = ['#'].concat((fmt ? Array.from({length: fmt.mainCount}, function(_, i){ return 'N' + (i+1); }) : ['Numbers'])).join(',');
+    var rows = _wheelState.combos.map(function(combo, i) {
+        return [i+1].concat(combo).join(',');
+    });
+    var csv  = [header].concat(rows).join('\n');
+    var blob = new Blob([csv], { type: 'text/csv' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href   = url;
+    a.download = (fmt ? fmt.name.replace(/\s+/g,'-') : 'wheel') + '-combinations.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(_wheelState.combos.length + ' combinations exported as CSV', 'success');
+}
+
+/* ---- Quick-Select Helpers ---- */
+function qsRandom() {
+    var selEl = document.getElementById('wheel-format-filter');
+    if (!selEl) return;
+    var fmt = getAllFormats().find(function(f) { return f.id === selEl.value; });
+    if (!fmt) return;
+    var n = 8, available = [];
+    for (var i = 1; i <= fmt.mainMax; i++) available.push(i);
+    _wheelState.pool = []; _wheelState.keyNum = null;
+    while (_wheelState.pool.length < n && available.length > 0) {
+        var idx = Math.floor(Math.random() * available.length);
+        _wheelState.pool.push(available.splice(idx, 1)[0]);
+    }
+    _wheelState.pool.sort(function(a,b){ return a-b; });
+    buildWheelNumberGrid();
+    showToast('Randomly selected ' + _wheelState.pool.length + ' numbers', 'success');
+}
+
+function qsHot() {
+    var selEl = document.getElementById('wheel-format-filter');
+    if (!selEl) return;
+    var fmtId = selEl.value;
+    var fmt   = getAllFormats().find(function(f) { return f.id === fmtId; });
+    if (!fmt) return;
+    var freq = state.stats[fmtId] || {};
+    var entries = [];
+    for (var i = 1; i <= fmt.mainMax; i++) entries.push({ num: i, count: freq[i] || 0 });
+    entries.sort(function(a,b){ return b.count - a.count; });
+    _wheelState.pool   = entries.slice(0, 10).map(function(e){ return e.num; }).sort(function(a,b){ return a-b; });
+    _wheelState.keyNum = null;
+    buildWheelNumberGrid();
+    showToast('Loaded top 10 hot numbers', 'success');
+}
+
+function qsFromLastDraw() {
+    var selEl = document.getElementById('wheel-format-filter');
+    if (!selEl) return;
+    var fmtId = selEl.value;
+    var draws = (state.recentDraws || []).filter(function(d){ return d.formatId === fmtId; });
+    if (!draws.length) { showToast('No saved draws for this format. Add results on the Draws tab.', 'error'); return; }
+    var last = draws[0];
+    _wheelState.pool   = (last.numbers || []).slice();
+    _wheelState.keyNum = null;
+    buildWheelNumberGrid();
+    showToast('Loaded numbers from latest draw (' + (last.date || '') + ')', 'success');
+}
+
+function qsEvenSpread() {
+    var selEl = document.getElementById('wheel-format-filter');
+    if (!selEl) return;
+    var fmt = getAllFormats().find(function(f) { return f.id === selEl.value; });
+    if (!fmt) return;
+    var n = 10;
+    _wheelState.pool = []; _wheelState.keyNum = null;
+    for (var i = 1; i <= n; i++) {
+        var num = Math.round((i / n) * fmt.mainMax);
+        num = Math.max(1, Math.min(num, fmt.mainMax));
+        if (_wheelState.pool.indexOf(num) === -1) _wheelState.pool.push(num);
+    }
+    _wheelState.pool.sort(function(a,b){ return a-b; });
+    buildWheelNumberGrid();
+    showToast('Even spread of ' + _wheelState.pool.length + ' numbers selected', 'success');
 }
 
 function generateReverseSeed() {
