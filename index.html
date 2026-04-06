@@ -548,8 +548,8 @@
                             <select id="wf-max-consec" onchange="applyWheelFilter()" style="width:100%;">
                                 <option value="0">No Limit</option>
                                 <option value="1">No Consecutive</option>
-                                <option value="2">&#8804; 1 Pair</option>
-                                <option value="3">&#8804; 2 Consecutive</option>
+                                <option value="2">&#8804; 2 Consecutive (1 Pair)</option>
+                                <option value="3">&#8804; 3 Consecutive</option>
                             </select>
                         </div>
                         <div>
@@ -2526,7 +2526,7 @@ function renderFilteredCombos(combos, fmt, statusText) {
         var balls = combo.map(function(n) {
             return '<span class="ball ball-main ball-sm">' + n + '</span>';
         }).join(' ');
-        var meta = '<span class="cmb cmb-sum">\u03A3' + stats.sum + '</span>' +
+        var meta = '<span class="cmb cmb-sum">Σ' + stats.sum + '</span>' +
                    '<span class="cmb cmb-odd">' + stats.oddCount + 'O/' + stats.evenCount + 'E</span>' +
                    '<span class="cmb cmb-high">' + stats.highCount + 'H/' + stats.lowCount + 'L</span>' +
                    (stats.maxRun > 1 ? '<span class="cmb cmb-con">C' + stats.maxRun + '</span>' : '');
@@ -2680,10 +2680,11 @@ function qsEvenSpread() {
     if (!selEl) return;
     var fmt = getAllFormats().find(function(f) { return f.id === selEl.value; });
     if (!fmt) return;
-    var n = 10, step = Math.floor(fmt.mainMax / n);
+    var n = 10;
     _wheelState.pool = []; _wheelState.keyNum = null;
     for (var i = 1; i <= n; i++) {
-        var num = Math.min(i * step, fmt.mainMax);
+        var num = Math.round((i / n) * fmt.mainMax);
+        num = Math.max(1, Math.min(num, fmt.mainMax));
         if (_wheelState.pool.indexOf(num) === -1) _wheelState.pool.push(num);
     }
     _wheelState.pool.sort(function(a,b){ return a-b; });
