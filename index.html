@@ -843,6 +843,7 @@
                 <div class="paste-workspace-title">
                     <span>&#128203;</span>
                     Paste Draw Results Canvas
+                    <span class="paste-count-badge" id="paste-parsed-count-badge" style="display:none;">&#127919; <span id="paste-parsed-count-val">0</span> parsed</span>
                     <span class="paste-count-badge" id="paste-saved-count">&#128190; <span id="paste-saved-count-val">0</span> saved</span>
                 </div>
                 <div class="paste-workspace-meta">
@@ -851,7 +852,7 @@
                 </div>
             </div>
             <div class="algo-info" style="margin-bottom:16px;">
-                Paste copied draw results below — the canvas auto-detects the lottery name, draw type, date, time and numbers, then renders them in the app's ball layout. After parsing, use <strong>Save to Patterns</strong> to store draws in the Pattern Detector for smart analysis.<br>
+                Paste copied draw results below — the canvas auto-detects the lottery name, draw type, date, time and numbers, then renders them in the app's ball layout. After parsing, use <strong>Add to Lottery</strong> to import draws to Live Draws, or <strong>Save to Patterns</strong> to store draws in the Pattern Detector for smart analysis.<br>
                 <span style="color:var(--text-muted);">Expected format per draw:</span><br>
                 <code style="font-size:0.82rem;">UK 49s Brunchtime 6/49 | 30 Mar 2026 at 12:48:00</code><br>
                 <code style="font-size:0.82rem;">2716412645305</code>
@@ -862,7 +863,8 @@
             </div>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="parsePasteCanvas()">&#128269; Parse &amp; Preview</button>
-                <button class="btn btn-success" id="btn-save-to-patterns" onclick="saveParsedToPatterns()" style="display:none;">&#128190; Save to Patterns</button>
+                <button class="btn btn-success" id="btn-paste-add-to-lottery" onclick="importPastedDraws()" style="display:none;">&#10133; Add to Lottery</button>
+                <button class="btn btn-secondary" id="btn-save-to-patterns" onclick="saveParsedToPatterns()" style="display:none;">&#128190; Save to Patterns</button>
                 <button class="btn btn-secondary" onclick="clearPasteCanvas()">&#10006; Clear</button>
             </div>
             <div id="paste-canvas-preview"></div>
@@ -1974,7 +1976,7 @@ function renderWheeling() {
    ============================================================ */
 
 var WHEEL_MAX_POOL           = 20;
-var WHEEL_FULL_COMBO_LIMIT   = 5000;
+var WHEEL_FULL_COMBO_LIMIT   = 50000;
 var WHEEL_ABBR_COMBO_LIMIT   = 300;
 
 var WHEEL_STRATEGY_LABELS = {
@@ -3583,7 +3585,7 @@ function renderPasteCanvasPreview(draws, errors) {
     var html = '<div style="margin-top:16px;">';
 
     if (draws.length) {
-        html += '<div class="collect-status-box success">&#10003; Detected <strong>' + draws.length + '</strong> draw result' + (draws.length !== 1 ? 's' : '') + ' — review below, then click <strong>Import</strong>.</div>';
+        html += '<div class="collect-status-box success">&#10003; Detected <strong>' + draws.length + '</strong> draw result' + (draws.length !== 1 ? 's' : '') + ' — review below, then click <strong>Add to Lottery</strong> or <strong>Save to Patterns</strong>.</div>';
         html += '<div class="paste-canvas-preview-draws">';
         draws.forEach(function(d) {
             var f        = d.fmt || {};
@@ -3611,8 +3613,8 @@ function renderPasteCanvasPreview(draws, errors) {
         });
         html += '</div>';
         html += '<div class="btn-row" style="margin-top:14px;">';
-        html += '<button class="btn btn-primary" onclick="importPastedDraws()">&#128190; Import ' + draws.length + ' Draw' + (draws.length !== 1 ? 's' : '') + ' to Live Draws</button>';
-        html += '<button class="btn btn-success" onclick="saveParsedToPatterns()">&#128190; Save ' + draws.length + ' Draw' + (draws.length !== 1 ? 's' : '') + ' to Patterns</button>';
+        html += '<button class="btn btn-success" onclick="importPastedDraws()">&#10133; Add ' + draws.length + ' Draw' + (draws.length !== 1 ? 's' : '') + ' to Lottery</button>';
+        html += '<button class="btn btn-secondary" onclick="saveParsedToPatterns()">&#128190; Save ' + draws.length + ' Draw' + (draws.length !== 1 ? 's' : '') + ' to Patterns</button>';
         html += '<button class="btn btn-secondary" onclick="clearPasteCanvas()">&#10006; Cancel</button>';
         html += '</div>';
     }
@@ -3684,6 +3686,8 @@ function onPasteCanvasInput() {
     var dot = document.getElementById('paste-status-dot');
     var lbl = document.getElementById('paste-status-label');
     var saveBtn = document.getElementById('btn-save-to-patterns');
+    var addBtn  = document.getElementById('btn-paste-add-to-lottery');
+    var badge   = document.getElementById('paste-parsed-count-badge');
     if (txt.length > 0) {
         if (dot) { dot.className = 'paste-status-dot parsed'; }
         if (lbl) lbl.textContent = 'Text entered — click Parse';
@@ -3691,6 +3695,8 @@ function onPasteCanvasInput() {
         if (dot) { dot.className = 'paste-status-dot'; }
         if (lbl) lbl.textContent = 'Ready';
         if (saveBtn) saveBtn.style.display = 'none';
+        if (addBtn)  addBtn.style.display  = 'none';
+        if (badge)   badge.style.display   = 'none';
     }
 }
 
@@ -3698,12 +3704,18 @@ function updatePasteWorkspaceStatus() {
     var dot = document.getElementById('paste-status-dot');
     var lbl = document.getElementById('paste-status-label');
     var saveBtn = document.getElementById('btn-save-to-patterns');
+    var addBtn  = document.getElementById('btn-paste-add-to-lottery');
+    var badge   = document.getElementById('paste-parsed-count-badge');
+    var countEl = document.getElementById('paste-parsed-count-val');
     var savedCountEl = document.getElementById('paste-saved-count-val');
     if (savedCountEl) savedCountEl.textContent = state.savedPatternDraws.length;
     if (_pasteCanvasParsed.length > 0) {
         if (dot) { dot.className = 'paste-status-dot ready'; }
         if (lbl) lbl.textContent = _pasteCanvasParsed.length + ' draw' + (_pasteCanvasParsed.length !== 1 ? 's' : '') + ' parsed';
         if (saveBtn) saveBtn.style.display = '';
+        if (addBtn)  addBtn.style.display  = '';
+        if (badge)   badge.style.display   = '';
+        if (countEl) countEl.textContent   = _pasteCanvasParsed.length;
     } else {
         var txt = document.getElementById('paste-canvas') ? document.getElementById('paste-canvas').value.trim() : '';
         if (txt.length > 0) {
@@ -3714,6 +3726,8 @@ function updatePasteWorkspaceStatus() {
             if (lbl) lbl.textContent = 'Ready';
         }
         if (saveBtn) saveBtn.style.display = 'none';
+        if (addBtn)  addBtn.style.display  = 'none';
+        if (badge)   badge.style.display   = 'none';
     }
 }
 
