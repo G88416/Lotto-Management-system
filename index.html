@@ -661,7 +661,40 @@
                     <div class="fw-700 mb-14">Predicted Pool <span id="predictor-strategy-label" class="text-muted text-sm fw-700"></span></div>
                     <div id="predictor-pool-display" class="wheel-number-grid" style="margin-bottom:16px;"></div>
                     <div id="predictor-analysis" style="margin-bottom:16px;"></div>
-                    <button class="btn btn-primary" onclick="usePoolInWheel()">&#127921; Use in Wheel Generator</button>
+                    <div class="btn-row">
+                        <button class="btn btn-primary"   onclick="usePoolInWheel()">&#127921; Use in Wheel Generator</button>
+                        <button class="btn btn-secondary" onclick="toggleWheelPredictFilter()">&#128269; Filter Pool</button>
+                    </div>
+                </div>
+                <!-- Wheel Predictor Pool Filter -->
+                <div id="wheel-predict-filter-panel" class="card wf-panel" style="display:none;">
+                    <div class="flex justify-between items-center mb-14">
+                        <span class="fw-700">&#128269; Filter Predicted Pool</span>
+                        <button class="btn btn-secondary btn-sm" onclick="resetWheelPredictFilter()">&#8634; Reset Filters</button>
+                    </div>
+                    <div class="grid-2" style="margin-bottom:12px;">
+                        <div>
+                            <label class="label">Min Number</label>
+                            <input type="number" id="wpf-num-min" placeholder="Any" style="width:100%;" oninput="applyWheelPredictFilter()">
+                        </div>
+                        <div>
+                            <label class="label">Max Number</label>
+                            <input type="number" id="wpf-num-max" placeholder="Any" style="width:100%;" oninput="applyWheelPredictFilter()">
+                        </div>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label class="label">Odd / Even</label>
+                        <div class="wf-chip-row" id="wpf-oe-chips">
+                            <span class="wf-chip wf-active" data-wpf-oe="any"  onclick="setWpfOE(this,'any')">Any</span>
+                            <span class="wf-chip"            data-wpf-oe="odd"  onclick="setWpfOE(this,'odd')">Odd Only</span>
+                            <span class="wf-chip"            data-wpf-oe="even" onclick="setWpfOE(this,'even')">Even Only</span>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label class="label">Min Draw Frequency</label>
+                        <input type="number" id="wpf-min-freq" placeholder="Any" min="0" style="width:160px;" oninput="applyWheelPredictFilter()">
+                    </div>
+                    <div id="wpf-status" class="wf-status"></div>
                 </div>
                 <div class="card" id="gap-analysis-card">
                     <div class="fw-700 mb-8">&#9200; Gap Analysis <span class="text-muted text-sm fw-700" id="gap-scope-label"></span></div>
@@ -1066,8 +1099,60 @@
                 <div class="btn-row">
                     <button class="btn btn-primary"   onclick="runMatrixLab()">&#9889; Generate Combinations</button>
                     <button class="btn btn-success"   onclick="saveMatrixResults()">&#128190; Save All to Tickets</button>
+                    <button class="btn btn-secondary" onclick="toggleMatrixFilter()">&#128269; Filter</button>
                     <button class="btn btn-secondary" onclick="clearMatrixResults()">&#128465;&#65039; Clear</button>
                 </div>
+            </div>
+            <!-- Matrix Generator Filter Panel -->
+            <div id="matrix-filter-panel" class="card wf-panel" style="display:none; margin-top:16px;">
+                <div class="flex justify-between items-center mb-14">
+                    <span class="fw-700">&#128269; Filter Combinations</span>
+                    <button class="btn btn-secondary btn-sm" onclick="resetMatrixFilter()">&#8634; Reset Filters</button>
+                </div>
+                <div class="grid-2" style="margin-bottom:12px;">
+                    <div>
+                        <label class="label">Min Sum</label>
+                        <input type="number" id="mxf-sum-min" placeholder="Any" style="width:100%;" oninput="applyMatrixFilter()">
+                    </div>
+                    <div>
+                        <label class="label">Max Sum</label>
+                        <input type="number" id="mxf-sum-max" placeholder="Any" style="width:100%;" oninput="applyMatrixFilter()">
+                    </div>
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label class="label">Odd / Even Balance</label>
+                    <div class="wf-chip-row" id="mxf-oe-chips">
+                        <span class="wf-chip wf-active" data-mxf-oe="any"       onclick="setMxfOE(this,'any')">Any</span>
+                        <span class="wf-chip"            data-mxf-oe="more-odd"  onclick="setMxfOE(this,'more-odd')">More Odd</span>
+                        <span class="wf-chip"            data-mxf-oe="equal"     onclick="setMxfOE(this,'equal')">Equal</span>
+                        <span class="wf-chip"            data-mxf-oe="more-even" onclick="setMxfOE(this,'more-even')">More Even</span>
+                    </div>
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label class="label">High / Low Balance <span class="text-muted text-sm fw-400">(high = above midpoint)</span></label>
+                    <div class="wf-chip-row" id="mxf-hl-chips">
+                        <span class="wf-chip wf-active" data-mxf-hl="any"       onclick="setMxfHL(this,'any')">Any</span>
+                        <span class="wf-chip"            data-mxf-hl="more-high" onclick="setMxfHL(this,'more-high')">More High</span>
+                        <span class="wf-chip"            data-mxf-hl="equal"     onclick="setMxfHL(this,'equal')">Equal</span>
+                        <span class="wf-chip"            data-mxf-hl="more-low"  onclick="setMxfHL(this,'more-low')">More Low</span>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Max Consecutive Numbers</label>
+                        <select id="mxf-max-consec" onchange="applyMatrixFilter()" style="width:100%;">
+                            <option value="0">No Limit</option>
+                            <option value="1">No Consecutive</option>
+                            <option value="2">&#8804; 2 Consecutive (1 Pair)</option>
+                            <option value="3">&#8804; 3 Consecutive</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Must Include Number</label>
+                        <input type="number" id="mxf-must-include" placeholder="e.g. 7" min="1" style="width:100%;" oninput="applyMatrixFilter()">
+                    </div>
+                </div>
+                <div id="mxf-status" class="wf-status"></div>
             </div>
             <div id="matrix-output"></div>
         </div>
@@ -1102,8 +1187,60 @@
                     <select id="matrix-predict-format"></select>
                 </div>
                 <div class="btn-row">
-                    <button class="btn btn-primary" onclick="runNextDrawPredictor()">&#127919; Predict Next Draw</button>
+                    <button class="btn btn-primary"   onclick="runNextDrawPredictor()">&#127919; Predict Next Draw</button>
+                    <button class="btn btn-secondary" onclick="toggleMatrixPredictFilter()">&#128269; Filter</button>
                 </div>
+            </div>
+            <!-- Matrix Predictor Filter Panel -->
+            <div id="matrix-predict-filter-panel" class="card wf-panel" style="display:none; margin-top:16px;">
+                <div class="flex justify-between items-center mb-14">
+                    <span class="fw-700">&#128269; Filter Predictions</span>
+                    <button class="btn btn-secondary btn-sm" onclick="resetMatrixPredictFilter()">&#8634; Reset Filters</button>
+                </div>
+                <div class="grid-2" style="margin-bottom:12px;">
+                    <div>
+                        <label class="label">Min Sum</label>
+                        <input type="number" id="mpf-sum-min" placeholder="Any" style="width:100%;" oninput="applyMatrixPredictFilter()">
+                    </div>
+                    <div>
+                        <label class="label">Max Sum</label>
+                        <input type="number" id="mpf-sum-max" placeholder="Any" style="width:100%;" oninput="applyMatrixPredictFilter()">
+                    </div>
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label class="label">Odd / Even Balance</label>
+                    <div class="wf-chip-row" id="mpf-oe-chips">
+                        <span class="wf-chip wf-active" data-mpf-oe="any"       onclick="setMpfOE(this,'any')">Any</span>
+                        <span class="wf-chip"            data-mpf-oe="more-odd"  onclick="setMpfOE(this,'more-odd')">More Odd</span>
+                        <span class="wf-chip"            data-mpf-oe="equal"     onclick="setMpfOE(this,'equal')">Equal</span>
+                        <span class="wf-chip"            data-mpf-oe="more-even" onclick="setMpfOE(this,'more-even')">More Even</span>
+                    </div>
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label class="label">High / Low Balance <span class="text-muted text-sm fw-400">(high = above midpoint)</span></label>
+                    <div class="wf-chip-row" id="mpf-hl-chips">
+                        <span class="wf-chip wf-active" data-mpf-hl="any"       onclick="setMpfHL(this,'any')">Any</span>
+                        <span class="wf-chip"            data-mpf-hl="more-high" onclick="setMpfHL(this,'more-high')">More High</span>
+                        <span class="wf-chip"            data-mpf-hl="equal"     onclick="setMpfHL(this,'equal')">Equal</span>
+                        <span class="wf-chip"            data-mpf-hl="more-low"  onclick="setMpfHL(this,'more-low')">More Low</span>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Max Consecutive Numbers</label>
+                        <select id="mpf-max-consec" onchange="applyMatrixPredictFilter()" style="width:100%;">
+                            <option value="0">No Limit</option>
+                            <option value="1">No Consecutive</option>
+                            <option value="2">&#8804; 2 Consecutive (1 Pair)</option>
+                            <option value="3">&#8804; 3 Consecutive</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Must Include Number</label>
+                        <input type="number" id="mpf-must-include" placeholder="e.g. 7" min="1" style="width:100%;" oninput="applyMatrixPredictFilter()">
+                    </div>
+                </div>
+                <div id="mpf-status" class="wf-status"></div>
             </div>
             <div id="matrix-predict-output"></div>
         </div>
@@ -2424,13 +2561,22 @@ function runPredictor() {
         pool = shuffled.slice(0, poolSize);
     }
     pool.sort(function(a,b){ return a.num - b.num; });
+    // Store raw pool for filter
+    _predictedPoolRaw = pool.slice();
+    // Reset pool filter state
+    _wpfOE = 'any';
+    var fpEl = document.getElementById('wheel-predict-filter-panel');
+    if (fpEl) fpEl.style.display = 'none';
+    ['wpf-num-min','wpf-num-max','wpf-min-freq'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = '';
+    });
+    document.querySelectorAll('#wpf-oe-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-wpf-oe') === 'any');
+    });
+    var statusEl = document.getElementById('wpf-status');
+    if (statusEl) statusEl.textContent = '';
     var maxCount = Math.max.apply(null, pool.map(function(e){ return e.count; })) || 1;
-    var poolDisplay = document.getElementById('predictor-pool-display');
-    if (poolDisplay) {
-        poolDisplay.innerHTML = pool.map(function(e) {
-            return '<div class="wheel-number-cell wn-predicted" title="Drawn ' + e.count + ' time' + (e.count!==1?'s':'') + '">' + e.num + '</div>';
-        }).join('');
-    }
+    renderWheelPredictorPool(pool);
     var analysisHtml = '<div style="font-size:0.85rem;"><div class="fw-700 mb-8">Frequency Breakdown</div>' +
         pool.map(function(e) {
             var ratio = maxCount ? (e.count / maxCount) : 0;
@@ -2607,6 +2753,275 @@ function resetWheelFilter() {
     });
     var fmt = getAllFormats().find(function(f) { return f.id === _wheelState.fmtId; });
     renderFilteredCombos(_wheelState.combos, fmt, null);
+}
+
+/* ---- Matrix Generator Filter Logic ---- */
+var _mxfOE = 'any';
+var _mxfHL = 'any';
+
+function toggleMatrixFilter() {
+    var fpEl = document.getElementById('matrix-filter-panel');
+    if (!fpEl) return;
+    fpEl.style.display = fpEl.style.display === 'none' ? 'block' : 'none';
+}
+
+function setMxfOE(el, val) {
+    _mxfOE = val;
+    document.querySelectorAll('#mxf-oe-chips .wf-chip').forEach(function(c) { c.classList.toggle('wf-active', c === el); });
+    applyMatrixFilter();
+}
+
+function setMxfHL(el, val) {
+    _mxfHL = val;
+    document.querySelectorAll('#mxf-hl-chips .wf-chip').forEach(function(c) { c.classList.toggle('wf-active', c === el); });
+    applyMatrixFilter();
+}
+
+function applyMatrixFilter() {
+    if (!_matrixResults.length) return;
+    var fmtId    = document.getElementById('matrix-format').value;
+    var fmt      = getAllFormats().find(function(f) { return f.id === fmtId; });
+    var mainMax  = fmt ? fmt.mainMax : 99;
+    var sumMinEl = document.getElementById('mxf-sum-min');
+    var sumMaxEl = document.getElementById('mxf-sum-max');
+    var consEl   = document.getElementById('mxf-max-consec');
+    var incEl    = document.getElementById('mxf-must-include');
+    var sumMin   = sumMinEl && sumMinEl.value !== '' ? parseInt(sumMinEl.value) : null;
+    var sumMax   = sumMaxEl && sumMaxEl.value !== '' ? parseInt(sumMaxEl.value) : null;
+    var maxConsec = consEl ? (parseInt(consEl.value) || 0) : 0;
+    var mustInc  = incEl && incEl.value !== '' ? parseInt(incEl.value) : null;
+    var filtered = _matrixResults.filter(function(s) {
+        var c = getComboStats(s.main, mainMax);
+        if (sumMin !== null && c.sum < sumMin) return false;
+        if (sumMax !== null && c.sum > sumMax) return false;
+        if (_mxfOE === 'more-odd'  && c.oddCount <= c.evenCount) return false;
+        if (_mxfOE === 'more-even' && c.evenCount <= c.oddCount) return false;
+        if (_mxfOE === 'equal'     && c.oddCount !== c.evenCount) return false;
+        if (_mxfHL === 'more-high' && c.highCount <= c.lowCount) return false;
+        if (_mxfHL === 'more-low'  && c.lowCount <= c.highCount) return false;
+        if (_mxfHL === 'equal'     && c.highCount !== c.lowCount) return false;
+        if (maxConsec > 0 && c.maxRun > maxConsec) return false;
+        if (mustInc !== null && s.main.indexOf(mustInc) === -1) return false;
+        return true;
+    });
+    var anchorStr = (document.getElementById('matrix-anchors').value || '').trim();
+    var anchors   = anchorStr
+        ? anchorStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n); })
+        : [];
+    renderMatrixOutput(fmt, filtered, anchors);
+    var statusEl = document.getElementById('mxf-status');
+    if (statusEl) statusEl.textContent = filtered.length + ' of ' + _matrixResults.length + ' combinations shown';
+}
+
+function resetMatrixFilter() {
+    var sumMinEl = document.getElementById('mxf-sum-min');
+    var sumMaxEl = document.getElementById('mxf-sum-max');
+    var consEl   = document.getElementById('mxf-max-consec');
+    var incEl    = document.getElementById('mxf-must-include');
+    if (sumMinEl) sumMinEl.value = '';
+    if (sumMaxEl) sumMaxEl.value = '';
+    if (consEl)  consEl.value   = '0';
+    if (incEl)   incEl.value    = '';
+    _mxfOE = 'any'; _mxfHL = 'any';
+    document.querySelectorAll('#mxf-oe-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-mxf-oe') === 'any');
+    });
+    document.querySelectorAll('#mxf-hl-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-mxf-hl') === 'any');
+    });
+    var fmtId = document.getElementById('matrix-format').value;
+    var fmt   = getAllFormats().find(function(f) { return f.id === fmtId; });
+    var anchorStr = (document.getElementById('matrix-anchors').value || '').trim();
+    var anchors   = anchorStr
+        ? anchorStr.split(/[\s,]+/).map(Number).filter(function(n) { return !isNaN(n); })
+        : [];
+    renderMatrixOutput(fmt, _matrixResults, anchors);
+    var statusEl = document.getElementById('mxf-status');
+    if (statusEl) statusEl.textContent = '';
+}
+
+/* ---- Matrix Predictor Filter Logic ---- */
+var _matrixPredictions = [];
+var _matrixPredictFmt  = null;
+var _mpfOE = 'any';
+var _mpfHL = 'any';
+
+function toggleMatrixPredictFilter() {
+    var fpEl = document.getElementById('matrix-predict-filter-panel');
+    if (!fpEl) return;
+    fpEl.style.display = fpEl.style.display === 'none' ? 'block' : 'none';
+}
+
+function setMpfOE(el, val) {
+    _mpfOE = val;
+    document.querySelectorAll('#mpf-oe-chips .wf-chip').forEach(function(c) { c.classList.toggle('wf-active', c === el); });
+    applyMatrixPredictFilter();
+}
+
+function setMpfHL(el, val) {
+    _mpfHL = val;
+    document.querySelectorAll('#mpf-hl-chips .wf-chip').forEach(function(c) { c.classList.toggle('wf-active', c === el); });
+    applyMatrixPredictFilter();
+}
+
+function applyMatrixPredictFilter() {
+    if (!_matrixPredictions.length || !_matrixPredictFmt) return;
+    var fmt     = _matrixPredictFmt;
+    var mainMax = fmt.mainMax;
+    var sumMinEl = document.getElementById('mpf-sum-min');
+    var sumMaxEl = document.getElementById('mpf-sum-max');
+    var consEl   = document.getElementById('mpf-max-consec');
+    var incEl    = document.getElementById('mpf-must-include');
+    var sumMin   = sumMinEl && sumMinEl.value !== '' ? parseInt(sumMinEl.value) : null;
+    var sumMax   = sumMaxEl && sumMaxEl.value !== '' ? parseInt(sumMaxEl.value) : null;
+    var maxConsec = consEl ? (parseInt(consEl.value) || 0) : 0;
+    var mustInc  = incEl && incEl.value !== '' ? parseInt(incEl.value) : null;
+    var filtered = _matrixPredictions.filter(function(p) {
+        var c = getComboStats(p.main, mainMax);
+        if (sumMin !== null && c.sum < sumMin) return false;
+        if (sumMax !== null && c.sum > sumMax) return false;
+        if (_mpfOE === 'more-odd'  && c.oddCount <= c.evenCount) return false;
+        if (_mpfOE === 'more-even' && c.evenCount <= c.oddCount) return false;
+        if (_mpfOE === 'equal'     && c.oddCount !== c.evenCount) return false;
+        if (_mpfHL === 'more-high' && c.highCount <= c.lowCount) return false;
+        if (_mpfHL === 'more-low'  && c.lowCount <= c.highCount) return false;
+        if (_mpfHL === 'equal'     && c.highCount !== c.lowCount) return false;
+        if (maxConsec > 0 && c.maxRun > maxConsec) return false;
+        if (mustInc !== null && p.main.indexOf(mustInc) === -1) return false;
+        return true;
+    });
+    renderMatrixPredictorFilteredOutput(filtered, fmt);
+    var badge = document.getElementById('mpf-filtered-count');
+    if (badge) badge.textContent = filtered.length + ' of ' + _matrixPredictions.length;
+    var statusEl = document.getElementById('mpf-status');
+    if (statusEl) statusEl.textContent = filtered.length + ' of ' + _matrixPredictions.length + ' predictions shown';
+}
+
+function resetMatrixPredictFilter() {
+    var sumMinEl = document.getElementById('mpf-sum-min');
+    var sumMaxEl = document.getElementById('mpf-sum-max');
+    var consEl   = document.getElementById('mpf-max-consec');
+    var incEl    = document.getElementById('mpf-must-include');
+    if (sumMinEl) sumMinEl.value = '';
+    if (sumMaxEl) sumMaxEl.value = '';
+    if (consEl)  consEl.value   = '0';
+    if (incEl)   incEl.value    = '';
+    _mpfOE = 'any'; _mpfHL = 'any';
+    document.querySelectorAll('#mpf-oe-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-mpf-oe') === 'any');
+    });
+    document.querySelectorAll('#mpf-hl-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-mpf-hl') === 'any');
+    });
+    if (_matrixPredictions.length && _matrixPredictFmt) {
+        renderMatrixPredictorFilteredOutput(_matrixPredictions, _matrixPredictFmt);
+        var badge = document.getElementById('mpf-filtered-count');
+        if (badge) badge.textContent = 'All ' + _matrixPredictions.length;
+    }
+    var statusEl = document.getElementById('mpf-status');
+    if (statusEl) statusEl.textContent = '';
+}
+
+function renderMatrixPredictorFilteredOutput(predictions, fmt) {
+    var container = document.getElementById('matrix-predict-filtered-list');
+    if (!container) return;
+    if (!predictions.length) {
+        container.innerHTML = '<p class="text-muted text-center" style="padding:12px 0;">No predictions match the current filters.</p>';
+        return;
+    }
+    var medals = ['&#127941;', '&#129352;', '&#129353;'];
+    container.innerHTML = predictions.map(function(p, rank) {
+        var algoLabel = (MATRIX_ALGO_INFO[p.algo] || p.algo).replace(/<[^>]+>/g, '').split(':')[0].trim();
+        var confPct   = Math.min(100, Math.round(p.confidence));
+        var confClass = confPct >= 65 ? 'confidence-high' : confPct >= 35 ? 'confidence-medium' : 'confidence-low';
+        var grad      = confPct >= 65 ? 'linear-gradient(90deg,#16a34a,#06b6d4)' : confPct >= 35 ? 'linear-gradient(90deg,#f59e0b,#16a34a)' : 'linear-gradient(90deg,#ef4444,#f59e0b)';
+        var html = '<div class="ticket-card" style="margin-bottom:10px;">';
+        html += '<div class="ticket-header">';
+        html += '<span class="ticket-format-badge">' + (rank < 3 ? medals[rank] : '#' + (rank + 1)) + ' ' + algoLabel + '</span>';
+        html += '<span class="confidence-badge ' + confClass + '">Confidence: ' + confPct + '%</span>';
+        html += '</div>';
+        html += '<div class="pattern-bar-row" style="margin-bottom:8px;">';
+        html += '<span class="pattern-bar-label">Confidence</span>';
+        html += '<div class="pattern-bar-wrap"><div class="pattern-bar-fill" style="width:' + confPct + '%;background:' + grad + ';"></div></div>';
+        html += '<span class="pattern-bar-val">' + confPct + '%</span></div>';
+        html += '<div class="balls-row">';
+        p.main.forEach(function(n) { html += '<span class="ball ball-main ball-sm animate">' + n + '</span>'; });
+        if (p.bonus && p.bonus.length) {
+            html += '<span class="ball-separator">+</span>';
+            p.bonus.forEach(function(n) { html += '<span class="ball ball-bonus ball-sm animate">' + n + '</span>'; });
+        }
+        html += '</div>';
+        html += '<div class="text-sm text-muted mt-8">Sum: <strong>' + p.sum + '</strong> &nbsp;|&nbsp; Even/Odd: <strong>' + p.even + '/' + (p.main.length - p.even) + '</strong> &nbsp;|&nbsp; Primes: <strong>' + p.primes + '</strong></div>';
+        html += '</div>';
+        return html;
+    }).join('');
+}
+
+/* ---- Wheel Predictor Pool Filter Logic ---- */
+var _wpfOE        = 'any';
+var _predictedPoolRaw = [];
+
+function toggleWheelPredictFilter() {
+    var fpEl = document.getElementById('wheel-predict-filter-panel');
+    if (!fpEl) return;
+    fpEl.style.display = fpEl.style.display === 'none' ? 'block' : 'none';
+}
+
+function setWpfOE(el, val) {
+    _wpfOE = val;
+    document.querySelectorAll('#wpf-oe-chips .wf-chip').forEach(function(c) { c.classList.toggle('wf-active', c === el); });
+    applyWheelPredictFilter();
+}
+
+function applyWheelPredictFilter() {
+    if (!_predictedPoolRaw.length) return;
+    var numMinEl  = document.getElementById('wpf-num-min');
+    var numMaxEl  = document.getElementById('wpf-num-max');
+    var minFreqEl = document.getElementById('wpf-min-freq');
+    var numMin  = numMinEl  && numMinEl.value  !== '' ? parseInt(numMinEl.value)  : null;
+    var numMax  = numMaxEl  && numMaxEl.value  !== '' ? parseInt(numMaxEl.value)  : null;
+    var minFreq = minFreqEl && minFreqEl.value !== '' ? parseInt(minFreqEl.value) : null;
+    var filtered = _predictedPoolRaw.filter(function(e) {
+        if (numMin  !== null && e.num < numMin)   return false;
+        if (numMax  !== null && e.num > numMax)   return false;
+        if (_wpfOE === 'odd'  && e.num % 2 === 0) return false;
+        if (_wpfOE === 'even' && e.num % 2 !== 0) return false;
+        if (minFreq !== null && e.count < minFreq) return false;
+        return true;
+    });
+    _predictedPool = filtered.map(function(e) { return e.num; });
+    renderWheelPredictorPool(filtered);
+    var statusEl = document.getElementById('wpf-status');
+    if (statusEl) statusEl.textContent = filtered.length + ' of ' + _predictedPoolRaw.length + ' numbers shown';
+}
+
+function resetWheelPredictFilter() {
+    var numMinEl  = document.getElementById('wpf-num-min');
+    var numMaxEl  = document.getElementById('wpf-num-max');
+    var minFreqEl = document.getElementById('wpf-min-freq');
+    if (numMinEl)  numMinEl.value  = '';
+    if (numMaxEl)  numMaxEl.value  = '';
+    if (minFreqEl) minFreqEl.value = '';
+    _wpfOE = 'any';
+    document.querySelectorAll('#wpf-oe-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-wpf-oe') === 'any');
+    });
+    _predictedPool = _predictedPoolRaw.map(function(e) { return e.num; });
+    renderWheelPredictorPool(_predictedPoolRaw);
+    var statusEl = document.getElementById('wpf-status');
+    if (statusEl) statusEl.textContent = '';
+}
+
+function renderWheelPredictorPool(poolEntries) {
+    var poolDisplay = document.getElementById('predictor-pool-display');
+    if (!poolDisplay) return;
+    if (!poolEntries.length) {
+        poolDisplay.innerHTML = '<p class="text-muted text-sm">No numbers match the current filters.</p>';
+        return;
+    }
+    poolDisplay.innerHTML = poolEntries.map(function(e) {
+        return '<div class="wheel-number-cell wn-predicted" title="Drawn ' + e.count + ' time' + (e.count !== 1 ? 's' : '') + '">' + e.num + '</div>';
+    }).join('');
 }
 
 /* ---- Export CSV ---- */
@@ -6655,6 +7070,21 @@ function runMatrixLab() {
     });
 
     renderMatrixOutput(fmt, _matrixResults, anchors);
+    // Reset filter when new combos are generated
+    _mxfOE = 'any'; _mxfHL = 'any';
+    var fp = document.getElementById('matrix-filter-panel');
+    if (fp) fp.style.display = 'none';
+    ['mxf-sum-min','mxf-sum-max','mxf-must-include'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = '';
+    });
+    var mxfConsEl = document.getElementById('mxf-max-consec'); if (mxfConsEl) mxfConsEl.value = '0';
+    document.querySelectorAll('#mxf-oe-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-mxf-oe') === 'any');
+    });
+    document.querySelectorAll('#mxf-hl-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-mxf-hl') === 'any');
+    });
+    var st = document.getElementById('mxf-status'); if (st) st.textContent = '';
     showToast('Generated ' + _matrixResults.length + ' combination' + (_matrixResults.length !== 1 ? 's' : '') + ' using ' + _matrixAlgos.length + ' formula' + (_matrixAlgos.length !== 1 ? 's' : '') + '!', 'success');
 }
 
@@ -6893,6 +7323,10 @@ function clearMatrixResults() {
     _matrixResults = [];
     var c = document.getElementById('matrix-output');
     if (c) c.innerHTML = '';
+    var fp = document.getElementById('matrix-filter-panel');
+    if (fp) fp.style.display = 'none';
+    var st = document.getElementById('mxf-status');
+    if (st) st.textContent = '';
 }
 
 /* ── Draw Reconstructor ─────────────────────────────────────────── */
@@ -7141,6 +7575,26 @@ function runNextDrawPredictor() {
 
     predictions.sort(function(a, b) { return b.confidence - a.confidence; });
 
+    // Store globally for filter
+    _matrixPredictions = predictions.slice();
+    _matrixPredictFmt  = fmt;
+    // Reset predictor filter state
+    _mpfOE = 'any'; _mpfHL = 'any';
+    var fpEl = document.getElementById('matrix-predict-filter-panel');
+    if (fpEl) fpEl.style.display = 'none';
+    ['mpf-sum-min','mpf-sum-max','mpf-must-include'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = '';
+    });
+    var consEl = document.getElementById('mpf-max-consec'); if (consEl) consEl.value = '0';
+    document.querySelectorAll('#mpf-oe-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-mpf-oe') === 'any');
+    });
+    document.querySelectorAll('#mpf-hl-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-mpf-hl') === 'any');
+    });
+    var statusEl = document.getElementById('mpf-status');
+    if (statusEl) statusEl.textContent = '';
+
     var numFreq = {};
     predictions.forEach(function(p) {
         p.main.forEach(function(n) { numFreq[n] = (numFreq[n] || 0) + 1; });
@@ -7153,7 +7607,6 @@ function runNextDrawPredictor() {
     var cEven = consensusNums.filter(function(n) { return n % 2 === 0; }).length;
     var cPrs  = consensusNums.filter(function(n) { return isPrime(n); }).length;
 
-    var medals = ['&#127941;','&#129352;','&#129353;'];
     var html   = '<div class="card" style="margin-top:16px;">';
     html += '<div class="pattern-section-title">&#127919; Next Draw Predictions</div>';
     html += '<div class="algo-info" style="margin-bottom:16px;">Based on <strong>' + pd.draws.length + '</strong> draws of ' + fmt.flag + ' ' + fmt.name + '. All 12 formulas ran; ranked by historical-pattern confidence.</div>';
@@ -7170,7 +7623,9 @@ function runNextDrawPredictor() {
     html += '<div class="text-sm text-muted">Sum: <strong>' + cSum + '</strong> &nbsp;|&nbsp; Even/Odd: <strong>' + cEven + '/' + (consensusNums.length - cEven) + '</strong> &nbsp;|&nbsp; Primes: <strong>' + cPrs + '</strong></div>';
     html += '</div>';
 
-    html += '<div class="pattern-card-title" style="margin-bottom:12px;">&#127942; Top Predictions by Confidence</div>';
+    html += '<div class="pattern-card-title" style="margin-bottom:12px;">&#127942; Top Predictions by Confidence <span class="paste-count-badge" style="font-size:0.7rem;margin-left:6px;" id="mpf-filtered-count">All ' + predictions.length + '</span></div>';
+    html += '<div id="matrix-predict-filtered-list">';
+    var medals = ['&#127941;','&#129352;','&#129353;'];
     predictions.slice(0, 5).forEach(function(p, rank) {
         var algoLabel = (MATRIX_ALGO_INFO[p.algo] || p.algo).replace(/<[^>]+>/g, '').split(':')[0].trim();
         var confPct   = Math.min(100, Math.round(p.confidence));
@@ -7195,6 +7650,7 @@ function runNextDrawPredictor() {
         html += '<div class="text-sm text-muted mt-8">Sum: <strong>' + p.sum + '</strong> &nbsp;|&nbsp; Even/Odd: <strong>' + p.even + '/' + (p.main.length - p.even) + '</strong> &nbsp;|&nbsp; Primes: <strong>' + p.primes + '</strong></div>';
         html += '</div>';
     });
+    html += '</div>';
 
     html += '<div class="pattern-card" style="margin-top:12px;">';
     html += '<div class="pattern-card-title">&#128293; Number Frequency Across All Formulas</div>';
