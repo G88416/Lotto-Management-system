@@ -1360,9 +1360,9 @@
 
         <!-- Sub-navigation -->
         <div class="tab-nav" style="margin-bottom:20px;">
-            <button class="tab-btn active" id="gap-sub-btn-0" onclick="switchGapSub(0)">&#9201;&#65039; Number Overdue</button>
-            <button class="tab-btn" id="gap-sub-btn-1" onclick="switchGapSub(1)">&#128207; Delta Analysis</button>
-            <button class="tab-btn" id="gap-sub-btn-2" onclick="switchGapSub(2)">&#127919; Gap Generator</button>
+            <button class="tab-btn active" id="gap-sub-btn-0" onclick="switchGapSub(0)" aria-label="Number Overdue sub-tab">&#9201;&#65039; Number Overdue</button>
+            <button class="tab-btn" id="gap-sub-btn-1" onclick="switchGapSub(1)" aria-label="Delta Analysis sub-tab">&#128207; Delta Analysis</button>
+            <button class="tab-btn" id="gap-sub-btn-2" onclick="switchGapSub(2)" aria-label="Gap Generator sub-tab">&#127919; Gap Generator</button>
         </div>
 
         <!-- Sub 0: Number Overdue -->
@@ -1370,7 +1370,7 @@
             <div class="card">
                 <div class="pattern-section-title">&#9201;&#65039; Number Overdue Tracker</div>
                 <div class="algo-info" style="margin-bottom:14px;">
-                    Shows how many draws have passed since each number was last drawn. Numbers with the <strong>longest gap</strong> appear at the top. Warm bars indicate numbers that have not appeared in many draws; cool bars indicate recently drawn numbers. Draws are sourced from your saved Pattern Draws and Live Draws history.
+                    Shows how many draws have passed since each number was last drawn. Numbers with the <strong>longest gap</strong> appear at the top. Bars are colour-coded in five tiers: red (never drawn), orange (very overdue &gt;70%), yellow (overdue &gt;40%), green (recent &gt;15%), blue (very recent). Draws are sourced from your saved Pattern Draws and Live Draws history.
                 </div>
                 <div class="grid-2" style="margin-bottom:14px;">
                     <div>
@@ -8237,7 +8237,8 @@ function runNumberOverdue() {
     var scopeEl = document.getElementById('gap-scope');
     if (!fmtEl) return;
     var fmtId   = fmtEl.value;
-    var scope   = parseInt(scopeEl ? scopeEl.value : '20') || 0;
+    var scopeVal = parseInt(scopeEl ? scopeEl.value : '20');
+    var scope    = isNaN(scopeVal) ? 20 : scopeVal; // 0 = all draws, >0 = limit
     var fmt     = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) return;
     var draws   = getCombinedDrawsForFormat(fmtId);
@@ -8279,12 +8280,18 @@ function runNumberOverdue() {
     var byOverdue  = gapData.slice().sort(function(a,b){ return b.gap - a.gap; });
     var mostOverdue = byOverdue[0];
 
+    // Build most-overdue label without nested ternary
+    var overdueLabel = '&mdash;';
+    if (mostOverdue) {
+        overdueLabel = '#' + mostOverdue.num + ' (' + (mostOverdue.never ? 'Never' : mostOverdue.gap + ' ago') + ')';
+    }
+
     // Stats summary
     if (statsEl) {
         statsEl.style.display = 'grid';
         statsEl.innerHTML =
             '<div class="stat-card"><div class="stat-icon">&#128202;</div><div><div class="stat-label">Draws Analysed</div><div class="stat-value">' + draws.length + '</div></div></div>' +
-            '<div class="stat-card"><div class="stat-icon">&#9201;&#65039;</div><div><div class="stat-label">Most Overdue</div><div class="stat-value" style="color:var(--red);">' + (mostOverdue ? '#' + mostOverdue.num + ' (' + (mostOverdue.never ? 'Never' : mostOverdue.gap + ' ago') + ')' : '&mdash;') + '</div></div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#9201;&#65039;</div><div><div class="stat-label">Most Overdue</div><div class="stat-value" style="color:var(--red);">' + overdueLabel + '</div></div></div>' +
             '<div class="stat-card"><div class="stat-icon">&#128200;</div><div><div class="stat-label">Avg Gap</div><div class="stat-value">' + avgGap + '</div></div></div>' +
             '<div class="stat-card"><div class="stat-icon">&#128683;</div><div><div class="stat-label">Never Drawn</div><div class="stat-value" style="color:var(--text-muted);">' + neverCount + '</div></div></div>';
     }
@@ -8301,7 +8308,10 @@ function runNumberOverdue() {
             else if (pct > 40) ballClass = 'gon-warm';
             else if (pct > 15) ballClass = 'gon-cool';
             else               ballClass = 'gon-cold';
-            var label = e.never ? '&#128683; Never drawn' : (e.gap === 0 ? '&#9889; Last draw' : e.gap + ' draw' + (e.gap !== 1 ? 's' : '') + ' ago');
+            var label;
+            if (e.never)      label = '&#128683; Never drawn';
+            else if (e.gap === 0) label = '&#9889; Last draw';
+            else              label = e.gap + ' draw' + (e.gap !== 1 ? 's' : '') + ' ago';
             html += '<div class="gap-overdue-row">' +
                 '<div class="gap-overdue-num ' + ballClass + '">' + e.num + '</div>' +
                 '<div class="gap-bar-wrap" style="flex:1;"><div class="' + barClass + '" style="width:' + pct + '%;"></div></div>' +
@@ -8319,8 +8329,9 @@ function runDeltaAnalysis() {
     var fmtEl   = document.getElementById('gap-delta-format');
     var scopeEl = document.getElementById('gap-delta-scope');
     if (!fmtEl) return;
-    var fmtId   = fmtEl.value;
-    var scope   = parseInt(scopeEl ? scopeEl.value : '20') || 0;
+    var fmtId    = fmtEl.value;
+    var scopeVal = parseInt(scopeEl ? scopeEl.value : '20');
+    var scope    = isNaN(scopeVal) ? 20 : scopeVal; // 0 = all draws, >0 = limit
     var fmt     = getAllFormats().find(function(f) { return f.id === fmtId; });
     if (!fmt) return;
     var draws   = getCombinedDrawsForFormat(fmtId);
@@ -8425,7 +8436,11 @@ function weightedGapPick(gapData, count, weightFn) {
     var result = [];
     while (result.length < count && pool.length > 0) {
         var totalWeight = pool.reduce(function(s,e){ return s + weightFn(e); }, 0);
-        if (totalWeight <= 0) { result.push(pool.splice(0,1)[0].num); continue; }
+        if (totalWeight <= 0) {
+            var fb = pool.splice(0, 1);
+            if (fb.length) result.push(fb[0].num);
+            continue;
+        }
         var r   = Math.random() * totalWeight;
         var cum = 0;
         var chosen = null;
@@ -8433,8 +8448,8 @@ function weightedGapPick(gapData, count, weightFn) {
             cum += weightFn(pool[i]);
             if (r <= cum) { chosen = pool.splice(i, 1)[0]; break; }
         }
-        if (!chosen) chosen = pool.splice(0, 1)[0];
-        result.push(chosen.num);
+        if (!chosen && pool.length > 0) chosen = pool.splice(0, 1)[0];
+        if (chosen) result.push(chosen.num);
     }
     return result.sort(function(a,b){ return a-b; });
 }
@@ -8457,13 +8472,13 @@ function buildGapCombination(fmt, gapData, draws, strategy) {
         if (!allDeltas.length) {
             nums = generateUniqueNumbers(k, fmt.mainMax, 'true-random', null);
         } else {
-            // Build combination from a random start using k-1 sampled historical deltas
+            // Build combination from a random start using k-1 sampled historical deltas.
+            // start is guaranteed in [1, fmt.mainMax] by the floor/+1 arithmetic.
             var combo = new Set();
             var attempts = 0;
             while (combo.size < k && attempts < 200) {
                 combo.clear();
                 var start = Math.floor(Math.random() * (fmt.mainMax - 1)) + 1;
-                if (start < 1 || start > fmt.mainMax) { attempts++; continue; }
                 combo.add(start);
                 var cur = start;
                 for (var di = 0; di < k - 1 && combo.size < k; di++) {
@@ -8490,7 +8505,9 @@ function buildGapCombination(fmt, gapData, draws, strategy) {
         nums = overdueNums.concat(fillNums).sort(function(a,b){ return a-b; });
 
     } else { // 'gap-seed'
-        // Use total gap sum as LCG seed for a deterministic but gap-driven pick
+        // Uses the sum of all gap values as the LCG seed. When there are no draws,
+        // all gaps are 0 so the sum is 0; adding the random 0-999 offset ensures a
+        // non-trivial seed, making this strategy usable even without draw history.
         var seed    = gapData.reduce(function(s,e){ return s + e.gap; }, 0) + Math.floor(Math.random() * 1000);
         var seedRef = { val: Math.abs(seed) || 1 };
         nums = generateUniqueNumbers(k, fmt.mainMax, 'seed', seedRef);
