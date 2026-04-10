@@ -335,7 +335,51 @@
         .gap-hist-wrap { display:flex; align-items:flex-end; gap:3px; height:90px; border-bottom:2px solid var(--border); padding-bottom:2px; overflow-x:auto; }
         .gap-hist-col { display:flex; flex-direction:column; align-items:center; gap:2px; min-width:24px; flex-shrink:0; }
         .gap-hist-bar-fill { width:18px; background:var(--accent-grad); border-radius:3px 3px 0 0; min-height:2px; transition:height 0.4s; }
+        .gap-hist-bar-fill.hist-rare  { background:linear-gradient(180deg,#3b82f6,#1d4ed8); }
+        .gap-hist-bar-fill.hist-low   { background:linear-gradient(180deg,#10b981,#059669); }
+        .gap-hist-bar-fill.hist-mid   { background:linear-gradient(180deg,#f59e0b,#d97706); }
+        .gap-hist-bar-fill.hist-high  { background:linear-gradient(180deg,#ef4444,#b91c1c); }
+        .gap-hist-col.hist-peak .gap-hist-lbl { color:var(--purple); font-size:0.68rem; }
         .gap-hist-lbl { font-size:0.62rem; color:var(--text-muted); font-weight:700; }
+        /* Advanced gap stats */
+        .gap-adv-stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:16px; }
+        .gap-adv-stat { background:var(--surface2); border:1px solid var(--border); border-radius:13px; padding:12px 14px; text-align:center; }
+        .gap-adv-stat .gav-val { font-size:1.5rem; font-weight:800; color:var(--purple); line-height:1.1; margin-bottom:2px; }
+        .gap-adv-stat .gav-lbl { font-size:0.72rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+        .gap-tier-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-top:12px; }
+        .gap-tier-card { border-radius:12px; padding:10px 12px; text-align:center; border:1px solid; }
+        .gap-tier-card.tier-hot   { background:rgba(239,68,68,0.10);  border-color:rgba(239,68,68,0.30);  color:#b91c1c; }
+        .gap-tier-card.tier-warm  { background:rgba(245,158,11,0.10); border-color:rgba(245,158,11,0.30); color:#92400e; }
+        .gap-tier-card.tier-cool  { background:rgba(16,185,129,0.10); border-color:rgba(16,185,129,0.30); color:#065f46; }
+        .gap-tier-card.tier-cold  { background:rgba(59,130,246,0.10); border-color:rgba(59,130,246,0.30); color:#1e40af; }
+        .gap-tier-card.tier-never { background:rgba(100,116,139,0.10);border-color:rgba(100,116,139,0.30);color:#475569; }
+        .gap-tier-count { font-size:1.4rem; font-weight:800; display:block; }
+        .gap-tier-lbl   { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; }
+        /* Frequency Analysis (sub-3) */
+        .freq-heatmap-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(56px,1fr)); gap:6px; margin-top:12px; }
+        .freq-cell { border-radius:10px; padding:6px 4px; text-align:center; cursor:default; transition:transform 0.15s; border:1px solid transparent; }
+        .freq-cell:hover { transform:scale(1.12); }
+        .freq-cell .fc-num  { font-size:0.9rem; font-weight:800; display:block; }
+        .freq-cell .fc-cnt  { font-size:0.65rem; font-weight:700; opacity:0.85; }
+        .freq-cell.fc-0     { background:rgba(100,116,139,0.12); color:var(--text-muted); border-color:rgba(100,116,139,0.2); }
+        .freq-cell.fc-1     { background:rgba(59,130,246,0.14);  color:#1e40af;           border-color:rgba(59,130,246,0.25); }
+        .freq-cell.fc-2     { background:rgba(16,185,129,0.16);  color:#065f46;           border-color:rgba(16,185,129,0.28); }
+        .freq-cell.fc-3     { background:rgba(245,158,11,0.18);  color:#78350f;           border-color:rgba(245,158,11,0.32); }
+        .freq-cell.fc-4     { background:rgba(239,68,68,0.20);   color:#7f1d1d;           border-color:rgba(239,68,68,0.35); }
+        .freq-rank-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+        .freq-rank-row:last-child { border-bottom:none; }
+        .freq-rank-pos { font-size:0.75rem; font-weight:800; color:var(--text-muted); min-width:22px; text-align:right; }
+        .freq-rank-bar-wrap { flex:1; background:var(--border); border-radius:100px; height:8px; overflow:hidden; }
+        .freq-rank-bar { height:100%; border-radius:100px; transition:width 0.5s; }
+        .freq-rank-bar.frb-top    { background:linear-gradient(90deg,#ef4444,#f59e0b); }
+        .freq-rank-bar.frb-bottom { background:linear-gradient(90deg,#3b82f6,#10b981); }
+        .freq-rank-lbl { font-size:0.75rem; color:var(--text-muted); white-space:nowrap; min-width:60px; text-align:right; }
+        /* Enhanced delta cards */
+        .gap-delta-card { background:var(--surface2); border:1px solid var(--border); border-radius:13px; padding:12px 16px; margin-bottom:8px; transition:box-shadow 0.2s; }
+        .gap-delta-card:hover { box-shadow:0 4px 16px var(--shadow); border-color:rgba(139,92,246,0.3); }
+        .gap-delta-top5 { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+        .delta-top-pill { padding:4px 12px; border-radius:20px; font-size:0.78rem; font-weight:700; background:var(--accent-grad); color:#fff; display:inline-flex; align-items:center; gap:5px; }
+        .delta-top-pill .dtp-cnt { font-size:0.68rem; opacity:0.85; }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1363,6 +1407,7 @@
             <button class="tab-btn active" id="gap-sub-btn-0" onclick="switchGapSub(0)" aria-label="Number Overdue sub-tab">&#9201;&#65039; Number Overdue</button>
             <button class="tab-btn" id="gap-sub-btn-1" onclick="switchGapSub(1)" aria-label="Delta Analysis sub-tab">&#128207; Delta Analysis</button>
             <button class="tab-btn" id="gap-sub-btn-2" onclick="switchGapSub(2)" aria-label="Gap Generator sub-tab">&#127919; Gap Generator</button>
+            <button class="tab-btn" id="gap-sub-btn-3" onclick="switchGapSub(3)" aria-label="Frequency Analysis sub-tab">&#128200; Frequency Analysis</button>
         </div>
 
         <!-- Sub 0: Number Overdue -->
@@ -1473,6 +1518,35 @@
                 </div>
             </div>
             <div id="gap-gen-output"></div>
+        </div>
+
+        <!-- Sub 3: Frequency Analysis -->
+        <div id="gap-sub-3" style="display:none;">
+            <div class="card">
+                <div class="pattern-section-title">&#128200; Number Frequency Analysis</div>
+                <div class="algo-info" style="margin-bottom:14px;">
+                    Shows how many times each number has been drawn across the selected window. The <strong>heat map</strong> colours numbers from cold (rarely drawn) to hot (frequently drawn). Ranks and a frequency histogram reveal the most and least active numbers at a glance.
+                </div>
+                <div class="grid-2" style="margin-bottom:14px;">
+                    <div>
+                        <label>Lottery Format</label>
+                        <select id="gap-freq-format" onchange="runFrequencyAnalysis()"></select>
+                    </div>
+                    <div>
+                        <label>Draws to Analyse</label>
+                        <select id="gap-freq-scope" onchange="runFrequencyAnalysis()">
+                            <option value="10">Last 10 draws</option>
+                            <option value="20" selected>Last 20 draws</option>
+                            <option value="50">Last 50 draws</option>
+                            <option value="100">Last 100 draws</option>
+                            <option value="0">All draws</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="runFrequencyAnalysis()">&#128200; Analyse Frequency</button>
+            </div>
+            <div id="gap-freq-stats" class="card-grid" style="display:none; margin-bottom:16px;"></div>
+            <div id="gap-freq-output"></div>
         </div>
     </section>
 </div>
@@ -2004,7 +2078,7 @@ function buildFormatGrids() {
                 '<div class="jackpot">' + f.jackpot + '</div></div>';
         }).join('');
     });
-    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter','gap-format','gap-delta-format','gap-gen-format'].forEach(function(id) {
+    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter','gap-format','gap-delta-format','gap-gen-format','gap-freq-format'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
@@ -8199,12 +8273,13 @@ var _gapGenStrategy = 'overdue';
 var _gapGenSets     = [];
 
 function switchGapSub(idx) {
-    [0,1,2].forEach(function(i) {
+    [0,1,2,3].forEach(function(i) {
         var sub = document.getElementById('gap-sub-' + i);
         var btn = document.getElementById('gap-sub-btn-' + i);
         if (sub) sub.style.display = i === idx ? 'block' : 'none';
         if (btn) btn.classList.toggle('active', i === idx);
     });
+    if (idx === 3) { runFrequencyAnalysis(); }
 }
 
 function setGapSort(chip, val) {
@@ -8280,24 +8355,67 @@ function runNumberOverdue() {
     var byOverdue  = gapData.slice().sort(function(a,b){ return b.gap - a.gap; });
     var mostOverdue = byOverdue[0];
 
+    // Advanced statistics: median, std-dev, tier counts, hottest number
+    var sortedGaps = gapData.map(function(e){ return e.gap; }).slice().sort(function(a,b){ return a-b; });
+    var mid = Math.floor(sortedGaps.length / 2);
+    var medianGap = sortedGaps.length % 2 === 0
+        ? ((sortedGaps[mid - 1] + sortedGaps[mid]) / 2).toFixed(1)
+        : sortedGaps[mid];
+    var mean = gapData.reduce(function(s,e){ return s + e.gap; }, 0) / gapData.length;
+    var variance = gapData.reduce(function(s,e){ return s + Math.pow(e.gap - mean, 2); }, 0) / gapData.length;
+    var stdDev = Math.sqrt(variance).toFixed(1);
+    var hotNumber = gapData.slice().sort(function(a,b){ return a.gap - b.gap; })[0];
+    // Tier counts (same thresholds as ball colours)
+    var tierCounts = { hot: 0, warm: 0, cool: 0, cold: 0, never: 0 };
+    gapData.forEach(function(e) {
+        var pct = maxGap ? Math.round((e.gap / maxGap) * 100) : 0;
+        if      (e.never)  tierCounts.never++;
+        else if (pct > 70) tierCounts.hot++;
+        else if (pct > 40) tierCounts.warm++;
+        else if (pct > 15) tierCounts.cool++;
+        else               tierCounts.cold++;
+    });
+
     // Build most-overdue label without nested ternary
     var overdueLabel = '&mdash;';
     if (mostOverdue) {
         overdueLabel = '#' + mostOverdue.num + ' (' + (mostOverdue.never ? 'Never' : mostOverdue.gap + ' ago') + ')';
     }
 
-    // Stats summary
+    // Build hottest label
+    var hotLabel = hotNumber ? '#' + hotNumber.num + ' (' + (hotNumber.gap === 0 ? 'Last draw' : hotNumber.gap + ' ago') + ')' : '&mdash;';
+
+    // Stats summary — primary 4 cards
     if (statsEl) {
         statsEl.style.display = 'grid';
         statsEl.innerHTML =
             '<div class="stat-card"><div class="stat-icon">&#128202;</div><div><div class="stat-label">Draws Analysed</div><div class="stat-value">' + draws.length + '</div></div></div>' +
             '<div class="stat-card"><div class="stat-icon">&#9201;&#65039;</div><div><div class="stat-label">Most Overdue</div><div class="stat-value" style="color:var(--red);">' + overdueLabel + '</div></div></div>' +
-            '<div class="stat-card"><div class="stat-icon">&#128200;</div><div><div class="stat-label">Avg Gap</div><div class="stat-value">' + avgGap + '</div></div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#9889;</div><div><div class="stat-label">Hottest Number</div><div class="stat-value" style="color:var(--green);">' + hotLabel + '</div></div></div>' +
             '<div class="stat-card"><div class="stat-icon">&#128683;</div><div><div class="stat-label">Never Drawn</div><div class="stat-value" style="color:var(--text-muted);">' + neverCount + '</div></div></div>';
     }
 
-    // Per-number breakdown
+    // Per-number breakdown with advanced stats panel
     if (outputEl) {
+        // Advanced stats row
+        var advHtml =
+            '<div class="card" style="margin-bottom:16px;">' +
+            '<div class="pattern-section-title">&#128202; Advanced Gap Statistics</div>' +
+            '<div class="gap-adv-stats-grid">' +
+            '<div class="gap-adv-stat"><div class="gav-val">' + avgGap + '</div><div class="gav-lbl">&#8709; Avg Gap</div></div>' +
+            '<div class="gap-adv-stat"><div class="gav-val">' + medianGap + '</div><div class="gav-lbl">&#126; Median Gap</div></div>' +
+            '<div class="gap-adv-stat"><div class="gav-val">' + stdDev + '</div><div class="gav-lbl">&#963; Std Dev</div></div>' +
+            '<div class="gap-adv-stat"><div class="gav-val">' + maxGap + '</div><div class="gav-lbl">&#9650; Max Gap</div></div>' +
+            '</div>' +
+            '<div class="fw-700 mb-8" style="font-size:0.88rem;margin-top:14px;">&#127775; Gap Distribution by Tier</div>' +
+            '<div class="gap-tier-grid">' +
+            '<div class="gap-tier-card tier-hot"><span class="gap-tier-count">' + tierCounts.hot + '</span><span class="gap-tier-lbl">&#128308; Hot (&gt;70%)</span></div>' +
+            '<div class="gap-tier-card tier-warm"><span class="gap-tier-count">' + tierCounts.warm + '</span><span class="gap-tier-lbl">&#128992; Warm (&gt;40%)</span></div>' +
+            '<div class="gap-tier-card tier-cool"><span class="gap-tier-count">' + tierCounts.cool + '</span><span class="gap-tier-lbl">&#128994; Cool (&gt;15%)</span></div>' +
+            '<div class="gap-tier-card tier-cold"><span class="gap-tier-count">' + tierCounts.cold + '</span><span class="gap-tier-lbl">&#128309; Cold (&le;15%)</span></div>' +
+            '<div class="gap-tier-card tier-never"><span class="gap-tier-count">' + tierCounts.never + '</span><span class="gap-tier-lbl">&#9898; Never</span></div>' +
+            '</div></div>';
+
         var html = '<div class="card"><div class="pattern-section-title">&#9201;&#65039; All Numbers &mdash; Overdue Breakdown <span class="text-muted text-sm fw-400">(' + draws.length + ' draws)</span></div>';
         gapData.forEach(function(e) {
             var pct      = maxGap ? Math.round((e.gap / maxGap) * 100) : 0;
@@ -8309,18 +8427,19 @@ function runNumberOverdue() {
             else if (pct > 15) ballClass = 'gon-cool';
             else               ballClass = 'gon-cold';
             var label;
-            if (e.never)      label = '&#128683; Never drawn';
+            if (e.never)          label = '&#128683; Never drawn';
             else if (e.gap === 0) label = '&#9889; Last draw';
-            else              label = e.gap + ' draw' + (e.gap !== 1 ? 's' : '') + ' ago';
+            else                  label = e.gap + ' draw' + (e.gap !== 1 ? 's' : '') + ' ago';
+            var freqPct = draws.length ? Math.round((e.freq / draws.length) * 100) : 0;
             html += '<div class="gap-overdue-row">' +
                 '<div class="gap-overdue-num ' + ballClass + '">' + e.num + '</div>' +
                 '<div class="gap-bar-wrap" style="flex:1;"><div class="' + barClass + '" style="width:' + pct + '%;"></div></div>' +
                 '<div class="gap-overdue-label">' + label + '</div>' +
-                '<div style="font-size:0.72rem;color:var(--text-muted);min-width:55px;text-align:right;">' + e.freq + '&times; drawn</div>' +
+                '<div style="font-size:0.72rem;color:var(--text-muted);min-width:80px;text-align:right;">' + e.freq + '&times; &nbsp;<span style="color:var(--purple);font-weight:800;">' + freqPct + '%</span></div>' +
                 '</div>';
         });
         html += '</div>';
-        outputEl.innerHTML = html;
+        outputEl.innerHTML = advHtml + html;
     }
 }
 
@@ -8379,18 +8498,36 @@ function runDeltaAnalysis() {
     for (var k = 1; k <= overallMax; k++) { var c = deltaFreq[k] || 0; if (c > histMax) histMax = c; }
     if (!histMax) histMax = 1;
 
+    // Top-5 most common deltas for highlight strip
+    var deltaRanked = Object.keys(deltaFreq).map(function(k){ return { d: +k, cnt: deltaFreq[k] }; })
+        .sort(function(a,b){ return b.cnt - a.cnt; }).slice(0, 5);
+
     if (summaryEl) {
         summaryEl.style.display = 'block';
         var histHtml = '<div class="gap-hist-wrap">';
         for (var h = 1; h <= overallMax; h++) {
             var cnt  = deltaFreq[h] || 0;
             var barH = Math.round((cnt / histMax) * 70);
-            histHtml += '<div class="gap-hist-col">' +
-                '<div class="gap-hist-bar-fill" style="height:' + barH + 'px;"></div>' +
+            var pctH = histMax ? cnt / histMax : 0;
+            var barColorClass;
+            if      (pctH >= 0.75) barColorClass = 'hist-high';
+            else if (pctH >= 0.45) barColorClass = 'hist-mid';
+            else if (pctH >= 0.20) barColorClass = 'hist-low';
+            else                   barColorClass = 'hist-rare';
+            var isPeak = h === mostCommonDelta;
+            histHtml += '<div class="gap-hist-col' + (isPeak ? ' hist-peak' : '') + '">' +
+                '<div class="gap-hist-bar-fill ' + barColorClass + '" style="height:' + barH + 'px;"></div>' +
                 '<div class="gap-hist-lbl">&#916;' + h + '</div>' +
                 '</div>';
         }
         histHtml += '</div>';
+
+        var top5Html = '<div class="fw-700 mb-8" style="font-size:0.88rem;margin-top:16px;">&#127942; Top 5 Most Common Deltas</div>' +
+            '<div class="gap-delta-top5">' +
+            deltaRanked.map(function(item){
+                return '<span class="delta-top-pill">&#916;' + item.d + ' <span class="dtp-cnt">&times;' + item.cnt + '</span></span>';
+            }).join('') + '</div>';
+
         summaryEl.innerHTML = '<div class="card">' +
             '<div class="pattern-section-title">&#128202; Delta Summary &mdash; ' + draws.length + ' draws</div>' +
             '<div class="card-grid" style="margin-bottom:16px;">' +
@@ -8400,22 +8537,26 @@ function runDeltaAnalysis() {
             '<div class="stat-card"><div class="stat-icon">&#127942;</div><div><div class="stat-label">Most Common &#916;</div><div class="stat-value" style="color:var(--purple);">&#916;' + mostCommonDelta + ' &times;' + mostCommonCount + '</div></div></div>' +
             '</div>' +
             '<div class="fw-700 mb-8" style="font-size:0.88rem;">&#916; Value Frequency Histogram</div>' +
-            '<p class="text-muted text-sm mb-8">Each column shows how many times that gap size appeared across all analysed draws. Taller = more common.</p>' +
+            '<p class="text-muted text-sm mb-8">Bars are colour-coded: <span style="color:#1d4ed8;font-weight:700;">blue</span> = rare &middot; <span style="color:#059669;font-weight:700;">green</span> = moderate &middot; <span style="color:#d97706;font-weight:700;">amber</span> = common &middot; <span style="color:#b91c1c;font-weight:700;">red</span> = most frequent. Tallest bar = most common delta.</p>' +
             histHtml +
+            top5Html +
             '</div>';
     }
 
-    // Per-draw breakdown
+    // Per-draw breakdown with enhanced card styling
     if (outputEl) {
         var html = '<div class="card"><div class="pattern-section-title">&#128207; Per-Draw Delta Breakdown</div>';
         drawResults.forEach(function(r) {
             var date = r.draw.date || '';
-            var deltaChips = r.deltas.map(function(d){ return '<span class="gap-delta-chip">&#916;' + d + '</span>'; }).join('');
+            var deltaChips = r.deltas.map(function(d){
+                var isCommon = d === mostCommonDelta;
+                return '<span class="gap-delta-chip" style="' + (isCommon ? 'background:var(--accent-grad);color:#fff;border:none;' : '') + '">&#916;' + d + '</span>';
+            }).join('');
             html += '<div class="gap-delta-card">' +
                 '<div class="flex justify-between items-center flex-wrap gap-10">' +
                 '<div class="balls-row">' + renderBalls(r.sorted, 'ball-main ball-sm', fmt, []) + '</div>' +
                 '<div class="flex gap-10 items-center flex-wrap">' +
-                (date ? '<span class="text-muted text-sm">' + date + '</span>' : '') +
+                (date ? '<span class="text-muted text-sm">&#128197; ' + date + '</span>' : '') +
                 '<span class="cmb cmb-sum">&#916;avg ' + r.avg + '</span>' +
                 '<span class="cmb cmb-odd">&#916;max ' + r.maxD + '</span>' +
                 '<span class="cmb cmb-high">&#916;min ' + r.minD + '</span>' +
@@ -8589,6 +8730,144 @@ function clearGapResults() {
     _gapGenSets = [];
     var el = document.getElementById('gap-gen-output');
     if (el) el.innerHTML = '';
+}
+
+/* ---- Sub 3: Frequency Analysis ---- */
+function runFrequencyAnalysis() {
+    var fmtEl   = document.getElementById('gap-freq-format');
+    var scopeEl = document.getElementById('gap-freq-scope');
+    if (!fmtEl) return;
+    var fmtId    = fmtEl.value;
+    var scopeVal = parseInt(scopeEl ? scopeEl.value : '20');
+    var scope    = isNaN(scopeVal) ? 20 : scopeVal;
+    var fmt      = getAllFormats().find(function(f) { return f.id === fmtId; });
+    if (!fmt) return;
+    var draws = getCombinedDrawsForFormat(fmtId);
+    if (scope > 0) draws = draws.slice(0, scope);
+
+    var statsEl  = document.getElementById('gap-freq-stats');
+    var outputEl = document.getElementById('gap-freq-output');
+
+    if (!draws.length) {
+        if (statsEl)  statsEl.style.display = 'none';
+        if (outputEl) outputEl.innerHTML = '<div class="card"><p class="text-muted text-center" style="padding:20px 0;">No draws found for this format. Add draws via the <strong>Live Draws</strong> tab or save them to Patterns first.</p></div>';
+        return;
+    }
+
+    // Build frequency map
+    var freqMap = {};
+    for (var n = 1; n <= fmt.mainMax; n++) freqMap[n] = 0;
+    draws.forEach(function(d) {
+        (d.numbers || []).forEach(function(n) { if (freqMap[n] !== undefined) freqMap[n]++; });
+    });
+
+    var freqArr = Object.keys(freqMap).map(function(k){ return { num: +k, cnt: freqMap[k] }; });
+    var maxFreq = Math.max.apply(null, freqArr.map(function(e){ return e.cnt; })) || 1;
+    var totalDraws = draws.length;
+
+    // Summary stats
+    var sorted = freqArr.slice().sort(function(a,b){ return b.cnt - a.cnt; });
+    var mostDrawn  = sorted[0];
+    var leastDrawn = sorted[sorted.length - 1];
+    var neverCount = freqArr.filter(function(e){ return e.cnt === 0; }).length;
+    var avgFreq    = (freqArr.reduce(function(s,e){ return s + e.cnt; }, 0) / freqArr.length).toFixed(1);
+    var uniqueDrawnCount = freqArr.filter(function(e){ return e.cnt > 0; }).length;
+
+    if (statsEl) {
+        statsEl.style.display = 'grid';
+        statsEl.innerHTML =
+            '<div class="stat-card"><div class="stat-icon">&#128202;</div><div><div class="stat-label">Draws Analysed</div><div class="stat-value">' + totalDraws + '</div></div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#128308;</div><div><div class="stat-label">Most Drawn</div><div class="stat-value" style="color:var(--red);">#' + mostDrawn.num + ' (' + mostDrawn.cnt + 'x)</div></div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#128309;</div><div><div class="stat-label">Least Drawn</div><div class="stat-value" style="color:var(--cyan);">#' + leastDrawn.num + ' (' + leastDrawn.cnt + 'x)</div></div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#128200;</div><div><div class="stat-label">Avg Frequency</div><div class="stat-value">' + avgFreq + '</div></div></div>';
+    }
+
+    if (!outputEl) return;
+
+    // Heatmap grid — colour tier based on frequency quartiles
+    var q1 = maxFreq * 0.25;
+    var q2 = maxFreq * 0.50;
+    var q3 = maxFreq * 0.75;
+    var heatHtml = '<div class="freq-heatmap-grid">';
+    freqArr.forEach(function(e) {
+        var tier;
+        if      (e.cnt === 0)        tier = 'fc-0';
+        else if (e.cnt <= q1)        tier = 'fc-1';
+        else if (e.cnt <= q2)        tier = 'fc-2';
+        else if (e.cnt <= q3)        tier = 'fc-3';
+        else                         tier = 'fc-4';
+        var pct = totalDraws ? Math.round((e.cnt / totalDraws) * 100) : 0;
+        heatHtml += '<div class="freq-cell ' + tier + '" title="#' + e.num + ': drawn ' + e.cnt + ' times (' + pct + '%)">' +
+            '<span class="fc-num">' + e.num + '</span>' +
+            '<span class="fc-cnt">' + e.cnt + 'x</span>' +
+            '</div>';
+    });
+    heatHtml += '</div>';
+
+    // Legend
+    var legendHtml = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center;">' +
+        '<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);">Legend:</span>' +
+        '<span class="freq-cell fc-0" style="padding:2px 8px;border-radius:8px;font-size:0.72rem;">0x&nbsp;Never</span>' +
+        '<span class="freq-cell fc-1" style="padding:2px 8px;border-radius:8px;font-size:0.72rem;">Rare</span>' +
+        '<span class="freq-cell fc-2" style="padding:2px 8px;border-radius:8px;font-size:0.72rem;">Moderate</span>' +
+        '<span class="freq-cell fc-3" style="padding:2px 8px;border-radius:8px;font-size:0.72rem;">Common</span>' +
+        '<span class="freq-cell fc-4" style="padding:2px 8px;border-radius:8px;font-size:0.72rem;">&#128308;&nbsp;Hot</span>' +
+        '</div>';
+
+    // Top-10 and Bottom-10 rank lists
+    var top10 = sorted.slice(0, 10);
+    var bot10 = sorted.slice(-10).reverse();
+    var rankHtml = function(list, barClass, title, icon) {
+        var html = '<div class="fw-700 mb-8" style="font-size:0.88rem;">' + icon + ' ' + title + '</div>';
+        list.forEach(function(e, idx) {
+            var pct = maxFreq ? Math.round((e.cnt / maxFreq) * 100) : 0;
+            var pctDraw = totalDraws ? Math.round((e.cnt / totalDraws) * 100) : 0;
+            html += '<div class="freq-rank-row">' +
+                '<div class="freq-rank-pos">' + (idx + 1) + '</div>' +
+                '<div class="gap-overdue-num" style="background:var(--accent-grad);color:#fff;width:32px;height:32px;font-size:0.82rem;">' + e.num + '</div>' +
+                '<div class="freq-rank-bar-wrap"><div class="freq-rank-bar ' + barClass + '" style="width:' + pct + '%;"></div></div>' +
+                '<div class="freq-rank-lbl">' + e.cnt + 'x &nbsp;<span style="color:var(--purple);font-weight:800;">' + pctDraw + '%</span></div>' +
+                '</div>';
+        });
+        return html;
+    };
+
+    // Frequency distribution histogram (count of numbers per frequency value)
+    var freqDist = {};
+    freqArr.forEach(function(e) { freqDist[e.cnt] = (freqDist[e.cnt] || 0) + 1; });
+    var freqDistMax = Math.max.apply(null, Object.keys(freqDist).map(function(k){ return freqDist[k]; })) || 1;
+    var freqHistHtml = '<div class="gap-hist-wrap" style="height:80px;">';
+    for (var fv = 0; fv <= maxFreq; fv++) {
+        var fc = freqDist[fv] || 0;
+        var fh = Math.round((fc / freqDistMax) * 60);
+        var pctFv = maxFreq ? fv / maxFreq : 0;
+        var fBarClass;
+        if      (pctFv >= 0.75) fBarClass = 'hist-high';
+        else if (pctFv >= 0.45) fBarClass = 'hist-mid';
+        else if (pctFv >= 0.20) fBarClass = 'hist-low';
+        else                    fBarClass = 'hist-rare';
+        freqHistHtml += '<div class="gap-hist-col">' +
+            '<div class="gap-hist-bar-fill ' + fBarClass + '" style="height:' + fh + 'px;"></div>' +
+            '<div class="gap-hist-lbl">' + fv + '</div>' +
+            '</div>';
+    }
+    freqHistHtml += '</div>';
+
+    outputEl.innerHTML =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128200; Frequency Heat Map <span class="text-muted text-sm fw-400">(' + totalDraws + ' draws &middot; ' + uniqueDrawnCount + ' unique numbers drawn)</span></div>' +
+        '<p class="text-muted text-sm mb-8">Each cell shows the number and how many times it was drawn. Colour intensity reflects frequency from cold (blue) to hot (red).</p>' +
+        heatHtml + legendHtml +
+        '</div>' +
+        '<div class="grid-2" style="gap:16px;">' +
+        '<div class="card" style="margin-bottom:0;">' + rankHtml(top10, 'frb-top', 'Top 10 Most Drawn', '&#128308;') + '</div>' +
+        '<div class="card" style="margin-bottom:0;">' + rankHtml(bot10, 'frb-bottom', 'Bottom 10 Least Drawn', '&#128309;') + '</div>' +
+        '</div>' +
+        '<div class="card" style="margin-top:16px;">' +
+        '<div class="pattern-section-title">&#128202; Frequency Distribution</div>' +
+        '<p class="text-muted text-sm mb-8">How many numbers share each draw-count value. Taller bar = more numbers drawn that many times.</p>' +
+        freqHistHtml +
+        '</div>';
 }
 
 document.addEventListener('DOMContentLoaded', function() {
