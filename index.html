@@ -317,6 +317,9 @@
         .gap-lbl { font-size:0.78rem; color:var(--text-muted); white-space:nowrap; min-width:80px; text-align:right; }
         /* ---- Match filter row ---- */
         .match-filter-row { display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+        /* ---- Number Generator Enhancer ---- */
+        .enh-preview { padding:8px 12px; border-radius:8px; background:var(--surface); border:1px solid var(--border); font-size:0.82rem; color:var(--text-muted); min-height:36px; word-break:break-all; line-height:1.6; }
+        .enh-active-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:12px; font-size:0.72rem; font-weight:700; background:rgba(139,92,246,0.15); color:var(--purple); border:1px solid rgba(139,92,246,0.3); }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -562,11 +565,50 @@
                     </div>
                     <div id="wf-status" class="wf-status"></div>
                 </div>
+                <!-- Wheel Number Generator Enhancer Panel -->
+                <div id="wheel-enhancer-panel" class="card wf-panel" style="display:none;">
+                    <div class="flex justify-between items-center mb-14">
+                        <span class="fw-700">&#128260; Number Generator Enhancer</span>
+                        <button class="btn btn-secondary btn-sm" onclick="resetWheelEnhancer()">&#8634; Reset</button>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label class="label">Sequence Type</label>
+                        <div class="wf-chip-row" id="wh-enh-type-chips">
+                            <span class="wf-chip wf-active" data-whenh="arithmetic" onclick="setWheelEnhType(this,'arithmetic')">&#8597; Arithmetic</span>
+                            <span class="wf-chip" data-whenh="fibonacci" onclick="setWheelEnhType(this,'fibonacci')">&#129300; Fibonacci</span>
+                            <span class="wf-chip" data-whenh="prime" onclick="setWheelEnhType(this,'prime')">&#128290; Prime</span>
+                            <span class="wf-chip" data-whenh="even" onclick="setWheelEnhType(this,'even')">&#9898; Even Only</span>
+                            <span class="wf-chip" data-whenh="odd" onclick="setWheelEnhType(this,'odd')">&#9899; Odd Only</span>
+                            <span class="wf-chip" data-whenh="custom" onclick="setWheelEnhType(this,'custom')">&#9999;&#65039; Custom</span>
+                        </div>
+                    </div>
+                    <div id="wh-enh-arithmetic-row" class="grid-2" style="margin-bottom:12px;">
+                        <div>
+                            <label class="label">Start</label>
+                            <input type="number" id="wh-enh-start" value="1" min="1" style="width:100%;" oninput="previewWheelEnhSequence()">
+                        </div>
+                        <div>
+                            <label class="label">Step</label>
+                            <input type="number" id="wh-enh-step" value="1" min="1" style="width:100%;" oninput="previewWheelEnhSequence()">
+                        </div>
+                    </div>
+                    <div id="wh-enh-custom-row" style="display:none; margin-bottom:12px;">
+                        <label class="label">Numbers (space or comma separated)</label>
+                        <input type="text" id="wh-enh-custom" placeholder="e.g. 3 7 12 18 23 29" style="width:100%;" oninput="previewWheelEnhSequence()">
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label class="label">Sequence Preview <span id="wh-enh-count" class="text-muted text-sm fw-400"></span></label>
+                        <div id="wh-enh-preview" class="enh-preview">Select a sequence type and configure settings above.</div>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary btn-sm" onclick="applyWheelEnhancer()">&#9989; Apply to Number Pool</button>
+                    </div>
+                </div>
                 <div class="card">
                     <div class="flex justify-between items-center flex-wrap gap-10 mb-14">
                         <span class="fw-700">Generated Combinations</span>
                         <div class="flex gap-10">
-                            <button class="btn btn-secondary btn-sm" onclick="toggleWheelFilter()">&#128269; Filter</button>
+                            <button class="btn btn-secondary btn-sm" onclick="toggleWheelEnhancer()">&#128260; Enhancer</button>
                             <button class="btn btn-secondary btn-sm" onclick="exportWheelCSV()">&#128196; Export CSV</button>
                             <button class="btn btn-secondary btn-sm" onclick="saveWheelToTickets()">&#128190; Save All to Tickets</button>
                             <button class="btn btn-secondary btn-sm" onclick="clearWheelResults()">&#128465;&#65039; Clear</button>
@@ -1102,7 +1144,7 @@
                 <div class="btn-row">
                     <button class="btn btn-primary"   onclick="runMatrixLab()">&#9889; Generate Combinations</button>
                     <button class="btn btn-success"   onclick="saveMatrixResults()">&#128190; Save All to Tickets</button>
-                    <button class="btn btn-secondary" onclick="toggleMatrixFilter()">&#128269; Filter</button>
+                    <button class="btn btn-secondary" onclick="toggleMatrixEnhancer()">&#128260; Enhancer</button>
                     <button class="btn btn-secondary" onclick="clearMatrixResults()">&#128465;&#65039; Clear</button>
                 </div>
             </div>
@@ -1159,6 +1201,46 @@
                     </div>
                 </div>
                 <div id="mxf-status" class="wf-status"></div>
+            </div>
+            <!-- Matrix Generator Enhancer Panel -->
+            <div id="matrix-enhancer-panel" class="card wf-panel" style="display:none; margin-top:16px;">
+                <div class="flex justify-between items-center mb-14">
+                    <span class="fw-700">&#128260; Number Generator Enhancer</span>
+                    <button class="btn btn-secondary btn-sm" onclick="clearMatrixEnhancer()">&#128465;&#65039; Clear</button>
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label class="label">Sequence Type</label>
+                    <div class="wf-chip-row" id="mx-enh-type-chips">
+                        <span class="wf-chip wf-active" data-mxenh="arithmetic" onclick="setMxEnhType(this,'arithmetic')">&#8597; Arithmetic</span>
+                        <span class="wf-chip" data-mxenh="fibonacci" onclick="setMxEnhType(this,'fibonacci')">&#129300; Fibonacci</span>
+                        <span class="wf-chip" data-mxenh="prime" onclick="setMxEnhType(this,'prime')">&#128290; Prime</span>
+                        <span class="wf-chip" data-mxenh="even" onclick="setMxEnhType(this,'even')">&#9898; Even Only</span>
+                        <span class="wf-chip" data-mxenh="odd" onclick="setMxEnhType(this,'odd')">&#9899; Odd Only</span>
+                        <span class="wf-chip" data-mxenh="custom" onclick="setMxEnhType(this,'custom')">&#9999;&#65039; Custom</span>
+                    </div>
+                </div>
+                <div id="mx-enh-arithmetic-row" class="grid-2" style="margin-bottom:12px;">
+                    <div>
+                        <label class="label">Start</label>
+                        <input type="number" id="mx-enh-start" value="1" min="1" style="width:100%;" oninput="previewMxEnhSequence()">
+                    </div>
+                    <div>
+                        <label class="label">Step</label>
+                        <input type="number" id="mx-enh-step" value="1" min="1" style="width:100%;" oninput="previewMxEnhSequence()">
+                    </div>
+                </div>
+                <div id="mx-enh-custom-row" style="display:none; margin-bottom:12px;">
+                    <label class="label">Numbers (space or comma separated)</label>
+                    <input type="text" id="mx-enh-custom" placeholder="e.g. 3 7 12 18 23 29" style="width:100%;" oninput="previewMxEnhSequence()">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label class="label">Sequence Preview <span id="mx-enh-count" class="text-muted text-sm fw-400"></span></label>
+                    <div id="mx-enh-preview" class="enh-preview">Select a sequence type and configure settings above.</div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary btn-sm" onclick="applyMatrixEnhancer()">&#9989; Apply &amp; Generate</button>
+                    <button class="btn btn-secondary btn-sm" onclick="resetMatrixEnhancer()">&#8634; Reset</button>
+                </div>
             </div>
             <div id="matrix-output"></div>
         </div>
@@ -2419,6 +2501,8 @@ function clearWheelResults() {
     if (resEl) resEl.style.display = 'none';
     var fpEl = document.getElementById('wheel-filter-panel');
     if (fpEl) fpEl.style.display = 'none';
+    var epEl = document.getElementById('wheel-enhancer-panel');
+    if (epEl) epEl.style.display = 'none';
 }
 
 function saveWheelToTickets() {
@@ -2761,6 +2845,119 @@ function resetWheelFilter() {
     renderFilteredCombos(_wheelState.combos, fmt, null);
 }
 
+/* ---- Wheel Number Generator Enhancer Logic ---- */
+var _wheelEnhType = 'arithmetic';
+
+function buildEnhancerSequence(type, start, step, customList, maxNum) {
+    var seq = [];
+    if (type === 'arithmetic') {
+        var s = Math.max(1, parseInt(start) || 1);
+        var d = Math.max(1, parseInt(step) || 1);
+        for (var n = s; n <= maxNum; n += d) seq.push(n);
+    } else if (type === 'fibonacci') {
+        var a = 1, b = 1;
+        while (a <= maxNum) {
+            if (a >= 1) seq.push(a);
+            var tmp = a + b; a = b; b = tmp;
+        }
+    } else if (type === 'prime') {
+        for (var np = 2; np <= maxNum; np++) {
+            var isPrime = true;
+            for (var dp = 2; dp * dp <= np; dp++) {
+                if (np % dp === 0) { isPrime = false; break; }
+            }
+            if (isPrime) seq.push(np);
+        }
+    } else if (type === 'even') {
+        for (var ne = 2; ne <= maxNum; ne += 2) seq.push(ne);
+    } else if (type === 'odd') {
+        for (var no = 1; no <= maxNum; no += 2) seq.push(no);
+    } else if (type === 'custom') {
+        var nums = (customList || '').trim().split(/[\s,]+/)
+            .map(Number)
+            .filter(function(n) { return !isNaN(n) && n >= 1 && n <= maxNum; });
+        seq = Array.from(new Set(nums)).sort(function(a, b) { return a - b; });
+    }
+    return seq;
+}
+
+function toggleWheelEnhancer() {
+    var el = document.getElementById('wheel-enhancer-panel');
+    if (!el) return;
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    if (el.style.display === 'block') previewWheelEnhSequence();
+}
+
+function setWheelEnhType(chip, type) {
+    _wheelEnhType = type;
+    document.querySelectorAll('#wh-enh-type-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c === chip);
+    });
+    var arthRow = document.getElementById('wh-enh-arithmetic-row');
+    var custRow = document.getElementById('wh-enh-custom-row');
+    if (arthRow) arthRow.style.display = (type === 'arithmetic') ? '' : 'none';
+    if (custRow) custRow.style.display = (type === 'custom') ? '' : 'none';
+    previewWheelEnhSequence();
+}
+
+function getWheelEnhMaxNum() {
+    var fmtId = (document.getElementById('wheel-format-filter') || {}).value;
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
+    return fmt ? fmt.mainMax : 49;
+}
+
+function previewWheelEnhSequence() {
+    var maxNum = getWheelEnhMaxNum();
+    var start  = (document.getElementById('wh-enh-start') || {}).value;
+    var step   = (document.getElementById('wh-enh-step') || {}).value;
+    var custom = (document.getElementById('wh-enh-custom') || {}).value || '';
+    var seq = buildEnhancerSequence(_wheelEnhType, start, step, custom, maxNum);
+    var prev = document.getElementById('wh-enh-preview');
+    var cnt  = document.getElementById('wh-enh-count');
+    if (prev) prev.textContent = seq.length > 0 ? seq.join(', ') : '—';
+    if (cnt)  cnt.textContent  = seq.length > 0 ? '(' + seq.length + ' numbers)' : '';
+}
+
+function applyWheelEnhancer() {
+    var maxNum = getWheelEnhMaxNum();
+    var start  = (document.getElementById('wh-enh-start') || {}).value;
+    var step   = (document.getElementById('wh-enh-step') || {}).value;
+    var custom = (document.getElementById('wh-enh-custom') || {}).value || '';
+    var seq = buildEnhancerSequence(_wheelEnhType, start, step, custom, maxNum);
+    var fmtId = (document.getElementById('wheel-format-filter') || {}).value;
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
+    if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
+    if (seq.length < fmt.mainCount) {
+        showToast('Sequence has only ' + seq.length + ' number' + (seq.length !== 1 ? 's' : '') + ' — need at least ' + fmt.mainCount + ' for ' + fmt.name, 'error');
+        return;
+    }
+    if (seq.length > WHEEL_MAX_POOL) {
+        seq = seq.slice(0, WHEEL_MAX_POOL);
+        showToast('Sequence capped at ' + WHEEL_MAX_POOL + ' numbers for the wheel pool', 'info');
+    }
+    _wheelState.pool = seq;
+    _wheelState.keyNum = null;
+    buildWheelNumberGrid();
+    var panel = document.getElementById('wheel-enhancer-panel');
+    if (panel) panel.style.display = 'none';
+    showToast('Pool updated with ' + seq.length + ' numbers. Click \u201cGenerate Wheel\u201d to create combinations!', 'success');
+}
+
+function resetWheelEnhancer() {
+    _wheelEnhType = 'arithmetic';
+    document.querySelectorAll('#wh-enh-type-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-whenh') === 'arithmetic');
+    });
+    var arthRow = document.getElementById('wh-enh-arithmetic-row');
+    var custRow = document.getElementById('wh-enh-custom-row');
+    if (arthRow) arthRow.style.display = '';
+    if (custRow) custRow.style.display = 'none';
+    var startEl = document.getElementById('wh-enh-start'); if (startEl) startEl.value = '1';
+    var stepEl  = document.getElementById('wh-enh-step');  if (stepEl)  stepEl.value  = '1';
+    var custEl  = document.getElementById('wh-enh-custom'); if (custEl) custEl.value  = '';
+    previewWheelEnhSequence();
+}
+
 /* ---- Matrix Generator Filter Logic ---- */
 var _mxfOE = 'any';
 var _mxfHL = 'any';
@@ -2844,6 +3041,90 @@ function resetMatrixFilter() {
     renderMatrixOutput(fmt, _matrixResults, anchors);
     var statusEl = document.getElementById('mxf-status');
     if (statusEl) statusEl.textContent = '';
+}
+
+/* ---- Matrix Number Generator Enhancer Logic ---- */
+var _matrixEnhancerPool = [];
+var _mxEnhType = 'arithmetic';
+
+function toggleMatrixEnhancer() {
+    var el = document.getElementById('matrix-enhancer-panel');
+    if (!el) return;
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    if (el.style.display === 'block') previewMxEnhSequence();
+}
+
+function setMxEnhType(chip, type) {
+    _mxEnhType = type;
+    document.querySelectorAll('#mx-enh-type-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c === chip);
+    });
+    var arthRow = document.getElementById('mx-enh-arithmetic-row');
+    var custRow = document.getElementById('mx-enh-custom-row');
+    if (arthRow) arthRow.style.display = (type === 'arithmetic') ? '' : 'none';
+    if (custRow) custRow.style.display = (type === 'custom') ? '' : 'none';
+    previewMxEnhSequence();
+}
+
+function getMatrixEnhMaxNum() {
+    var fmtId = (document.getElementById('matrix-format') || {}).value;
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
+    return fmt ? fmt.mainMax : 49;
+}
+
+function previewMxEnhSequence() {
+    var maxNum = getMatrixEnhMaxNum();
+    var start  = (document.getElementById('mx-enh-start') || {}).value;
+    var step   = (document.getElementById('mx-enh-step') || {}).value;
+    var custom = (document.getElementById('mx-enh-custom') || {}).value || '';
+    var seq = buildEnhancerSequence(_mxEnhType, start, step, custom, maxNum);
+    var prev = document.getElementById('mx-enh-preview');
+    var cnt  = document.getElementById('mx-enh-count');
+    if (prev) prev.textContent = seq.length > 0 ? seq.join(', ') : '—';
+    if (cnt)  cnt.textContent  = seq.length > 0 ? '(' + seq.length + ' numbers)' : '';
+}
+
+function applyMatrixEnhancer() {
+    var maxNum = getMatrixEnhMaxNum();
+    var start  = (document.getElementById('mx-enh-start') || {}).value;
+    var step   = (document.getElementById('mx-enh-step') || {}).value;
+    var custom = (document.getElementById('mx-enh-custom') || {}).value || '';
+    var seq = buildEnhancerSequence(_mxEnhType, start, step, custom, maxNum);
+    var fmtId = (document.getElementById('matrix-format') || {}).value;
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
+    if (!fmt) { showToast('Select a lottery format first', 'error'); return; }
+    if (seq.length < fmt.mainCount) {
+        showToast('Sequence has only ' + seq.length + ' number' + (seq.length !== 1 ? 's' : '') + ' \u2014 need at least ' + fmt.mainCount + ' for ' + fmt.name, 'error');
+        return;
+    }
+    _matrixEnhancerPool = seq;
+    showToast('Enhancer applied \u2014 ' + seq.length + ' numbers in pool. Generating\u2026', 'success');
+    var panel = document.getElementById('matrix-enhancer-panel');
+    if (panel) panel.style.display = 'none';
+    runMatrixLab();
+}
+
+function resetMatrixEnhancer() {
+    _matrixEnhancerPool = [];
+    _mxEnhType = 'arithmetic';
+    document.querySelectorAll('#mx-enh-type-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c.getAttribute('data-mxenh') === 'arithmetic');
+    });
+    var arthRow = document.getElementById('mx-enh-arithmetic-row');
+    var custRow = document.getElementById('mx-enh-custom-row');
+    if (arthRow) arthRow.style.display = '';
+    if (custRow) custRow.style.display = 'none';
+    var startEl = document.getElementById('mx-enh-start'); if (startEl) startEl.value = '1';
+    var stepEl  = document.getElementById('mx-enh-step');  if (stepEl)  stepEl.value  = '1';
+    var custEl  = document.getElementById('mx-enh-custom'); if (custEl) custEl.value  = '';
+    previewMxEnhSequence();
+    showToast('Enhancer reset \u2014 using full number range', 'info');
+}
+
+function clearMatrixEnhancer() {
+    _matrixEnhancerPool = [];
+    var panel = document.getElementById('matrix-enhancer-panel');
+    if (panel) panel.style.display = 'none';
 }
 
 /* ---- Matrix Predictor Filter Logic ---- */
@@ -7080,6 +7361,8 @@ function runMatrixLab() {
     _mxfOE = 'any'; _mxfHL = 'any';
     var fp = document.getElementById('matrix-filter-panel');
     if (fp) fp.style.display = 'none';
+    var ep = document.getElementById('matrix-enhancer-panel');
+    if (ep) ep.style.display = 'none';
     ['mxf-sum-min','mxf-sum-max','mxf-must-include'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.value = '';
     });
@@ -7097,6 +7380,15 @@ function runMatrixLab() {
 function buildMatrixCombination(fmt, anchors, algo) {
     var remaining = fmt.mainCount - anchors.length;
     var forbidden = new Set(anchors);
+
+    // If enhancer pool is active, restrict generation to pool numbers only
+    var ePool = _matrixEnhancerPool;
+    if (ePool && ePool.length > 0) {
+        for (var ne = 1; ne <= fmt.mainMax; ne++) {
+            if (ePool.indexOf(ne) === -1) forbidden.add(ne);
+        }
+    }
+
     var fill;
     switch (algo) {
         case 'fibonacci-spread': fill = combFillFibonacci(fmt, forbidden, remaining); break;
@@ -7114,8 +7406,15 @@ function buildMatrixCombination(fmt, anchors, algo) {
     }
     var combined = anchors.concat(fill);
     var unique   = Array.from(new Set(combined));
-    for (var n = 1; n <= fmt.mainMax && unique.length < fmt.mainCount; n++) {
-        if (unique.indexOf(n) === -1) unique.push(n);
+    // Fallback fill: use enhancer pool if active, otherwise sequential
+    if (ePool && ePool.length > 0) {
+        for (var i = 0; i < ePool.length && unique.length < fmt.mainCount; i++) {
+            if (unique.indexOf(ePool[i]) === -1) unique.push(ePool[i]);
+        }
+    } else {
+        for (var n = 1; n <= fmt.mainMax && unique.length < fmt.mainCount; n++) {
+            if (unique.indexOf(n) === -1) unique.push(n);
+        }
     }
     return unique.slice(0, fmt.mainCount).sort(function(a, b) { return a - b; });
 }
@@ -7327,10 +7626,13 @@ function saveMatrixResults() {
 
 function clearMatrixResults() {
     _matrixResults = [];
+    _matrixEnhancerPool = [];
     var c = document.getElementById('matrix-output');
     if (c) c.innerHTML = '';
     var fp = document.getElementById('matrix-filter-panel');
     if (fp) fp.style.display = 'none';
+    var ep = document.getElementById('matrix-enhancer-panel');
+    if (ep) ep.style.display = 'none';
     var st = document.getElementById('mxf-status');
     if (st) st.textContent = '';
 }
