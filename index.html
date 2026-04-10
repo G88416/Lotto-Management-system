@@ -1950,8 +1950,12 @@ const FORMATS = [
     { id:'ar-quiniela',         name:'Argentine Quiniela',         flag:'\u{1F1E6}\u{1F1F7}', mainCount:5,  mainMax:100,bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:50,   currency:'$',   jackpot:'$500K+',     drawDays:[1,2,3,4,5],   drawTime:'18:00' },
 
     /* ---- US State ---- */
-    { id:'ny-take5',            name:'New York Take 5',            flag:'\u{1F1FA}\u{1F1F8}', mainCount:5,  mainMax:39, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:1,    currency:'$',   jackpot:'$50K+',      drawDays:[0,1,2,3,4,5,6], drawTime:'23:00' },
-    { id:'us-lucky-for-life',   name:'US Lucky For Life',          flag:'\u{1F1FA}\u{1F1F8}', mainCount:5,  mainMax:48, bonusCount:1, bonusMax:18, bonusLabel:'Lucky Ball',     bonusColor:'ball-lucky', ticketPrice:2,    currency:'$',   jackpot:'$1K/day',    drawDays:[1,4],         drawTime:'22:35' },
+    { id:'ny-take5',                    name:'New York Take 5',                        flag:'\u{1F1FA}\u{1F1F8}', mainCount:5,  mainMax:39, bonusCount:0, bonusMax:0,  bonusLabel:'',           bonusColor:'',           ticketPrice:1,    currency:'$',   jackpot:'$50K+',      drawDays:[0,1,2,3,4,5,6], drawTime:'23:00' },
+    { id:'us-lucky-for-life',           name:'US Lucky For Life',                      flag:'\u{1F1FA}\u{1F1F8}', mainCount:5,  mainMax:48, bonusCount:1, bonusMax:18, bonusLabel:'Lucky Ball', bonusColor:'ball-lucky', ticketPrice:2,    currency:'$',   jackpot:'$1K/day',    drawDays:[1,4],         drawTime:'22:35' },
+    { id:'tx-all-or-nothing-morning',   name:'All or Nothing Morning Texas 12/24',     flag:'\u{1F1FA}\u{1F1F8}', mainCount:12, mainMax:24, bonusCount:0, bonusMax:0,  bonusLabel:'',           bonusColor:'',           ticketPrice:2,    currency:'$',   jackpot:'$500K+',     drawDays:[1,2,3,4,5,6], drawTime:'10:12' },
+    { id:'tx-all-or-nothing-day',       name:'All or Nothing Day Texas 12/24',         flag:'\u{1F1FA}\u{1F1F8}', mainCount:12, mainMax:24, bonusCount:0, bonusMax:0,  bonusLabel:'',           bonusColor:'',           ticketPrice:2,    currency:'$',   jackpot:'$500K+',     drawDays:[1,2,3,4,5,6], drawTime:'12:27' },
+    { id:'tx-all-or-nothing-evening',   name:'All or Nothing Evening Texas 12/24',     flag:'\u{1F1FA}\u{1F1F8}', mainCount:12, mainMax:24, bonusCount:0, bonusMax:0,  bonusLabel:'',           bonusColor:'',           ticketPrice:2,    currency:'$',   jackpot:'$500K+',     drawDays:[1,2,3,4,5,6], drawTime:'18:27' },
+    { id:'tx-all-or-nothing-night',     name:'All or Nothing Night Texas 12/24',       flag:'\u{1F1FA}\u{1F1F8}', mainCount:12, mainMax:24, bonusCount:0, bonusMax:0,  bonusLabel:'',           bonusColor:'',           ticketPrice:2,    currency:'$',   jackpot:'$500K+',     drawDays:[1,2,3,4,5,6], drawTime:'22:12' },
 
     /* ---- Chile ---- */
     { id:'cl-loto',             name:'Chilean Loto',               flag:'\u{1F1E8}\u{1F1F1}', mainCount:6,  mainMax:41, bonusCount:0, bonusMax:0,  bonusLabel:'',               bonusColor:'',           ticketPrice:500,  currency:'CLP', jackpot:'CLP300M+',   drawDays:[6],           drawTime:'21:00' }
@@ -4466,24 +4470,32 @@ function refreshLiveDraws() {
 
 /* Map common lottery name variants found in pasted text to internal format IDs */
 var PASTE_CANVAS_NAME_MAP = {
-    'uk 49s brunchtime 6/49':  'uk-49s-brunchtime',
-    'uk 49s brunchtime':        'uk-49s-brunchtime',
-    'uk 49s teatime 6/49':      'uk-49s',
-    'uk 49s teatime':           'uk-49s',
-    'uk 49s 6/49':              'uk-49s',
-    'uk 49s':                   'uk-49s',
-    'uk 39s 5/39':              'uk-39s',
-    'uk 39s':                   'uk-39s',
-    'sa lotto':                 'sa-lotto',
-    'sa powerball':             'sa-powerball',
-    'sa daily lotto':           'sa-daily',
-    'euromillions':             'euro-millions',
-    'euro millions':            'euro-millions',
-    'uk lotto':                 'uk-lotto',
-    'us powerball':             'us-powerball',
-    'mega millions':            'mega-millions',
-    'multi win lotto 6/35':     'ph-multi-win',
-    'multi win lotto':          'ph-multi-win'
+    'uk 49s brunchtime 6/49':              'uk-49s-brunchtime',
+    'uk 49s brunchtime':                    'uk-49s-brunchtime',
+    'uk 49s teatime 6/49':                  'uk-49s',
+    'uk 49s teatime':                       'uk-49s',
+    'uk 49s 6/49':                          'uk-49s',
+    'uk 49s':                               'uk-49s',
+    'uk 39s 5/39':                          'uk-39s',
+    'uk 39s':                               'uk-39s',
+    'sa lotto':                             'sa-lotto',
+    'sa powerball':                         'sa-powerball',
+    'sa daily lotto':                       'sa-daily',
+    'euromillions':                         'euro-millions',
+    'euro millions':                        'euro-millions',
+    'uk lotto':                             'uk-lotto',
+    'us powerball':                         'us-powerball',
+    'mega millions':                        'mega-millions',
+    'multi win lotto 6/35':                 'ph-multi-win',
+    'multi win lotto':                      'ph-multi-win',
+    'all or nothing morning texas 12/24':   'tx-all-or-nothing-morning',
+    'all or nothing morning texas':         'tx-all-or-nothing-morning',
+    'all or nothing day texas 12/24':       'tx-all-or-nothing-day',
+    'all or nothing day texas':             'tx-all-or-nothing-day',
+    'all or nothing evening texas 12/24':   'tx-all-or-nothing-evening',
+    'all or nothing evening texas':         'tx-all-or-nothing-evening',
+    'all or nothing night texas 12/24':     'tx-all-or-nothing-night',
+    'all or nothing night texas':           'tx-all-or-nothing-night'
 };
 
 var PASTE_MONTH_MAP = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
@@ -4517,28 +4529,30 @@ function pasteCanvasMatchFormat(rawName) {
 
 /* Split a concatenated number string (e.g. "2716412645305") into exactly
    `count` unique integers in range [1, maxVal] using backtracking.
-   Tries 2-digit numbers first (greedy) then falls back to 1-digit.
-   Returns null if no valid split exists. */
+   First attempts an ascending-order parse (correct for official results published
+   in sorted order); falls back to an unconstrained parse for results listed in
+   draw order.  Returns null if no valid split exists. */
 function pasteCanvasSplitNumbers(str, count, maxVal) {
     var digits = str.replace(/\D/g, '');
-    function bt(pos, acc) {
+    function bt(pos, acc, sortedAsc) {
         if (acc.length === count && pos === digits.length) return acc.slice();
         if (acc.length > count || pos >= digits.length) return null;
+        var prev = sortedAsc && acc.length > 0 ? acc[acc.length - 1] : 0;
         if (pos + 2 <= digits.length) {
             var two = parseInt(digits.substring(pos, pos + 2), 10);
-            if (two >= 1 && two <= maxVal && acc.indexOf(two) === -1) {
-                var r = bt(pos + 2, acc.concat(two));
+            if (two >= 1 && two <= maxVal && (!sortedAsc || two > prev) && acc.indexOf(two) === -1) {
+                var r = bt(pos + 2, acc.concat(two), sortedAsc);
                 if (r) return r;
             }
         }
         var one = parseInt(digits.substring(pos, pos + 1), 10);
-        if (one >= 1 && one <= maxVal && acc.indexOf(one) === -1) {
-            var r2 = bt(pos + 1, acc.concat(one));
+        if (one >= 1 && one <= maxVal && (!sortedAsc || one > prev) && acc.indexOf(one) === -1) {
+            var r2 = bt(pos + 1, acc.concat(one), sortedAsc);
             if (r2) return r2;
         }
         return null;
     }
-    return bt(0, []);
+    return bt(0, [], true) || bt(0, [], false);
 }
 
 var _pasteCanvasParsed = [];
