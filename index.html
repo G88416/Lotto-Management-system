@@ -1492,12 +1492,12 @@
                         <!-- Quick presets -->
                         <label>Quick Presets</label>
                         <div class="gap-filter-preset-row">
-                            <span class="gap-filter-preset" onclick="applyGapFilterPreset('overdue-candidates')">&#9201;&#65039; Overdue Candidates</span>
-                            <span class="gap-filter-preset" onclick="applyGapFilterPreset('hot-zone')">&#128308; Hot Zone</span>
-                            <span class="gap-filter-preset" onclick="applyGapFilterPreset('cold-comeback')">&#9904;&#65039; Cold Comeback</span>
-                            <span class="gap-filter-preset" onclick="applyGapFilterPreset('balanced')">&#9878;&#65039; Balanced Selection</span>
-                            <span class="gap-filter-preset" onclick="applyGapFilterPreset('never-drawn')">&#128683; Never Drawn</span>
-                            <span class="gap-filter-preset" onclick="applyGapFilterPreset('reset')">&#10006; Reset</span>
+                            <span class="gap-filter-preset" data-preset="overdue-candidates" onclick="applyGapFilterPreset('overdue-candidates')">&#9201;&#65039; Overdue Candidates</span>
+                            <span class="gap-filter-preset" data-preset="hot-zone"           onclick="applyGapFilterPreset('hot-zone')">&#128308; Hot Zone</span>
+                            <span class="gap-filter-preset" data-preset="cold-comeback"      onclick="applyGapFilterPreset('cold-comeback')">&#9904;&#65039; Cold Comeback</span>
+                            <span class="gap-filter-preset" data-preset="balanced"           onclick="applyGapFilterPreset('balanced')">&#9878;&#65039; Balanced Selection</span>
+                            <span class="gap-filter-preset" data-preset="never-drawn"        onclick="applyGapFilterPreset('never-drawn')">&#9898; Never Drawn</span>
+                            <span class="gap-filter-preset" data-preset="reset"              onclick="applyGapFilterPreset('reset')">&#10006; Reset</span>
                         </div>
 
                         <!-- Gap range -->
@@ -8474,7 +8474,7 @@ function _setAllTiers(active) {
 function applyGapFilterPreset(preset) {
     // deactivate all preset chips, then activate the clicked one
     document.querySelectorAll('.gap-filter-preset').forEach(function(el) {
-        el.classList.toggle('active', el.getAttribute('onclick').indexOf("'" + preset + "'") !== -1);
+        el.classList.toggle('active', el.getAttribute('data-preset') === preset);
     });
 
     if (preset === 'reset') { resetGapFilter(); return; }
@@ -8507,7 +8507,7 @@ function applyGapFilterPreset(preset) {
         _setInput('gf-freq-max', null);
         _setInput('gf-num-min', null);
         _setInput('gf-num-max', null);
-        _gapFilterTiers = { hot: false, warm: false, cool: true, cold: true, never: false };
+        _gapFilterTiers = { hot: true, warm: true, cool: false, cold: false, never: false };
         document.querySelectorAll('#gap-filter-tiers .gap-ftier').forEach(function(el) {
             var t = el.getAttribute('data-tier');
             el.classList.toggle('active', _gapFilterTiers[t]);
@@ -8638,7 +8638,7 @@ function applyGapFilter() {
     matched.forEach(function(e) {
         var tier  = getTier(e);
         var bg    = BALL_COLORS[tier];
-        var label = e.never ? 'Never' : (e.gap === 0 ? 'Last' : e.gap + 'ago');
+        var label = e.never ? 'Never' : (e.gap === 0 ? 'Last' : e.gap + ' ago');
         html += '<div style="text-align:center;">' +
             '<div class="gap-filter-ball" style="background:' + bg + ';margin:0 auto 2px;" title="#' + e.num + ': gap ' + e.gap + ', freq ' + e.freq + '">' + e.num + '</div>' +
             '<div style="font-size:0.62rem;color:var(--text-muted);font-weight:700;">' + label + '</div>' +
