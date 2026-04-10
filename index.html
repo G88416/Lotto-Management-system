@@ -380,6 +380,41 @@
         .gap-delta-top5 { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
         .delta-top-pill { padding:4px 12px; border-radius:20px; font-size:0.78rem; font-weight:700; background:var(--accent-grad); color:#fff; display:inline-flex; align-items:center; gap:5px; }
         .delta-top-pill .dtp-cnt { font-size:0.68rem; opacity:0.85; }
+        /* Smart Custom Gap Filter */
+        .gap-filter-panel { border-top:2px solid var(--border); margin-top:18px; padding-top:18px; }
+        .gap-filter-toggle { display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; }
+        .gap-filter-toggle-icon { font-size:0.8rem; color:var(--text-muted); transition:transform 0.25s; }
+        .gap-filter-toggle-icon.open { transform:rotate(180deg); }
+        .gap-filter-body { margin-top:14px; }
+        .gap-filter-preset-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+        .gap-filter-preset { padding:5px 13px; border-radius:20px; border:2px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+        .gap-filter-preset:hover  { border-color:var(--purple); color:var(--purple); }
+        .gap-filter-preset.active { border-color:var(--purple); background:rgba(139,92,246,0.12); color:var(--purple); }
+        .gap-filter-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+        .gap-filter-row.single { grid-template-columns:1fr; }
+        .gap-filter-field label { font-size:0.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px; display:block; }
+        .gap-filter-field input[type="number"] { padding:9px 12px; font-size:0.9rem; }
+        .gap-filter-tier-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+        .gap-ftier { padding:4px 12px; border-radius:20px; border:2px solid; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.18s; opacity:0.45; }
+        .gap-ftier.active { opacity:1; }
+        .gap-ftier-hot   { border-color:#ef4444; color:#b91c1c; }
+        .gap-ftier-hot.active   { background:rgba(239,68,68,0.15); }
+        .gap-ftier-warm  { border-color:#f59e0b; color:#92400e; }
+        .gap-ftier-warm.active  { background:rgba(245,158,11,0.15); }
+        .gap-ftier-cool  { border-color:#10b981; color:#065f46; }
+        .gap-ftier-cool.active  { background:rgba(16,185,129,0.15); }
+        .gap-ftier-cold  { border-color:#3b82f6; color:#1e40af; }
+        .gap-ftier-cold.active  { background:rgba(59,130,246,0.15); }
+        .gap-ftier-never { border-color:#64748b; color:#475569; }
+        .gap-ftier-never.active { background:rgba(100,116,139,0.15); }
+        .gap-filter-match-row { display:flex; align-items:center; gap:10px; margin-bottom:14px; font-size:0.82rem; font-weight:700; color:var(--text-muted); }
+        .gap-filter-match-btn { padding:4px 12px; border-radius:20px; border:2px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+        .gap-filter-match-btn.active { border-color:var(--purple); background:rgba(139,92,246,0.12); color:var(--purple); }
+        .gap-filter-status { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:12px; padding:10px 14px; border-radius:12px; background:var(--surface2); border:1px solid var(--border); font-size:0.82rem; }
+        .gap-filter-count-badge { padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:800; background:var(--accent-grad); color:#fff; }
+        .gap-filter-result-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(56px,1fr)); gap:6px; margin-top:10px; }
+        .gap-filter-ball { border-radius:50%; width:48px; height:48px; display:flex; align-items:center; justify-content:center; font-size:0.88rem; font-weight:800; color:#fff; cursor:default; transition:transform 0.15s; box-shadow:0 2px 8px rgba(0,0,0,0.15); }
+        .gap-filter-ball:hover { transform:scale(1.12); }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1442,6 +1477,100 @@
                     </div>
                 </div>
                 <button class="btn btn-primary" onclick="runNumberOverdue()">&#9201;&#65039; Analyse Gaps</button>
+
+                <!-- Smart Custom Gap Filter -->
+                <div class="gap-filter-panel">
+                    <div class="gap-filter-toggle" onclick="toggleGapFilterPanel()">
+                        <span class="fw-700" style="font-size:0.95rem;">&#128270; Smart Custom Gap Filter</span>
+                        <span class="gap-filter-toggle-icon" id="gap-filter-toggle-icon">&#9660;</span>
+                    </div>
+                    <div class="gap-filter-body" id="gap-filter-body" style="display:none;">
+                        <div class="algo-info" style="margin:10px 0 14px;">
+                            Define conditions to <strong>highlight or isolate</strong> numbers from the overdue list. Combine gap range, frequency bounds, tier selection, and number range — then choose whether ALL or ANY conditions must match.
+                        </div>
+
+                        <!-- Quick presets -->
+                        <label>Quick Presets</label>
+                        <div class="gap-filter-preset-row">
+                            <span class="gap-filter-preset" onclick="applyGapFilterPreset('overdue-candidates')">&#9201;&#65039; Overdue Candidates</span>
+                            <span class="gap-filter-preset" onclick="applyGapFilterPreset('hot-zone')">&#128308; Hot Zone</span>
+                            <span class="gap-filter-preset" onclick="applyGapFilterPreset('cold-comeback')">&#9904;&#65039; Cold Comeback</span>
+                            <span class="gap-filter-preset" onclick="applyGapFilterPreset('balanced')">&#9878;&#65039; Balanced Selection</span>
+                            <span class="gap-filter-preset" onclick="applyGapFilterPreset('never-drawn')">&#128683; Never Drawn</span>
+                            <span class="gap-filter-preset" onclick="applyGapFilterPreset('reset')">&#10006; Reset</span>
+                        </div>
+
+                        <!-- Gap range -->
+                        <label>Gap Range (draws since last appearance)</label>
+                        <div class="gap-filter-row">
+                            <div class="gap-filter-field">
+                                <label>Min Gap</label>
+                                <input type="number" id="gf-gap-min" min="0" placeholder="e.g. 5" oninput="applyGapFilter()">
+                            </div>
+                            <div class="gap-filter-field">
+                                <label>Max Gap</label>
+                                <input type="number" id="gf-gap-max" min="0" placeholder="e.g. 20" oninput="applyGapFilter()">
+                            </div>
+                        </div>
+
+                        <!-- Frequency range -->
+                        <label>Frequency Range (times drawn)</label>
+                        <div class="gap-filter-row">
+                            <div class="gap-filter-field">
+                                <label>Min Frequency</label>
+                                <input type="number" id="gf-freq-min" min="0" placeholder="e.g. 2" oninput="applyGapFilter()">
+                            </div>
+                            <div class="gap-filter-field">
+                                <label>Max Frequency</label>
+                                <input type="number" id="gf-freq-max" min="0" placeholder="e.g. 10" oninput="applyGapFilter()">
+                            </div>
+                        </div>
+
+                        <!-- Number range -->
+                        <label>Number Range</label>
+                        <div class="gap-filter-row">
+                            <div class="gap-filter-field">
+                                <label>From Number</label>
+                                <input type="number" id="gf-num-min" min="1" placeholder="e.g. 1" oninput="applyGapFilter()">
+                            </div>
+                            <div class="gap-filter-field">
+                                <label>To Number</label>
+                                <input type="number" id="gf-num-max" min="1" placeholder="e.g. 25" oninput="applyGapFilter()">
+                            </div>
+                        </div>
+
+                        <!-- Tier filter -->
+                        <label>Include Tiers</label>
+                        <div class="gap-filter-tier-row" id="gap-filter-tiers">
+                            <span class="gap-ftier gap-ftier-hot   active" data-tier="hot"   onclick="toggleGapTier(this)">&#128308; Hot</span>
+                            <span class="gap-ftier gap-ftier-warm  active" data-tier="warm"  onclick="toggleGapTier(this)">&#128992; Warm</span>
+                            <span class="gap-ftier gap-ftier-cool  active" data-tier="cool"  onclick="toggleGapTier(this)">&#128994; Cool</span>
+                            <span class="gap-ftier gap-ftier-cold  active" data-tier="cold"  onclick="toggleGapTier(this)">&#128309; Cold</span>
+                            <span class="gap-ftier gap-ftier-never active" data-tier="never" onclick="toggleGapTier(this)">&#9898; Never</span>
+                        </div>
+
+                        <!-- Match mode -->
+                        <div class="gap-filter-match-row">
+                            <span>Match Mode:</span>
+                            <span class="gap-filter-match-btn active" id="gfm-and" onclick="setGapFilterMatch('and',this)">ALL conditions (AND)</span>
+                            <span class="gap-filter-match-btn"        id="gfm-or"  onclick="setGapFilterMatch('or',this)">ANY condition (OR)</span>
+                        </div>
+
+                        <div class="btn-row">
+                            <button class="btn btn-primary btn-sm" onclick="applyGapFilter()">&#128270; Apply Filter</button>
+                            <button class="btn btn-success btn-sm" onclick="exportFilteredToGenerator()" id="gf-export-btn" style="display:none;">&#127919; Send to Generator</button>
+                            <button class="btn btn-secondary btn-sm" onclick="resetGapFilter()">&#10006; Clear Filter</button>
+                        </div>
+
+                        <!-- Status + result -->
+                        <div id="gap-filter-status" style="display:none;" class="gap-filter-status">
+                            <span>Matched:</span>
+                            <span class="gap-filter-count-badge" id="gf-match-count">0</span>
+                            <span class="text-muted text-sm" id="gf-match-info"></span>
+                        </div>
+                        <div id="gap-filter-result"></div>
+                    </div>
+                </div>
             </div>
             <div id="gap-overdue-stats" class="card-grid" style="display:none; margin-bottom:16px;"></div>
             <div id="gap-overdue-output"></div>
@@ -8272,6 +8401,13 @@ var _gapSortMode    = 'overdue';
 var _gapGenStrategy = 'overdue';
 var _gapGenSets     = [];
 
+/* ---- Smart Custom Gap Filter state ---- */
+var _gapFilterMatch  = 'and'; // 'and' | 'or'
+var _gapFilterActive = false;
+var _gapFilterData   = [];    // last computed gapData snapshot (set by runNumberOverdue)
+var _gapFilterTiers  = { hot: true, warm: true, cool: true, cold: true, never: true };
+var _gapFilterExport = null;  // filtered pool exported to generator (null = unrestricted)
+
 function switchGapSub(idx) {
     [0,1,2,3].forEach(function(i) {
         var sub = document.getElementById('gap-sub-' + i);
@@ -8288,6 +8424,310 @@ function setGapSort(chip, val) {
     });
     _gapSortMode = val;
     runNumberOverdue();
+}
+
+/* ---- Smart Custom Gap Filter helpers ---- */
+function toggleGapFilterPanel() {
+    var body = document.getElementById('gap-filter-body');
+    var icon = document.getElementById('gap-filter-toggle-icon');
+    if (!body) return;
+    var open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    if (icon) icon.classList.toggle('open', !open);
+}
+
+function toggleGapTier(el) {
+    var tier = el.getAttribute('data-tier');
+    el.classList.toggle('active');
+    _gapFilterTiers[tier] = el.classList.contains('active');
+    applyGapFilter();
+}
+
+function setGapFilterMatch(mode, btn) {
+    _gapFilterMatch = mode;
+    ['gfm-and', 'gfm-or'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.toggle('active', id === ('gfm-' + mode));
+    });
+    applyGapFilter();
+}
+
+function _readNum(id) {
+    var el = document.getElementById(id);
+    if (!el || el.value === '') return null;
+    var v = parseInt(el.value, 10);
+    return isNaN(v) ? null : v;
+}
+
+function _setInput(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.value = val === null ? '' : val;
+}
+
+function _setAllTiers(active) {
+    _gapFilterTiers = { hot: active, warm: active, cool: active, cold: active, never: active };
+    document.querySelectorAll('#gap-filter-tiers .gap-ftier').forEach(function(el) {
+        el.classList.toggle('active', active);
+    });
+}
+
+function applyGapFilterPreset(preset) {
+    // deactivate all preset chips, then activate the clicked one
+    document.querySelectorAll('.gap-filter-preset').forEach(function(el) {
+        el.classList.toggle('active', el.getAttribute('onclick').indexOf("'" + preset + "'") !== -1);
+    });
+
+    if (preset === 'reset') { resetGapFilter(); return; }
+
+    // Restore tier checkboxes to all-on before applying preset
+    _setAllTiers(true);
+
+    var gd = _gapFilterData;
+    var gaps = gd.map(function(e){ return e.gap; });
+    var maxGap = gaps.length ? Math.max.apply(null, gaps) : 1;
+    var p50 = Math.round(maxGap * 0.50);
+    var p75 = Math.round(maxGap * 0.75);
+    var freqs = gd.map(function(e){ return e.freq; });
+    var maxFreq = freqs.length ? Math.max.apply(null, freqs) : 1;
+
+    if (preset === 'overdue-candidates') {
+        _setInput('gf-gap-min', p50);
+        _setInput('gf-gap-max', null);
+        _setInput('gf-freq-min', null);
+        _setInput('gf-freq-max', null);
+        _setInput('gf-num-min', null);
+        _setInput('gf-num-max', null);
+        _setAllTiers(true);
+        setGapFilterMatch('and', document.getElementById('gfm-and'));
+
+    } else if (preset === 'hot-zone') {
+        _setInput('gf-gap-min', null);
+        _setInput('gf-gap-max', null);
+        _setInput('gf-freq-min', Math.round(maxFreq * 0.6));
+        _setInput('gf-freq-max', null);
+        _setInput('gf-num-min', null);
+        _setInput('gf-num-max', null);
+        _gapFilterTiers = { hot: false, warm: false, cool: true, cold: true, never: false };
+        document.querySelectorAll('#gap-filter-tiers .gap-ftier').forEach(function(el) {
+            var t = el.getAttribute('data-tier');
+            el.classList.toggle('active', _gapFilterTiers[t]);
+        });
+        setGapFilterMatch('and', document.getElementById('gfm-and'));
+
+    } else if (preset === 'cold-comeback') {
+        _setInput('gf-gap-min', p75);
+        _setInput('gf-gap-max', null);
+        _setInput('gf-freq-min', null);
+        _setInput('gf-freq-max', null);
+        _setInput('gf-num-min', null);
+        _setInput('gf-num-max', null);
+        _gapFilterTiers = { hot: true, warm: true, cool: false, cold: false, never: true };
+        document.querySelectorAll('#gap-filter-tiers .gap-ftier').forEach(function(el) {
+            var t = el.getAttribute('data-tier');
+            el.classList.toggle('active', _gapFilterTiers[t]);
+        });
+        setGapFilterMatch('or', document.getElementById('gfm-or'));
+
+    } else if (preset === 'balanced') {
+        _setInput('gf-gap-min', null);
+        _setInput('gf-gap-max', null);
+        _setInput('gf-freq-min', Math.round(maxFreq * 0.25));
+        _setInput('gf-freq-max', Math.round(maxFreq * 0.75));
+        _setInput('gf-num-min', null);
+        _setInput('gf-num-max', null);
+        _setAllTiers(true);
+        setGapFilterMatch('and', document.getElementById('gfm-and'));
+
+    } else if (preset === 'never-drawn') {
+        _setInput('gf-gap-min', null);
+        _setInput('gf-gap-max', null);
+        _setInput('gf-freq-min', 0);
+        _setInput('gf-freq-max', 0);
+        _setInput('gf-num-min', null);
+        _setInput('gf-num-max', null);
+        _gapFilterTiers = { hot: false, warm: false, cool: false, cold: false, never: true };
+        document.querySelectorAll('#gap-filter-tiers .gap-ftier').forEach(function(el) {
+            var t = el.getAttribute('data-tier');
+            el.classList.toggle('active', _gapFilterTiers[t]);
+        });
+        setGapFilterMatch('and', document.getElementById('gfm-and'));
+    }
+    applyGapFilter();
+}
+
+function applyGapFilter() {
+    var statusEl  = document.getElementById('gap-filter-status');
+    var resultEl  = document.getElementById('gap-filter-result');
+    var exportBtn = document.getElementById('gf-export-btn');
+    if (!statusEl || !resultEl) return;
+
+    var gd = _gapFilterData;
+    if (!gd.length) {
+        statusEl.style.display = 'none';
+        resultEl.innerHTML = '<p class="text-muted text-sm" style="margin-top:8px;">Run <strong>Analyse Gaps</strong> first to load data.</p>';
+        if (exportBtn) exportBtn.style.display = 'none';
+        return;
+    }
+
+    var gapMin  = _readNum('gf-gap-min');
+    var gapMax  = _readNum('gf-gap-max');
+    var freqMin = _readNum('gf-freq-min');
+    var freqMax = _readNum('gf-freq-max');
+    var numMin  = _readNum('gf-num-min');
+    var numMax  = _readNum('gf-num-max');
+
+    // Determine maxGap for tier pct calculation
+    var maxGap = gd.length ? Math.max.apply(null, gd.map(function(e){ return e.gap; })) || 1 : 1;
+
+    function getTier(e) {
+        if (e.never) return 'never';
+        var pct = Math.round((e.gap / maxGap) * 100);
+        if (pct > 70) return 'hot';
+        if (pct > 40) return 'warm';
+        if (pct > 15) return 'cool';
+        return 'cold';
+    }
+
+    // Build per-entry condition results
+    var matched = gd.filter(function(e) {
+        var conds = [];
+
+        if (gapMin !== null)  conds.push(e.gap >= gapMin);
+        if (gapMax !== null)  conds.push(e.gap <= gapMax);
+        if (freqMin !== null) conds.push(e.freq >= freqMin);
+        if (freqMax !== null) conds.push(e.freq <= freqMax);
+        if (numMin !== null)  conds.push(e.num >= numMin);
+        if (numMax !== null)  conds.push(e.num <= numMax);
+
+        var tier = getTier(e);
+        conds.push(_gapFilterTiers[tier] === true);
+
+        if (!conds.length) return true;
+        return _gapFilterMatch === 'and'
+            ? conds.every(function(c){ return c; })
+            : conds.some(function(c){ return c; });
+    });
+
+    _gapFilterActive = true;
+
+    // Status bar
+    var infoStr = matched.length + ' of ' + gd.length + ' numbers match';
+    if (matched.length === 0) infoStr += ' — try loosening the conditions or switching to OR mode.';
+    statusEl.style.display   = 'flex';
+    document.getElementById('gf-match-count').textContent = matched.length;
+    document.getElementById('gf-match-info').textContent  = infoStr;
+    if (exportBtn) exportBtn.style.display = matched.length > 0 ? 'inline-flex' : 'none';
+
+    if (!matched.length) {
+        resultEl.innerHTML = '<p class="text-muted text-sm" style="margin-top:8px;">No numbers match the current filter conditions.</p>';
+        return;
+    }
+
+    // Render matched numbers as coloured balls
+    var BALL_COLORS = {
+        hot:   'linear-gradient(135deg,#ef4444,#b91c1c)',
+        warm:  'linear-gradient(135deg,#f59e0b,#d97706)',
+        cool:  'linear-gradient(135deg,#10b981,#059669)',
+        cold:  'linear-gradient(135deg,#3b82f6,#1d4ed8)',
+        never: 'linear-gradient(135deg,#64748b,#475569)'
+    };
+
+    var html = '<div style="margin-top:12px;">' +
+        '<div class="fw-700 mb-8" style="font-size:0.88rem;">&#128270; Matched Numbers <span class="text-muted text-sm fw-400">— coloured by tier</span></div>' +
+        '<div class="gap-filter-result-grid">';
+    matched.forEach(function(e) {
+        var tier  = getTier(e);
+        var bg    = BALL_COLORS[tier];
+        var label = e.never ? 'Never' : (e.gap === 0 ? 'Last' : e.gap + 'ago');
+        html += '<div style="text-align:center;">' +
+            '<div class="gap-filter-ball" style="background:' + bg + ';margin:0 auto 2px;" title="#' + e.num + ': gap ' + e.gap + ', freq ' + e.freq + '">' + e.num + '</div>' +
+            '<div style="font-size:0.62rem;color:var(--text-muted);font-weight:700;">' + label + '</div>' +
+            '</div>';
+    });
+    html += '</div>';
+
+    // Quick stats about the matched set
+    var matchedGaps  = matched.map(function(e){ return e.gap; });
+    var matchedFreqs = matched.map(function(e){ return e.freq; });
+    var mAvgGap  = (matchedGaps.reduce(function(s,v){ return s+v; }, 0) / matchedGaps.length).toFixed(1);
+    var mAvgFreq = (matchedFreqs.reduce(function(s,v){ return s+v; }, 0) / matchedFreqs.length).toFixed(1);
+    html += '<div class="gap-adv-stats-grid" style="margin-top:12px;">' +
+        '<div class="gap-adv-stat"><div class="gav-val">' + matched.length + '</div><div class="gav-lbl">Matched</div></div>' +
+        '<div class="gap-adv-stat"><div class="gav-val">' + mAvgGap + '</div><div class="gav-lbl">&#8709; Gap</div></div>' +
+        '<div class="gap-adv-stat"><div class="gav-val">' + mAvgFreq + '</div><div class="gav-lbl">&#8709; Freq</div></div>' +
+        '<div class="gap-adv-stat"><div class="gav-val">' + Math.max.apply(null, matchedGaps) + '</div><div class="gav-lbl">Max Gap</div></div>' +
+        '</div></div>';
+    resultEl.innerHTML = html;
+}
+
+function resetGapFilter() {
+    _setInput('gf-gap-min', null);
+    _setInput('gf-gap-max', null);
+    _setInput('gf-freq-min', null);
+    _setInput('gf-freq-max', null);
+    _setInput('gf-num-min', null);
+    _setInput('gf-num-max', null);
+    _setAllTiers(true);
+    setGapFilterMatch('and', document.getElementById('gfm-and'));
+    _gapFilterActive = false;
+    var statusEl  = document.getElementById('gap-filter-status');
+    var resultEl  = document.getElementById('gap-filter-result');
+    var exportBtn = document.getElementById('gf-export-btn');
+    document.querySelectorAll('.gap-filter-preset').forEach(function(el){ el.classList.remove('active'); });
+    if (statusEl)  statusEl.style.display = 'none';
+    if (resultEl)  resultEl.innerHTML = '';
+    if (exportBtn) exportBtn.style.display = 'none';
+}
+
+function exportFilteredToGenerator() {
+    // Switch to Gap Generator sub-tab, set strategy to 'overdue' (the filtered pool
+    // will be the source for the next runGapGenerator call via _gapFilterData).
+    // We pre-fill the generator format to match the overdue tab's current format.
+    var srcFmt = document.getElementById('gap-format');
+    var genFmt = document.getElementById('gap-gen-format');
+    if (srcFmt && genFmt) genFmt.value = srcFmt.value;
+
+    switchGapSub(2);
+    var genSubBtn = document.getElementById('gap-sub-btn-2');
+    if (genSubBtn) genSubBtn.click();
+
+    // Store the filtered numbers in a global so the generator can pick from them
+    var gd = _gapFilterData;
+    var maxGap = gd.length ? Math.max.apply(null, gd.map(function(e){ return e.gap; })) || 1 : 1;
+    function getTier(e) {
+        if (e.never) return 'never';
+        var pct = Math.round((e.gap / maxGap) * 100);
+        if (pct > 70) return 'hot';
+        if (pct > 40) return 'warm';
+        if (pct > 15) return 'cool';
+        return 'cold';
+    }
+    var gapMin  = _readNum('gf-gap-min');
+    var gapMax  = _readNum('gf-gap-max');
+    var freqMin = _readNum('gf-freq-min');
+    var freqMax = _readNum('gf-freq-max');
+    var numMin  = _readNum('gf-num-min');
+    var numMax  = _readNum('gf-num-max');
+    var filtered = gd.filter(function(e) {
+        var conds = [];
+        if (gapMin !== null)  conds.push(e.gap >= gapMin);
+        if (gapMax !== null)  conds.push(e.gap <= gapMax);
+        if (freqMin !== null) conds.push(e.freq >= freqMin);
+        if (freqMax !== null) conds.push(e.freq <= freqMax);
+        if (numMin !== null)  conds.push(e.num >= numMin);
+        if (numMax !== null)  conds.push(e.num <= numMax);
+        var tier = getTier(e);
+        conds.push(_gapFilterTiers[tier] === true);
+        if (!conds.length) return true;
+        return _gapFilterMatch === 'and'
+            ? conds.every(function(c){ return c; })
+            : conds.some(function(c){ return c; });
+    });
+
+    _gapFilterExport = filtered;
+    showToast(filtered.length + ' filtered numbers sent to Gap Generator!', 'success');
+    var desc = document.getElementById('gap-gen-desc');
+    if (desc) desc.innerHTML = '&#128270; <strong>Custom Filter Export:</strong> Generator pool is restricted to the <strong>' + filtered.length + ' numbers</strong> matched by your Smart Gap Filter.';
 }
 
 var GAP_GEN_DESCS = {
@@ -8348,6 +8788,9 @@ function runNumberOverdue() {
     } else {
         gapData.sort(function(a,b) { return a.num - b.num; });
     }
+
+    // Snapshot for Smart Custom Gap Filter
+    _gapFilterData = gapData.slice();
 
     var maxGap     = Math.max.apply(null, gapData.map(function(e){ return e.gap; })) || 1;
     var neverCount = gapData.filter(function(e){ return e.never; }).length;
@@ -8599,9 +9042,17 @@ function buildGapCombination(fmt, gapData, draws, strategy) {
     var k = fmt.mainCount;
     var nums;
 
+    // If a filtered pool has been exported from the Smart Gap Filter, restrict gapData to it
+    var effectivePool = gapData;
+    if (_gapFilterExport && _gapFilterExport.length >= k) {
+        var exportNums = _gapFilterExport.map(function(e){ return e.num; });
+        var restricted = gapData.filter(function(e){ return exportNums.indexOf(e.num) !== -1; });
+        if (restricted.length >= k) effectivePool = restricted;
+    }
+
     if (strategy === 'overdue') {
         // Weight each number by its gap + 1 (most overdue gets most weight)
-        nums = weightedGapPick(gapData, k, function(e){ return e.gap + 1; });
+        nums = weightedGapPick(effectivePool, k, function(e){ return e.gap + 1; });
 
     } else if (strategy === 'delta') {
         // Collect historical deltas
@@ -8631,7 +9082,7 @@ function buildGapCombination(fmt, gapData, draws, strategy) {
             }
             // Fill any remaining slots with overdue numbers
             if (combo.size < k) {
-                var remain = gapData.filter(function(e){ return !combo.has(e.num); });
+                var remain = effectivePool.filter(function(e){ return !combo.has(e.num); });
                 weightedGapPick(remain, k - combo.size, function(e){ return e.gap + 1; }).forEach(function(n){ combo.add(n); });
             }
             nums = Array.from(combo).sort(function(a,b){ return a-b; });
@@ -8640,8 +9091,8 @@ function buildGapCombination(fmt, gapData, draws, strategy) {
     } else if (strategy === 'mixed') {
         // Half from overdue pool, half filled uniformly from the rest
         var half = Math.ceil(k / 2);
-        var overdueNums = weightedGapPick(gapData, half, function(e){ return e.gap + 1; });
-        var remaining   = gapData.filter(function(e){ return overdueNums.indexOf(e.num) === -1; });
+        var overdueNums = weightedGapPick(effectivePool, half, function(e){ return e.gap + 1; });
+        var remaining   = effectivePool.filter(function(e){ return overdueNums.indexOf(e.num) === -1; });
         var fillNums    = weightedGapPick(remaining, k - half, function(e){ return 1; });
         nums = overdueNums.concat(fillNums).sort(function(a,b){ return a-b; });
 
@@ -8649,7 +9100,7 @@ function buildGapCombination(fmt, gapData, draws, strategy) {
         // Uses the sum of all gap values as the LCG seed. When there are no draws,
         // all gaps are 0 so the sum is 0; adding the random 0-999 offset ensures a
         // non-trivial seed, making this strategy usable even without draw history.
-        var seed    = gapData.reduce(function(s,e){ return s + e.gap; }, 0) + Math.floor(Math.random() * 1000);
+        var seed    = effectivePool.reduce(function(s,e){ return s + e.gap; }, 0) + Math.floor(Math.random() * 1000);
         var seedRef = { val: Math.abs(seed) || 1 };
         nums = generateUniqueNumbers(k, fmt.mainMax, 'seed', seedRef);
     }
@@ -8697,15 +9148,19 @@ function runGapGenerator() {
     persist();
     renderGapGenOutput(fmt, _gapGenSets);
     updateHeader();
+    // Clear filter export after use so next run is unrestricted unless re-exported
+    _gapFilterExport = null;
 }
 
 function renderGapGenOutput(fmt, sets) {
     var outputEl = document.getElementById('gap-gen-output');
     if (!outputEl) return;
     if (!sets.length) { outputEl.innerHTML = ''; return; }
+    var filterBadge = _gapFilterExport
+        ? ' <span class="enh-active-badge">&#128270; Filter Active</span>' : '';
     outputEl.innerHTML = '<div class="card">' +
         '<div class="flex justify-between items-center flex-wrap gap-10 mb-14">' +
-        '<span class="fw-800">' + fmt.flag + ' ' + fmt.name + ' &mdash; ' + sets.length + ' Combination' + (sets.length > 1 ? 's' : '') + '</span>' +
+        '<span class="fw-800">' + fmt.flag + ' ' + fmt.name + ' &mdash; ' + sets.length + ' Combination' + (sets.length > 1 ? 's' : '') + filterBadge + '</span>' +
         '<span class="text-sm text-muted">Gap Generator &mdash; Strategy: ' + _gapGenStrategy + '</span>' +
         '</div>' +
         sets.map(function(s, idx) {
