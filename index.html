@@ -320,6 +320,22 @@
         /* ---- Number Generator Enhancer ---- */
         .enh-preview { padding:8px 12px; border-radius:8px; background:var(--surface); border:1px solid var(--border); font-size:0.82rem; color:var(--text-muted); min-height:36px; word-break:break-all; line-height:1.6; }
         .enh-active-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:12px; font-size:0.72rem; font-weight:700; background:rgba(139,92,246,0.15); color:var(--purple); border:1px solid rgba(139,92,246,0.3); }
+        /* ---- Lotto Gap Analyser ---- */
+        .gap-overdue-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); }
+        .gap-overdue-row:last-child { border-bottom:none; }
+        .gap-overdue-num { width:36px; height:36px; border-radius:50%; background:var(--accent-grad); color:#fff; font-weight:800; font-size:0.88rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .gap-overdue-num.gon-hot   { background:linear-gradient(135deg,#ef4444,#b91c1c); }
+        .gap-overdue-num.gon-warm  { background:linear-gradient(135deg,#f59e0b,#d97706); }
+        .gap-overdue-num.gon-cool  { background:linear-gradient(135deg,#10b981,#059669); }
+        .gap-overdue-num.gon-cold  { background:linear-gradient(135deg,#3b82f6,#1d4ed8); }
+        .gap-overdue-num.gon-never { background:linear-gradient(135deg,#64748b,#475569); }
+        .gap-overdue-label { font-size:0.78rem; font-weight:700; min-width:90px; text-align:right; color:var(--text-muted); }
+        .gap-delta-card { background:var(--surface2); border:1px solid var(--border); border-radius:13px; padding:12px 16px; margin-bottom:8px; }
+        .gap-delta-chip { padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; background:rgba(139,92,246,0.12); color:var(--purple); border:1px solid rgba(139,92,246,0.25); display:inline-block; }
+        .gap-hist-wrap { display:flex; align-items:flex-end; gap:3px; height:90px; border-bottom:2px solid var(--border); padding-bottom:2px; overflow-x:auto; }
+        .gap-hist-col { display:flex; flex-direction:column; align-items:center; gap:2px; min-width:24px; flex-shrink:0; }
+        .gap-hist-bar-fill { width:18px; background:var(--accent-grad); border-radius:3px 3px 0 0; min-height:2px; transition:height 0.4s; }
+        .gap-hist-lbl { font-size:0.62rem; color:var(--text-muted); font-weight:700; }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -372,6 +388,7 @@
         <button class="tab-btn" onclick="switchTab('livedraws')">&#128995; Live Draws</button>
         <button class="tab-btn" onclick="switchTab('patterns')">&#129302; Patterns</button>
         <button class="tab-btn" onclick="switchTab('combimatrix')">&#128300; Combi-Matrix</button>
+        <button class="tab-btn" onclick="switchTab('lottogap')">&#128207; Lotto Gap</button>
     </nav>
 
     <!-- QUICK PICK -->
@@ -1333,6 +1350,131 @@
             <div id="matrix-predict-output"></div>
         </div>
     </section>
+
+    <!-- LOTTO GAP -->
+    <section id="sec-lottogap" class="section">
+        <div class="section-title">&#128207; Lotto Gap Analyser</div>
+        <div class="algo-info" style="margin-bottom:20px;">
+            Dedicated gap analysis engine &mdash; three views in one: <strong>Number Overdue</strong> tracks how many draws have passed since each number last appeared, <strong>Delta Analysis</strong> measures the spacing between consecutive numbers within draws, and <strong>Gap Generator</strong> builds ticket combinations using overdue and delta patterns from your saved draw history.
+        </div>
+
+        <!-- Sub-navigation -->
+        <div class="tab-nav" style="margin-bottom:20px;">
+            <button class="tab-btn active" id="gap-sub-btn-0" onclick="switchGapSub(0)">&#9201;&#65039; Number Overdue</button>
+            <button class="tab-btn" id="gap-sub-btn-1" onclick="switchGapSub(1)">&#128207; Delta Analysis</button>
+            <button class="tab-btn" id="gap-sub-btn-2" onclick="switchGapSub(2)">&#127919; Gap Generator</button>
+        </div>
+
+        <!-- Sub 0: Number Overdue -->
+        <div id="gap-sub-0">
+            <div class="card">
+                <div class="pattern-section-title">&#9201;&#65039; Number Overdue Tracker</div>
+                <div class="algo-info" style="margin-bottom:14px;">
+                    Shows how many draws have passed since each number was last drawn. Numbers with the <strong>longest gap</strong> appear at the top. Warm bars indicate numbers that have not appeared in many draws; cool bars indicate recently drawn numbers. Draws are sourced from your saved Pattern Draws and Live Draws history.
+                </div>
+                <div class="grid-2" style="margin-bottom:14px;">
+                    <div>
+                        <label>Lottery Format</label>
+                        <select id="gap-format" onchange="runNumberOverdue()"></select>
+                    </div>
+                    <div>
+                        <label>Draws to Analyse</label>
+                        <select id="gap-scope" onchange="runNumberOverdue()">
+                            <option value="10">Last 10 draws</option>
+                            <option value="20" selected>Last 20 draws</option>
+                            <option value="50">Last 50 draws</option>
+                            <option value="100">Last 100 draws</option>
+                            <option value="0">All draws</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom:14px;">
+                    <label>Sort Order</label>
+                    <div class="wf-chip-row" id="gap-sort-chips">
+                        <span class="wf-chip wf-active" data-gap-sort="overdue" onclick="setGapSort(this,'overdue')">&#9201;&#65039; Most Overdue First</span>
+                        <span class="wf-chip" data-gap-sort="recent"  onclick="setGapSort(this,'recent')">&#9889; Most Recent First</span>
+                        <span class="wf-chip" data-gap-sort="number"  onclick="setGapSort(this,'number')">&#128290; By Number</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="runNumberOverdue()">&#9201;&#65039; Analyse Gaps</button>
+            </div>
+            <div id="gap-overdue-stats" class="card-grid" style="display:none; margin-bottom:16px;"></div>
+            <div id="gap-overdue-output"></div>
+        </div>
+
+        <!-- Sub 1: Delta Analysis -->
+        <div id="gap-sub-1" style="display:none;">
+            <div class="card">
+                <div class="pattern-section-title">&#128207; Draw Delta Analysis</div>
+                <div class="algo-info" style="margin-bottom:14px;">
+                    <strong>Delta</strong> = the gap between consecutive numbers sorted within a single draw. Small average &#916; means numbers are tightly clustered; large &#916; means they are widely spread. The histogram shows how often each gap size appears across all analysed draws, revealing common spacing patterns in the lottery&#8217;s history.
+                </div>
+                <div class="grid-2" style="margin-bottom:14px;">
+                    <div>
+                        <label>Lottery Format</label>
+                        <select id="gap-delta-format" onchange="runDeltaAnalysis()"></select>
+                    </div>
+                    <div>
+                        <label>Draws to Analyse</label>
+                        <select id="gap-delta-scope" onchange="runDeltaAnalysis()">
+                            <option value="10">Last 10 draws</option>
+                            <option value="20" selected>Last 20 draws</option>
+                            <option value="50">Last 50 draws</option>
+                            <option value="100">Last 100 draws</option>
+                            <option value="0">All draws</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="runDeltaAnalysis()">&#128207; Analyse Deltas</button>
+            </div>
+            <div id="gap-delta-summary" style="display:none;"></div>
+            <div id="gap-delta-output"></div>
+        </div>
+
+        <!-- Sub 2: Gap Generator -->
+        <div id="gap-sub-2" style="display:none;">
+            <div class="card">
+                <div class="pattern-section-title">&#127919; Gap-Based Ticket Generator</div>
+                <div class="algo-info" style="margin-bottom:14px;">
+                    Generates ticket combinations driven by gap and overdue data from your saved draw history. Choose a strategy to control how overdue numbers and historical delta patterns influence the picks.
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Lottery Format</label>
+                        <select id="gap-gen-format"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Combinations</label>
+                        <select id="gap-gen-count">
+                            <option value="1">1 combination</option>
+                            <option value="3" selected>3 combinations</option>
+                            <option value="5">5 combinations</option>
+                            <option value="10">10 combinations</option>
+                            <option value="20">20 combinations</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Generation Strategy <span class="paste-count-badge" style="font-size:0.7rem;margin-left:6px;">Select One</span></label>
+                    <div class="wf-chip-row" id="gap-gen-strategy-chips">
+                        <span class="wf-chip wf-active" data-gapgen="overdue"   onclick="setGapGenStrategy(this,'overdue')">&#9201;&#65039; Most Overdue</span>
+                        <span class="wf-chip"            data-gapgen="delta"    onclick="setGapGenStrategy(this,'delta')">&#128207; Delta Pattern</span>
+                        <span class="wf-chip"            data-gapgen="mixed"    onclick="setGapGenStrategy(this,'mixed')">&#9878;&#65039; Mixed</span>
+                        <span class="wf-chip"            data-gapgen="gap-seed" onclick="setGapGenStrategy(this,'gap-seed')">&#127807; Gap-Seeded</span>
+                    </div>
+                </div>
+                <div class="comb-algo-desc" id="gap-gen-desc">
+                    &#9201;&#65039; <strong>Most Overdue:</strong> Selects numbers that have not appeared in the most recent draws &mdash; favouring numbers that are statistically &ldquo;due&rdquo; to be drawn.
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary"   onclick="runGapGenerator()">&#127919; Generate Combinations</button>
+                    <button class="btn btn-success"   onclick="saveGapResults()">&#128190; Save All to Tickets</button>
+                    <button class="btn btn-secondary" onclick="clearGapResults()">&#128465;&#65039; Clear</button>
+                </div>
+            </div>
+            <div id="gap-gen-output"></div>
+        </div>
+    </section>
 </div>
 
 <!-- SAVE TICKET MODAL -->
@@ -1823,7 +1965,7 @@ function loadPersisted() {
     } catch(e) {}
 }
 
-var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix'];
+var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap'];
 
 function switchTab(key) {
     TAB_KEYS.forEach(function(k, i) {
@@ -1839,6 +1981,7 @@ function switchTab(key) {
     if (key === 'livedraws') renderLiveDraws();
     if (key === 'patterns')  { runPatternDetector(); renderSavedPatternDraws(); }
     if (key === 'combimatrix') { renderMatrixReconstructorDrawList(); }
+    if (key === 'lottogap')    { runNumberOverdue(); }
 }
 
 function switchSeedSub(idx) {
@@ -1861,7 +2004,7 @@ function buildFormatGrids() {
                 '<div class="jackpot">' + f.jackpot + '</div></div>';
         }).join('');
     });
-    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter'].forEach(function(id) {
+    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter','gap-format','gap-delta-format','gap-gen-format'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
@@ -8043,6 +8186,392 @@ function saveMatrixTop5ToTickets() {
     _lastTop5Predictions.forEach(function(p) { addTicket(p.formatId, p.main, p.bonus, '', 'Combi-Matrix Prediction'); });
     updateHeader();
     showToast(_lastTop5Predictions.length + ' predictions saved to tickets!', 'success');
+}
+
+/* ============================================================
+   LOTTO GAP ANALYSER
+   Three sub-tabs: Number Overdue, Delta Analysis, Gap Generator.
+   Reuses getCombinedDrawsForFormat + existing helpers.
+   ============================================================ */
+
+var _gapSortMode    = 'overdue';
+var _gapGenStrategy = 'overdue';
+var _gapGenSets     = [];
+
+function switchGapSub(idx) {
+    [0,1,2].forEach(function(i) {
+        var sub = document.getElementById('gap-sub-' + i);
+        var btn = document.getElementById('gap-sub-btn-' + i);
+        if (sub) sub.style.display = i === idx ? 'block' : 'none';
+        if (btn) btn.classList.toggle('active', i === idx);
+    });
+}
+
+function setGapSort(chip, val) {
+    document.querySelectorAll('#gap-sort-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c === chip);
+    });
+    _gapSortMode = val;
+    runNumberOverdue();
+}
+
+var GAP_GEN_DESCS = {
+    'overdue':   '&#9201;&#65039; <strong>Most Overdue:</strong> Selects numbers that have not appeared in the most recent draws &mdash; favouring numbers that are statistically &ldquo;due&rdquo; to be drawn.',
+    'delta':     '&#128207; <strong>Delta Pattern:</strong> Analyses the most frequent gap sizes in draw history and assembles a combination whose internal spacing matches these common patterns.',
+    'mixed':     '&#9878;&#65039; <strong>Mixed:</strong> Blends overdue weighting with delta-pattern spacing. Half the numbers come from the overdue pool; the rest are filled using historical delta patterns.',
+    'gap-seed':  '&#127807; <strong>Gap-Seeded:</strong> Uses the sum of all current gap values as a seed into an LCG to produce a deterministic yet gap-driven combination.'
+};
+
+function setGapGenStrategy(chip, val) {
+    document.querySelectorAll('#gap-gen-strategy-chips .wf-chip').forEach(function(c) {
+        c.classList.toggle('wf-active', c === chip);
+    });
+    _gapGenStrategy = val;
+    var desc = document.getElementById('gap-gen-desc');
+    if (desc) desc.innerHTML = GAP_GEN_DESCS[val] || '';
+}
+
+/* ---- Sub 0: Number Overdue ---- */
+function runNumberOverdue() {
+    var fmtEl   = document.getElementById('gap-format');
+    var scopeEl = document.getElementById('gap-scope');
+    if (!fmtEl) return;
+    var fmtId   = fmtEl.value;
+    var scope   = parseInt(scopeEl ? scopeEl.value : '20') || 0;
+    var fmt     = getAllFormats().find(function(f) { return f.id === fmtId; });
+    if (!fmt) return;
+    var draws   = getCombinedDrawsForFormat(fmtId);
+    if (scope > 0) draws = draws.slice(0, scope);
+
+    var statsEl  = document.getElementById('gap-overdue-stats');
+    var outputEl = document.getElementById('gap-overdue-output');
+
+    if (!draws.length) {
+        if (statsEl)  statsEl.style.display = 'none';
+        if (outputEl) outputEl.innerHTML = '<div class="card"><p class="text-muted text-center" style="padding:20px 0;">No draws found for this format. Add draws via the <strong>Live Draws</strong> tab or save them to Patterns first.</p></div>';
+        return;
+    }
+
+    // Compute gap and frequency for every number in the format range
+    var gapData = [];
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        var gap = draws.length; // default: never appeared
+        for (var i = 0; i < draws.length; i++) {
+            if ((draws[i].numbers || []).indexOf(n) !== -1) { gap = i; break; }
+        }
+        var freq = 0;
+        draws.forEach(function(d) { if ((d.numbers || []).indexOf(n) !== -1) freq++; });
+        gapData.push({ num: n, gap: gap, freq: freq, never: gap === draws.length });
+    }
+
+    // Sort
+    if (_gapSortMode === 'overdue') {
+        gapData.sort(function(a,b) { return b.gap - a.gap; });
+    } else if (_gapSortMode === 'recent') {
+        gapData.sort(function(a,b) { return a.gap - b.gap; });
+    } else {
+        gapData.sort(function(a,b) { return a.num - b.num; });
+    }
+
+    var maxGap     = Math.max.apply(null, gapData.map(function(e){ return e.gap; })) || 1;
+    var neverCount = gapData.filter(function(e){ return e.never; }).length;
+    var avgGap     = (gapData.reduce(function(s,e){ return s + e.gap; }, 0) / gapData.length).toFixed(1);
+    var byOverdue  = gapData.slice().sort(function(a,b){ return b.gap - a.gap; });
+    var mostOverdue = byOverdue[0];
+
+    // Stats summary
+    if (statsEl) {
+        statsEl.style.display = 'grid';
+        statsEl.innerHTML =
+            '<div class="stat-card"><div class="stat-icon">&#128202;</div><div><div class="stat-label">Draws Analysed</div><div class="stat-value">' + draws.length + '</div></div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#9201;&#65039;</div><div><div class="stat-label">Most Overdue</div><div class="stat-value" style="color:var(--red);">' + (mostOverdue ? '#' + mostOverdue.num + ' (' + (mostOverdue.never ? 'Never' : mostOverdue.gap + ' ago') + ')' : '&mdash;') + '</div></div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#128200;</div><div><div class="stat-label">Avg Gap</div><div class="stat-value">' + avgGap + '</div></div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#128683;</div><div><div class="stat-label">Never Drawn</div><div class="stat-value" style="color:var(--text-muted);">' + neverCount + '</div></div></div>';
+    }
+
+    // Per-number breakdown
+    if (outputEl) {
+        var html = '<div class="card"><div class="pattern-section-title">&#9201;&#65039; All Numbers &mdash; Overdue Breakdown <span class="text-muted text-sm fw-400">(' + draws.length + ' draws)</span></div>';
+        gapData.forEach(function(e) {
+            var pct      = maxGap ? Math.round((e.gap / maxGap) * 100) : 0;
+            var barClass = pct > 60 ? 'gap-bar-warm' : 'gap-bar-cool';
+            var ballClass;
+            if      (e.never)  ballClass = 'gon-never';
+            else if (pct > 70) ballClass = 'gon-hot';
+            else if (pct > 40) ballClass = 'gon-warm';
+            else if (pct > 15) ballClass = 'gon-cool';
+            else               ballClass = 'gon-cold';
+            var label = e.never ? '&#128683; Never drawn' : (e.gap === 0 ? '&#9889; Last draw' : e.gap + ' draw' + (e.gap !== 1 ? 's' : '') + ' ago');
+            html += '<div class="gap-overdue-row">' +
+                '<div class="gap-overdue-num ' + ballClass + '">' + e.num + '</div>' +
+                '<div class="gap-bar-wrap" style="flex:1;"><div class="' + barClass + '" style="width:' + pct + '%;"></div></div>' +
+                '<div class="gap-overdue-label">' + label + '</div>' +
+                '<div style="font-size:0.72rem;color:var(--text-muted);min-width:55px;text-align:right;">' + e.freq + '&times; drawn</div>' +
+                '</div>';
+        });
+        html += '</div>';
+        outputEl.innerHTML = html;
+    }
+}
+
+/* ---- Sub 1: Delta Analysis ---- */
+function runDeltaAnalysis() {
+    var fmtEl   = document.getElementById('gap-delta-format');
+    var scopeEl = document.getElementById('gap-delta-scope');
+    if (!fmtEl) return;
+    var fmtId   = fmtEl.value;
+    var scope   = parseInt(scopeEl ? scopeEl.value : '20') || 0;
+    var fmt     = getAllFormats().find(function(f) { return f.id === fmtId; });
+    if (!fmt) return;
+    var draws   = getCombinedDrawsForFormat(fmtId);
+    if (scope > 0) draws = draws.slice(0, scope);
+
+    var summaryEl = document.getElementById('gap-delta-summary');
+    var outputEl  = document.getElementById('gap-delta-output');
+
+    if (!draws.length) {
+        if (summaryEl) summaryEl.style.display = 'none';
+        if (outputEl) outputEl.innerHTML = '<div class="card"><p class="text-muted text-center" style="padding:20px 0;">No draws found for this format. Add draws via the <strong>Live Draws</strong> tab first.</p></div>';
+        return;
+    }
+
+    // Compute deltas for each draw
+    var allDeltas = [];
+    var deltaFreq = {};
+    var drawResults = draws.map(function(d) {
+        var sorted = (d.numbers || []).slice().sort(function(a,b){ return a-b; });
+        var deltas = [];
+        for (var i = 1; i < sorted.length; i++) {
+            var delta = sorted[i] - sorted[i-1];
+            deltas.push(delta);
+            allDeltas.push(delta);
+            deltaFreq[delta] = (deltaFreq[delta] || 0) + 1;
+        }
+        var avg  = deltas.length ? (deltas.reduce(function(s,v){ return s+v; }, 0) / deltas.length) : 0;
+        var maxD = deltas.length ? Math.max.apply(null, deltas) : 0;
+        var minD = deltas.length ? Math.min.apply(null, deltas) : 0;
+        return { draw: d, sorted: sorted, deltas: deltas, avg: avg.toFixed(1), maxD: maxD, minD: minD };
+    });
+
+    var overallAvg = allDeltas.length ? (allDeltas.reduce(function(s,v){ return s+v; }, 0) / allDeltas.length).toFixed(1) : '&mdash;';
+    var overallMax = allDeltas.length ? Math.max.apply(null, allDeltas) : 0;
+    var overallMin = allDeltas.length ? Math.min.apply(null, allDeltas) : 0;
+
+    // Most common delta
+    var mostCommonDelta = 1, mostCommonCount = 0;
+    Object.keys(deltaFreq).forEach(function(k) {
+        if (deltaFreq[k] > mostCommonCount) { mostCommonCount = deltaFreq[k]; mostCommonDelta = +k; }
+    });
+
+    // Histogram data
+    var histMax = 0;
+    for (var k = 1; k <= overallMax; k++) { var c = deltaFreq[k] || 0; if (c > histMax) histMax = c; }
+    if (!histMax) histMax = 1;
+
+    if (summaryEl) {
+        summaryEl.style.display = 'block';
+        var histHtml = '<div class="gap-hist-wrap">';
+        for (var h = 1; h <= overallMax; h++) {
+            var cnt  = deltaFreq[h] || 0;
+            var barH = Math.round((cnt / histMax) * 70);
+            histHtml += '<div class="gap-hist-col">' +
+                '<div class="gap-hist-bar-fill" style="height:' + barH + 'px;"></div>' +
+                '<div class="gap-hist-lbl">&#916;' + h + '</div>' +
+                '</div>';
+        }
+        histHtml += '</div>';
+        summaryEl.innerHTML = '<div class="card">' +
+            '<div class="pattern-section-title">&#128202; Delta Summary &mdash; ' + draws.length + ' draws</div>' +
+            '<div class="card-grid" style="margin-bottom:16px;">' +
+            '<div class="stat-card"><div class="stat-icon">&#128207;</div><div><div class="stat-label">Avg Delta</div><div class="stat-value">' + overallAvg + '</div></div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#9650;</div><div><div class="stat-label">Max Gap</div><div class="stat-value">' + overallMax + '</div></div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#9660;</div><div><div class="stat-label">Min Gap</div><div class="stat-value">' + overallMin + '</div></div></div>' +
+            '<div class="stat-card"><div class="stat-icon">&#127942;</div><div><div class="stat-label">Most Common &#916;</div><div class="stat-value" style="color:var(--purple);">&#916;' + mostCommonDelta + ' &times;' + mostCommonCount + '</div></div></div>' +
+            '</div>' +
+            '<div class="fw-700 mb-8" style="font-size:0.88rem;">&#916; Value Frequency Histogram</div>' +
+            '<p class="text-muted text-sm mb-8">Each column shows how many times that gap size appeared across all analysed draws. Taller = more common.</p>' +
+            histHtml +
+            '</div>';
+    }
+
+    // Per-draw breakdown
+    if (outputEl) {
+        var html = '<div class="card"><div class="pattern-section-title">&#128207; Per-Draw Delta Breakdown</div>';
+        drawResults.forEach(function(r) {
+            var date = r.draw.date || '';
+            var deltaChips = r.deltas.map(function(d){ return '<span class="gap-delta-chip">&#916;' + d + '</span>'; }).join('');
+            html += '<div class="gap-delta-card">' +
+                '<div class="flex justify-between items-center flex-wrap gap-10">' +
+                '<div class="balls-row">' + renderBalls(r.sorted, 'ball-main ball-sm', fmt, []) + '</div>' +
+                '<div class="flex gap-10 items-center flex-wrap">' +
+                (date ? '<span class="text-muted text-sm">' + date + '</span>' : '') +
+                '<span class="cmb cmb-sum">&#916;avg ' + r.avg + '</span>' +
+                '<span class="cmb cmb-odd">&#916;max ' + r.maxD + '</span>' +
+                '<span class="cmb cmb-high">&#916;min ' + r.minD + '</span>' +
+                '</div></div>' +
+                '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">' + deltaChips + '</div>' +
+                '</div>';
+        });
+        html += '</div>';
+        outputEl.innerHTML = html;
+    }
+}
+
+/* ---- Sub 2: Gap Generator ---- */
+
+/* Weighted random pick of `count` numbers from gapData, using weightFn(entry) as weight */
+function weightedGapPick(gapData, count, weightFn) {
+    var pool   = gapData.slice();
+    var result = [];
+    while (result.length < count && pool.length > 0) {
+        var totalWeight = pool.reduce(function(s,e){ return s + weightFn(e); }, 0);
+        if (totalWeight <= 0) { result.push(pool.splice(0,1)[0].num); continue; }
+        var r   = Math.random() * totalWeight;
+        var cum = 0;
+        var chosen = null;
+        for (var i = 0; i < pool.length; i++) {
+            cum += weightFn(pool[i]);
+            if (r <= cum) { chosen = pool.splice(i, 1)[0]; break; }
+        }
+        if (!chosen) chosen = pool.splice(0, 1)[0];
+        result.push(chosen.num);
+    }
+    return result.sort(function(a,b){ return a-b; });
+}
+
+function buildGapCombination(fmt, gapData, draws, strategy) {
+    var k = fmt.mainCount;
+    var nums;
+
+    if (strategy === 'overdue') {
+        // Weight each number by its gap + 1 (most overdue gets most weight)
+        nums = weightedGapPick(gapData, k, function(e){ return e.gap + 1; });
+
+    } else if (strategy === 'delta') {
+        // Collect historical deltas
+        var allDeltas = [];
+        draws.forEach(function(d) {
+            var s = (d.numbers || []).slice().sort(function(a,b){ return a-b; });
+            for (var i = 1; i < s.length; i++) allDeltas.push(s[i] - s[i-1]);
+        });
+        if (!allDeltas.length) {
+            nums = generateUniqueNumbers(k, fmt.mainMax, 'true-random', null);
+        } else {
+            // Build combination from a random start using k-1 sampled historical deltas
+            var combo = new Set();
+            var attempts = 0;
+            while (combo.size < k && attempts < 200) {
+                combo.clear();
+                var start = Math.floor(Math.random() * (fmt.mainMax - 1)) + 1;
+                if (start < 1 || start > fmt.mainMax) { attempts++; continue; }
+                combo.add(start);
+                var cur = start;
+                for (var di = 0; di < k - 1 && combo.size < k; di++) {
+                    var delta = allDeltas[Math.floor(Math.random() * allDeltas.length)];
+                    cur += delta;
+                    if (cur >= 1 && cur <= fmt.mainMax) combo.add(cur);
+                }
+                attempts++;
+            }
+            // Fill any remaining slots with overdue numbers
+            if (combo.size < k) {
+                var remain = gapData.filter(function(e){ return !combo.has(e.num); });
+                weightedGapPick(remain, k - combo.size, function(e){ return e.gap + 1; }).forEach(function(n){ combo.add(n); });
+            }
+            nums = Array.from(combo).sort(function(a,b){ return a-b; });
+        }
+
+    } else if (strategy === 'mixed') {
+        // Half from overdue pool, half filled uniformly from the rest
+        var half = Math.ceil(k / 2);
+        var overdueNums = weightedGapPick(gapData, half, function(e){ return e.gap + 1; });
+        var remaining   = gapData.filter(function(e){ return overdueNums.indexOf(e.num) === -1; });
+        var fillNums    = weightedGapPick(remaining, k - half, function(e){ return 1; });
+        nums = overdueNums.concat(fillNums).sort(function(a,b){ return a-b; });
+
+    } else { // 'gap-seed'
+        // Use total gap sum as LCG seed for a deterministic but gap-driven pick
+        var seed    = gapData.reduce(function(s,e){ return s + e.gap; }, 0) + Math.floor(Math.random() * 1000);
+        var seedRef = { val: Math.abs(seed) || 1 };
+        nums = generateUniqueNumbers(k, fmt.mainMax, 'seed', seedRef);
+    }
+
+    if (!nums || nums.length < k) {
+        nums = generateUniqueNumbers(k, fmt.mainMax, 'true-random', null);
+    }
+    return nums.slice(0, k).sort(function(a,b){ return a-b; });
+}
+
+function runGapGenerator() {
+    var fmtEl = document.getElementById('gap-gen-format');
+    var cntEl = document.getElementById('gap-gen-count');
+    if (!fmtEl) return;
+    var fmtId = fmtEl.value;
+    var count = parseInt(cntEl ? cntEl.value : '3') || 3;
+    var fmt   = getAllFormats().find(function(f) { return f.id === fmtId; });
+    if (!fmt) { showToast('Select a lottery format', 'error'); return; }
+
+    var draws = getCombinedDrawsForFormat(fmtId);
+    if (!draws.length && _gapGenStrategy !== 'gap-seed') {
+        showToast('No draws found for ' + fmt.name + '. Add draws via the Live Draws tab first.', 'error');
+        return;
+    }
+
+    // Build gap data for every number in the format range
+    var gapData = [];
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        var gap = draws.length;
+        for (var i = 0; i < draws.length; i++) {
+            if ((draws[i].numbers || []).indexOf(n) !== -1) { gap = i; break; }
+        }
+        var freq = 0;
+        draws.forEach(function(d) { if ((d.numbers || []).indexOf(n) !== -1) freq++; });
+        gapData.push({ num: n, gap: gap, freq: freq });
+    }
+
+    _gapGenSets = [];
+    for (var ci = 0; ci < count; ci++) {
+        var main  = buildGapCombination(fmt, gapData, draws, _gapGenStrategy);
+        var bonus = fmt.bonusCount > 0 ? generateUniqueNumbers(fmt.bonusCount, fmt.bonusMax, 'crypto', null) : [];
+        _gapGenSets.push({ main: main, bonus: bonus, formatId: fmt.id });
+        recordStats(fmt.id, main.concat(bonus));
+    }
+    persist();
+    renderGapGenOutput(fmt, _gapGenSets);
+    updateHeader();
+}
+
+function renderGapGenOutput(fmt, sets) {
+    var outputEl = document.getElementById('gap-gen-output');
+    if (!outputEl) return;
+    if (!sets.length) { outputEl.innerHTML = ''; return; }
+    outputEl.innerHTML = '<div class="card">' +
+        '<div class="flex justify-between items-center flex-wrap gap-10 mb-14">' +
+        '<span class="fw-800">' + fmt.flag + ' ' + fmt.name + ' &mdash; ' + sets.length + ' Combination' + (sets.length > 1 ? 's' : '') + '</span>' +
+        '<span class="text-sm text-muted">Gap Generator &mdash; Strategy: ' + _gapGenStrategy + '</span>' +
+        '</div>' +
+        sets.map(function(s, idx) {
+            return '<div class="ticket-card">' +
+                '<div class="ticket-header">' +
+                '<span class="ticket-format-badge">' + fmt.flag + ' ' + fmt.name + '</span>' +
+                '<span class="text-muted text-sm">Combination #' + (idx + 1) + '</span>' +
+                '</div>' +
+                '<div class="balls-row" id="gap-gen-balls-' + idx + '">' + renderBalls(s.main, 'ball-main', fmt, s.bonus) + '</div>' +
+                '</div>';
+        }).join('') + '</div>';
+    sets.forEach(function(s, idx) { animateBalls('gap-gen-balls-' + idx); });
+}
+
+function saveGapResults() {
+    if (!_gapGenSets.length) { showToast('Generate combinations first!', 'error'); return; }
+    _gapGenSets.forEach(function(s) { addTicket(s.formatId, s.main, s.bonus, '', 'Lotto Gap'); });
+    showToast(_gapGenSets.length + ' combination' + (_gapGenSets.length > 1 ? 's' : '') + ' saved to tickets!', 'success');
+}
+
+function clearGapResults() {
+    _gapGenSets = [];
+    var el = document.getElementById('gap-gen-output');
+    if (el) el.innerHTML = '';
 }
 
 document.addEventListener('DOMContentLoaded', function() {
