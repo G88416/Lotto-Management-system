@@ -9385,9 +9385,12 @@ function runFrequencyAnalysis() {
    ============================================================ */
 
 function digitRoot(n) {
-    var s = 0;
-    while (n > 0) { s += n % 10; n = Math.floor(n / 10); }
-    return s;
+    while (n >= 10) {
+        var s = 0;
+        while (n > 0) { s += n % 10; n = Math.floor(n / 10); }
+        n = s;
+    }
+    return n;
 }
 
 function runDigitPattern() {
@@ -9462,7 +9465,7 @@ function runDigitPattern() {
     });
     var globalTotal = drHistory.length * posCount || 1;
 
-    var freqRows = Object.keys(globalFreq).sort(function(a,b) { return globalFreq[b] - globalFreq[a]; }).map(function(k) {
+    var freqRows = Object.keys(globalFreq).map(Number).sort(function(a,b) { return globalFreq[b] - globalFreq[a]; }).map(function(k) {
         var pct = (globalFreq[k] / globalTotal * 100).toFixed(1);
         var barW = Math.round(globalFreq[k] / globalTotal * 100);
         return '<tr><td style="text-align:center;font-weight:700;">' + k + '</td>' +
@@ -9531,7 +9534,7 @@ function runDigitPattern() {
 
     /* Build position analysis cards */
     var posCards = posAnalysis.map(function(pa) {
-        var topRoots = Object.keys(pa.posFreq).sort(function(a,b) { return pa.posFreq[b] - pa.posFreq[a]; });
+        var topRoots = Object.keys(pa.posFreq).map(Number).sort(function(a,b) { return pa.posFreq[b] - pa.posFreq[a]; });
         var topHtml = topRoots.slice(0, 5).map(function(k) {
             return '<span class="ball ball-main ball-sm" style="width:34px;height:34px;font-size:0.85rem;">' + k + '</span>' +
                 '<span style="font-size:0.75rem;color:var(--text-muted);">(' + pa.posFreq[k] + ')</span>';
@@ -9600,7 +9603,7 @@ function runDigitPattern() {
             }
         }
         candidates.sort(function(a,b) { return b.freq - a.freq; });
-        predictedNumbers.push(candidates.length ? candidates[0].num : targetRoot);
+        predictedNumbers.push(candidates.length ? candidates[0].num : Math.min(targetRoot, fmt.mainMax));
         alternateNumbers.push(candidates.slice(0, 5));
     }
 
