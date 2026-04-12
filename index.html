@@ -468,6 +468,7 @@
         <button class="tab-btn" onclick="switchTab('patterns')">&#129302; Patterns</button>
         <button class="tab-btn" onclick="switchTab('combimatrix')">&#128300; Combi-Matrix</button>
         <button class="tab-btn" onclick="switchTab('lottogap')">&#128207; Lotto Gap</button>
+        <button class="tab-btn" onclick="switchTab('digitpattern')">&#128290; Digit Pattern</button>
     </nav>
 
     <!-- QUICK PICK -->
@@ -1678,6 +1679,42 @@
             <div id="gap-freq-output"></div>
         </div>
     </section>
+
+    <!-- DIGIT PATTERN IDENTIFIER -->
+    <section id="sec-digitpattern" class="section">
+        <div class="section-title">&#128290; Digit-Root Pattern Identifier</div>
+        <div class="algo-info" style="margin-bottom:20px;">
+            Reduces each drawn number to its <strong>digit root</strong> (sum of digits, e.g. 36&nbsp;&rarr;&nbsp;3+6=9, 11&nbsp;&rarr;&nbsp;1+1=2).
+            Then analyses the digit-root sequences across your saved draw history (minimum <strong>20 draws</strong>) to identify
+            recurring patterns and predict the digit-root profile of the <strong>next draw</strong>, mapping those roots back to the most probable real numbers.
+        </div>
+
+        <div class="card">
+            <div class="pattern-section-title">&#9881;&#65039; Configuration</div>
+            <div class="grid-2" style="margin-bottom:14px;">
+                <div>
+                    <label>Lottery Format</label>
+                    <select id="digitpattern-format" onchange="runDigitPattern()"></select>
+                </div>
+                <div>
+                    <label>Draws to Analyse</label>
+                    <select id="digitpattern-scope" onchange="runDigitPattern()">
+                        <option value="20">Last 20 draws</option>
+                        <option value="30">Last 30 draws</option>
+                        <option value="50" selected>Last 50 draws</option>
+                        <option value="100">Last 100 draws</option>
+                        <option value="0">All draws</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="runDigitPattern()">&#128290; Analyse Digit Patterns</button>
+        </div>
+
+        <div id="digitpattern-status" class="wf-status" style="margin-top:16px;"></div>
+        <div id="digitpattern-history" style="margin-top:16px;"></div>
+        <div id="digitpattern-analysis" style="margin-top:16px;"></div>
+        <div id="digitpattern-prediction" style="margin-top:16px;"></div>
+    </section>
 </div>
 
 <!-- SAVE TICKET MODAL -->
@@ -2172,7 +2209,7 @@ function loadPersisted() {
     } catch(e) {}
 }
 
-var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap'];
+var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern'];
 
 function switchTab(key) {
     TAB_KEYS.forEach(function(k, i) {
@@ -2189,6 +2226,7 @@ function switchTab(key) {
     if (key === 'patterns')  { runPatternDetector(); renderSavedPatternDraws(); }
     if (key === 'combimatrix') { renderMatrixReconstructorDrawList(); }
     if (key === 'lottogap')    { runNumberOverdue(); }
+    if (key === 'digitpattern') { runDigitPattern(); }
 }
 
 function switchSeedSub(idx) {
@@ -2211,7 +2249,7 @@ function buildFormatGrids() {
                 '<div class="jackpot">' + f.jackpot + '</div></div>';
         }).join('');
     });
-    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter','gap-format','gap-delta-format','gap-gen-format','gap-freq-format'].forEach(function(id) {
+    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter','gap-format','gap-delta-format','gap-gen-format','gap-freq-format','digitpattern-format'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
@@ -9336,6 +9374,270 @@ function runFrequencyAnalysis() {
         '<div class="pattern-section-title">&#128202; Frequency Distribution</div>' +
         '<p class="text-muted text-sm mb-8">How many numbers share each draw-count value. Taller bar = more numbers drawn that many times.</p>' +
         freqHistHtml +
+        '</div>';
+}
+
+/* ============================================================
+   DIGIT-ROOT PATTERN IDENTIFIER
+   Reduces each drawn number to its digit root (sum of digits),
+   analyses recurring digit-root sequences across history,
+   and predicts the next draw's digit-root profile.
+   ============================================================ */
+
+function digitRoot(n) {
+    var s = 0;
+    while (n > 0) { s += n % 10; n = Math.floor(n / 10); }
+    return s;
+}
+
+function runDigitPattern() {
+    var fmtId   = document.getElementById('digitpattern-format').value;
+    var scope   = parseInt(document.getElementById('digitpattern-scope').value, 10);
+    var statusEl    = document.getElementById('digitpattern-status');
+    var historyEl   = document.getElementById('digitpattern-history');
+    var analysisEl  = document.getElementById('digitpattern-analysis');
+    var predictionEl = document.getElementById('digitpattern-prediction');
+
+    statusEl.innerHTML = ''; historyEl.innerHTML = ''; analysisEl.innerHTML = ''; predictionEl.innerHTML = '';
+
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
+    if (!fmt) { statusEl.innerHTML = '<span style="color:var(--red);">Select a lottery format.</span>'; return; }
+
+    var allDraws = getCombinedDrawsForFormat(fmtId);
+    if (scope > 0 && allDraws.length > scope) allDraws = allDraws.slice(0, scope);
+
+    if (allDraws.length < 20) {
+        statusEl.innerHTML = '<span style="color:var(--red);">&#9888; Need at least <strong>20</strong> saved draws for ' + fmt.name +
+            '. Currently have <strong>' + allDraws.length + '</strong>. Add draws via the <strong>Live Draws</strong> tab and save to Patterns.</span>';
+        return;
+    }
+
+    statusEl.innerHTML = '<span style="color:var(--green);">&#9989; Analysing <strong>' + allDraws.length + '</strong> draws for <strong>' + fmt.name + '</strong></span>';
+
+    /* ---------- 1. Build digit-root history ---------- */
+    var drHistory = [];   // array of arrays of digit-root values per draw
+    allDraws.forEach(function(d) {
+        var roots = d.numbers.map(function(n) { return digitRoot(n); });
+        drHistory.push({ label: d.label || d.date || '', numbers: d.numbers, roots: roots });
+    });
+
+    /* ---------- Render history table ---------- */
+    var tRows = drHistory.map(function(r, idx) {
+        var numBalls = r.numbers.map(function(n) { return '<span class="ball ball-main ball-sm">' + n + '</span>'; }).join(' ');
+        var rootBalls = r.roots.map(function(v) { return '<span class="ball ball-lucky ball-sm">' + v + '</span>'; }).join(' ');
+        return '<tr><td style="text-align:center;">' + (idx + 1) + '</td>' +
+               '<td style="white-space:nowrap;">' + (r.label || '-') + '</td>' +
+               '<td>' + numBalls + '</td>' +
+               '<td>' + rootBalls + '</td></tr>';
+    }).join('');
+
+    historyEl.innerHTML =
+        '<div class="card"><div class="pattern-section-title">&#128202; Digit-Root History (newest first)</div>' +
+        '<div style="max-height:420px;overflow:auto;">' +
+        '<table class="simple-table" style="width:100%;border-collapse:collapse;font-size:0.88rem;">' +
+        '<thead><tr><th>#</th><th>Draw</th><th>Original Numbers</th><th>Digit Roots</th></tr></thead>' +
+        '<tbody>' + tRows + '</tbody></table></div></div>';
+
+    /* ---------- 2. Position-wise analysis ---------- */
+    var posCount = fmt.mainCount;
+    var posFreq = [];        // posFreq[pos][rootVal] = count
+    var posSequences = [];   // posSequences[pos] = [root1, root2, ...]  (newest first)
+    for (var p = 0; p < posCount; p++) {
+        posFreq.push({});
+        posSequences.push([]);
+    }
+
+    drHistory.forEach(function(r) {
+        for (var p = 0; p < posCount && p < r.roots.length; p++) {
+            var v = r.roots[p];
+            posFreq[p][v] = (posFreq[p][v] || 0) + 1;
+            posSequences[p].push(v);
+        }
+    });
+
+    /* Overall digit-root frequency */
+    var globalFreq = {};
+    drHistory.forEach(function(r) {
+        r.roots.forEach(function(v) { globalFreq[v] = (globalFreq[v] || 0) + 1; });
+    });
+    var globalTotal = drHistory.length * posCount || 1;
+
+    var freqRows = Object.keys(globalFreq).sort(function(a,b) { return globalFreq[b] - globalFreq[a]; }).map(function(k) {
+        var pct = (globalFreq[k] / globalTotal * 100).toFixed(1);
+        var barW = Math.round(globalFreq[k] / globalTotal * 100);
+        return '<tr><td style="text-align:center;font-weight:700;">' + k + '</td>' +
+            '<td style="text-align:center;">' + globalFreq[k] + '</td>' +
+            '<td style="text-align:center;">' + pct + '%</td>' +
+            '<td><div style="background:var(--accent-grad);height:18px;border-radius:8px;width:' + barW + '%;min-width:4px;"></div></td></tr>';
+    }).join('');
+
+    /* ---------- 3. Pattern detection ---------- */
+    /* Detect repeating sub-sequences per position using last N roots */
+    function detectRepeat(seq) {
+        /* Try period lengths 1..floor(len/2). Return best period or null */
+        var len = seq.length;
+        var best = null;
+        for (var period = 1; period <= Math.floor(len / 3); period++) {
+            var match = 0, total = 0;
+            for (var i = 0; i < len - period; i++) {
+                total++;
+                if (seq[i] === seq[i + period]) match++;
+            }
+            var score = match / total;
+            if (score >= 0.45 && (!best || score > best.score)) {
+                best = { period: period, score: score, pattern: seq.slice(0, period) };
+            }
+        }
+        return best;
+    }
+
+    /* Bigram analysis per position: most common transition (prevRoot -> nextRoot) */
+    function bigramPredict(seq) {
+        if (seq.length < 2) return null;
+        var transitions = {};
+        for (var i = 0; i < seq.length - 1; i++) {
+            var key = seq[i + 1] + '->' + seq[i];  // seq is newest-first, so i+1 is older
+            transitions[key] = (transitions[key] || 0) + 1;
+        }
+        /* From the most recent root value, find most likely next */
+        var latest = seq[0];
+        var bestNext = null, bestCount = 0;
+        Object.keys(transitions).forEach(function(k) {
+            var parts = k.split('->');
+            if (parseInt(parts[0], 10) === latest && transitions[k] > bestCount) {
+                bestCount = transitions[k];
+                bestNext = parseInt(parts[1], 10);
+            }
+        });
+        return bestNext;
+    }
+
+    /* Weighted-frequency prediction (most common root per position) */
+    function freqPredict(freqMap) {
+        var best = null, bestC = 0;
+        Object.keys(freqMap).forEach(function(k) {
+            if (freqMap[k] > bestC) { bestC = freqMap[k]; best = parseInt(k, 10); }
+        });
+        return best;
+    }
+
+    var posAnalysis = [];
+    for (var p = 0; p < posCount; p++) {
+        var rep    = detectRepeat(posSequences[p]);
+        var bigram = bigramPredict(posSequences[p]);
+        var freqP  = freqPredict(posFreq[p]);
+        posAnalysis.push({ pos: p + 1, repeat: rep, bigram: bigram, freq: freqP, posFreq: posFreq[p] });
+    }
+
+    /* Build position analysis cards */
+    var posCards = posAnalysis.map(function(pa) {
+        var topRoots = Object.keys(pa.posFreq).sort(function(a,b) { return pa.posFreq[b] - pa.posFreq[a]; });
+        var topHtml = topRoots.slice(0, 5).map(function(k) {
+            return '<span class="ball ball-main ball-sm" style="width:34px;height:34px;font-size:0.85rem;">' + k + '</span>' +
+                '<span style="font-size:0.75rem;color:var(--text-muted);">(' + pa.posFreq[k] + ')</span>';
+        }).join(' ');
+
+        var repHtml = pa.repeat
+            ? '<div style="margin-top:6px;font-size:0.82rem;">&#128260; Repeating cycle of <strong>' + pa.repeat.period + '</strong> (confidence ' + (pa.repeat.score * 100).toFixed(0) + '%): ' +
+              pa.repeat.pattern.map(function(v) { return '<span class="ball ball-lucky ball-sm" style="width:28px;height:28px;font-size:0.78rem;">' + v + '</span>'; }).join(' ') + '</div>'
+            : '<div style="margin-top:6px;font-size:0.82rem;color:var(--text-muted);">No strong repeating cycle detected</div>';
+
+        return '<div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:8px;">' +
+            '<div style="font-weight:800;font-size:1rem;">Position ' + pa.pos + '</div>' +
+            '<div>Top roots: ' + topHtml + '</div>' +
+            repHtml +
+            '</div>';
+    }).join('');
+
+    analysisEl.innerHTML =
+        '<div class="card"><div class="pattern-section-title">&#128200; Overall Digit-Root Frequency</div>' +
+        '<table class="simple-table" style="width:100%;max-width:500px;border-collapse:collapse;font-size:0.88rem;">' +
+        '<thead><tr><th>Root</th><th>Count</th><th>%</th><th>Bar</th></tr></thead>' +
+        '<tbody>' + freqRows + '</tbody></table></div>' +
+        '<div class="card"><div class="pattern-section-title">&#128270; Per-Position Analysis</div>' +
+        '<div class="card-grid">' + posCards + '</div></div>';
+
+    /* ---------- 4. Predict next draw digit roots ---------- */
+    var predictedRoots = [];
+    var methodLabels   = [];
+    for (var p = 0; p < posCount; p++) {
+        var pa = posAnalysis[p];
+        /* Priority: repeating cycle > bigram transition > frequency */
+        if (pa.repeat) {
+            var idx = drHistory.length % pa.repeat.period;
+            var predicted = pa.repeat.pattern[idx];
+            predictedRoots.push(predicted);
+            methodLabels.push('cycle');
+        } else if (pa.bigram !== null) {
+            predictedRoots.push(pa.bigram);
+            methodLabels.push('bigram');
+        } else {
+            predictedRoots.push(pa.freq);
+            methodLabels.push('frequency');
+        }
+    }
+
+    /* ---------- 5. Map predicted roots back to real numbers ---------- */
+    /* For each position, find numbers in the valid range whose digit root matches,
+       then rank by how often they appeared historically in that position. */
+    var posNumHistory = [];  // posNumHistory[pos][number] = count
+    for (var p = 0; p < posCount; p++) posNumHistory.push({});
+    drHistory.forEach(function(r) {
+        for (var p = 0; p < posCount && p < r.numbers.length; p++) {
+            var n = r.numbers[p];
+            posNumHistory[p][n] = (posNumHistory[p][n] || 0) + 1;
+        }
+    });
+
+    var predictedNumbers = [];
+    var alternateNumbers = [];
+    for (var p = 0; p < posCount; p++) {
+        var targetRoot = predictedRoots[p];
+        var candidates = [];
+        for (var n = 1; n <= fmt.mainMax; n++) {
+            if (digitRoot(n) === targetRoot) {
+                candidates.push({ num: n, freq: posNumHistory[p][n] || 0 });
+            }
+        }
+        candidates.sort(function(a,b) { return b.freq - a.freq; });
+        predictedNumbers.push(candidates.length ? candidates[0].num : targetRoot);
+        alternateNumbers.push(candidates.slice(0, 5));
+    }
+
+    /* Sort the final predicted set for display */
+    var sortedPrediction = predictedNumbers.slice().sort(function(a,b) { return a - b; });
+
+    var rootBalls = predictedRoots.map(function(v, i) {
+        return '<div style="text-align:center;">' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">Pos ' + (i + 1) + '</div>' +
+            '<span class="ball ball-lucky" style="font-size:1.3rem;">' + v + '</span>' +
+            '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:3px;">' + methodLabels[i] + '</div></div>';
+    }).join('');
+
+    var numBalls = sortedPrediction.map(function(n) {
+        return '<span class="ball ball-main" style="font-size:1.4rem;">' + n + '</span>';
+    }).join(' ');
+
+    var altRows = alternateNumbers.map(function(alts, i) {
+        var cells = alts.map(function(a) {
+            return '<span class="ball ball-main ball-sm" style="width:38px;height:38px;">' + a.num + '</span>' +
+                '<span style="font-size:0.7rem;color:var(--text-muted);">(' + a.freq + ')</span>';
+        }).join(' ');
+        return '<tr><td style="text-align:center;font-weight:700;">Pos ' + (i + 1) + ' (root ' + predictedRoots[i] + ')</td><td>' + cells + '</td></tr>';
+    }).join('');
+
+    predictionEl.innerHTML =
+        '<div class="card" style="border:2px solid var(--purple);">' +
+        '<div class="pattern-section-title" style="font-size:1.3rem;">&#127919; Next Draw Prediction</div>' +
+        '<div class="algo-info" style="margin-bottom:16px;">Based on digit-root pattern analysis of <strong>' + allDraws.length + '</strong> draws.</div>' +
+        '<div style="margin-bottom:18px;"><strong>Predicted Digit Roots:</strong>' +
+        '<div class="balls-row" style="margin-top:10px;justify-content:center;">' + rootBalls + '</div></div>' +
+        '<div style="margin-bottom:18px;"><strong>Predicted Numbers (sorted):</strong>' +
+        '<div class="balls-row" style="margin-top:10px;justify-content:center;">' + numBalls + '</div></div>' +
+        '<div><strong>Alternate Number Candidates per Position:</strong>' +
+        '<table class="simple-table" style="width:100%;border-collapse:collapse;font-size:0.88rem;margin-top:10px;">' +
+        '<thead><tr><th>Position</th><th>Candidates (frequency in parens)</th></tr></thead>' +
+        '<tbody>' + altRows + '</tbody></table></div>' +
         '</div>';
 }
 
