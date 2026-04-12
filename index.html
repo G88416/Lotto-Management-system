@@ -1710,6 +1710,38 @@
             <button class="btn btn-primary" onclick="runDigitPattern()">&#128290; Analyse Digit Patterns</button>
         </div>
 
+        <!-- PASTE DRAW CANVAS (Digit Pattern) -->
+        <div class="card" style="margin-top:20px;">
+            <div class="paste-workspace-header">
+                <div class="paste-workspace-title">
+                    <span>&#128203;</span>
+                    Paste Draw Results Canvas
+                    <span class="paste-count-badge" id="dp-paste-parsed-count-badge" style="display:none;">&#127919; <span id="dp-paste-parsed-count-val">0</span> parsed</span>
+                    <span class="paste-count-badge" id="dp-paste-saved-count">&#128190; <span id="dp-paste-saved-count-val">0</span> saved</span>
+                </div>
+                <div class="paste-workspace-meta">
+                    <span class="paste-status-dot" id="dp-paste-status-dot"></span>
+                    <span class="text-sm text-muted" id="dp-paste-status-label">Ready</span>
+                </div>
+            </div>
+            <div class="algo-info" style="margin-bottom:16px;">
+                Paste copied draw results below &mdash; the canvas auto-detects the lottery name, draw type, date, time and numbers, then renders them in the app&rsquo;s ball layout. After parsing, use <strong>Save to Digit Pattern</strong> to store draws in the selected lottery format so they feed into the Digit-Root Pattern analysis.<br>
+                <span style="color:var(--text-muted);">Expected format per draw:</span><br>
+                <code style="font-size:0.82rem;">UK 49s Brunchtime 6/49 | 30 Mar 2026 at 12:48:00</code><br>
+                <code style="font-size:0.82rem;">2716412645305</code>
+            </div>
+            <div class="form-group" style="margin-bottom:12px;">
+                <label>Paste Results Here</label>
+                <textarea id="dp-paste-canvas" class="paste-canvas-textarea" oninput="onDpPasteCanvasInput()" placeholder="UK 49s Brunchtime 6/49 | 30 Mar 2026 at 12:48:00&#10;2716412645305&#10;UK 49s Brunchtime 6/49&#10;&#10;UK 49s Brunchtime 6/49 | 29 Mar 2026 at 12:48:00&#10;3637223982324&#10;UK 49s Brunchtime 6/49"></textarea>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="parseDpPasteCanvas()">&#128269; Parse &amp; Preview</button>
+                <button class="btn btn-success" id="btn-dp-paste-save" onclick="saveDpPastedDraws()" style="display:none;">&#128190; Save to Digit Pattern</button>
+                <button class="btn btn-secondary" onclick="clearDpPasteCanvas()">&#10006; Clear</button>
+            </div>
+            <div id="dp-paste-canvas-preview"></div>
+        </div>
+
         <div id="digitpattern-status" class="wf-status" style="margin-top:16px;"></div>
         <div id="digitpattern-history" style="margin-top:16px;"></div>
         <div id="digitpattern-analysis" style="margin-top:16px;"></div>
@@ -9393,6 +9425,267 @@ function digitRoot(n) {
     return n;
 }
 
+/* ============================================================
+   DIGIT PATTERN – PASTE DRAW CANVAS
+   Mirrors the Paste Draw Results Canvas from Live Draws.
+   Parsed draws are saved in the lottery format (state.recentDraws
+   and state.savedPatternDraws) so they feed into Digit Pattern analysis.
+   ============================================================ */
+var _dpPasteCanvasParsed = [];
+
+function parseDpPasteCanvas() {
+    var text = document.getElementById('dp-paste-canvas').value.trim();
+    if (!text) { showToast('Please paste draw results first', 'error'); return; }
+
+    var lines = text.split(/\r?\n/).map(function(l) { return l.trim(); });
+    _dpPasteCanvasParsed = [];
+    var errors = [];
+
+    var i = 0;
+    while (i < lines.length) {
+        var line = lines[i];
+        var hm = line.match(/^(.+?)\s*\|\s*(\d{1,2}\s+\w+\s+\d{4})\s+at\s+(\d{2}:\d{2}:\d{2})\s*$/);
+        if (!hm) { i++; continue; }
+
+        var rawName = hm[1].trim();
+        var dateStr = hm[2].trim();
+        var timeStr = hm[3].trim();
+
+        var numStr = '';
+        var j = i + 1;
+        while (j < lines.length && lines[j] === '') j++;
+        if (j < lines.length && /\d/.test(lines[j]) && lines[j].indexOf('|') === -1) {
+            numStr = lines[j].replace(/\s/g, '');
+            i = j + 1;
+        } else {
+            errors.push('"' + rawName + '" on ' + dateStr + ': no numbers line found');
+            i++;
+            continue;
+        }
+
+        var fmt = pasteCanvasMatchFormat(rawName);
+        var mainCount  = fmt ? fmt.mainCount : 6;
+        var bonusCount = fmt ? fmt.bonusCount : 1;
+        var maxVal     = fmt ? fmt.mainMax : 49;
+        if (!fmt) {
+            var xm = rawName.match(/(\d+)\/(\d+)/);
+            if (xm) { mainCount = parseInt(xm[1], 10); maxVal = parseInt(xm[2], 10); }
+        }
+
+        var isoDate = pasteCanvasParseDate(dateStr);
+        if (!isoDate) {
+            errors.push('"' + rawName + '" on ' + dateStr + ': date could not be parsed');
+            continue;
+        }
+
+        var totalCount = mainCount + bonusCount;
+        var nums = pasteCanvasSplitNumbers(numStr, totalCount, maxVal);
+        if (!nums) {
+            nums = pasteCanvasSplitNumbers(numStr, mainCount, maxVal);
+            if (nums) bonusCount = 0;
+        }
+        if (!nums) {
+            errors.push('"' + rawName + '" on ' + dateStr + ': could not parse numbers from "' + numStr + '"');
+            continue;
+        }
+
+        var mainNums  = nums.slice(0, mainCount);
+        var bonusNums = bonusCount > 0 ? nums.slice(mainCount) : [];
+
+        _dpPasteCanvasParsed.push({
+            formatId:  fmt ? fmt.id : rawName,
+            fmt:       fmt,
+            rawName:   rawName,
+            date:      isoDate,
+            drawTime:  timeStr,
+            numbers:   mainNums,
+            bonus:     bonusNums
+        });
+    }
+
+    renderDpPasteCanvasPreview(_dpPasteCanvasParsed, errors);
+    updateDpPasteWorkspaceStatus();
+}
+
+function renderDpPasteCanvasPreview(draws, errors) {
+    var container = document.getElementById('dp-paste-canvas-preview');
+    if (!draws.length && !errors.length) {
+        container.innerHTML = '<div class="collect-status-box error" style="margin-top:16px;">&#10060; No draw results found. Check the format matches the example and try again.</div>';
+        return;
+    }
+
+    var html = '<div style="margin-top:16px;">';
+
+    if (draws.length) {
+        html += '<div class="collect-status-box success">&#10003; Detected <strong>' + draws.length + '</strong> draw result' + (draws.length !== 1 ? 's' : '') + ' &mdash; review below, then click <strong>Save to Digit Pattern</strong>.</div>';
+        html += '<div class="paste-canvas-preview-draws">';
+        draws.forEach(function(d) {
+            var f        = d.fmt || {};
+            var flag     = f.flag || '&#127921;';
+            var fmtName  = f.name || d.rawName;
+            var dateObj  = new Date(d.date + 'T00:00:00');
+            var dateLbl  = dateObj.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+            html += '<div class="draw-result-card">';
+            html += '<div class="draw-result-header">';
+            html += '<span class="ticket-format-badge">' + flag + ' ' + fmtName + '</span>';
+            html += '<span class="draw-result-date">&#128197; ' + dateLbl + '</span>';
+            html += '<span class="paste-draw-time-badge">&#128336; ' + d.drawTime + '</span>';
+            html += '</div>';
+            html += '<div class="balls-row">';
+            d.numbers.forEach(function(n) {
+                html += '<span class="ball ball-main ball-sm animate">' + n + '</span>';
+            });
+            if (d.bonus.length) {
+                html += '<span class="ball-separator">+</span>';
+                d.bonus.forEach(function(n) {
+                    html += '<span class="ball ' + (f.bonusColor || 'ball-bonus') + ' ball-sm animate">' + n + '</span>';
+                });
+            }
+            html += '</div></div>';
+        });
+        html += '</div>';
+        html += '<div class="btn-row" style="margin-top:14px;">';
+        html += '<button class="btn btn-success" onclick="saveDpPastedDraws()">&#128190; Save ' + draws.length + ' Draw' + (draws.length !== 1 ? 's' : '') + ' to Digit Pattern</button>';
+        html += '<button class="btn btn-secondary" onclick="clearDpPasteCanvas()">&#10006; Cancel</button>';
+        html += '</div>';
+    }
+
+    if (errors.length) {
+        html += '<div class="collect-status-box error" style="margin-top:12px;"><strong>&#9888;&#65039; ' + errors.length + ' item' + (errors.length !== 1 ? 's' : '') + ' could not be parsed:</strong>';
+        html += '<ul style="margin:8px 0 0 18px;">';
+        errors.forEach(function(e) { html += '<li>' + e + '</li>'; });
+        html += '</ul></div>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+/* Save parsed draws into both state.recentDraws and state.savedPatternDraws
+   (the lottery format) so they appear in Digit Pattern analysis via getCombinedDrawsForFormat. */
+function saveDpPastedDraws() {
+    if (!_dpPasteCanvasParsed.length) { showToast('Parse some draws first', 'error'); return; }
+
+    var addedRecent = 0, addedSaved = 0;
+    _dpPasteCanvasParsed.forEach(function(d) {
+        var drawId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36);
+
+        /* Save to recentDraws (Live Draws format) */
+        var existsRecent = state.recentDraws.some(function(r) {
+            return r.formatId === d.formatId && r.date === d.date && r.drawTime === d.drawTime;
+        });
+        if (!existsRecent) {
+            var newDraw = {
+                id:       drawId,
+                formatId: d.formatId,
+                date:     d.date,
+                drawTime: d.drawTime,
+                numbers:  d.numbers,
+                bonus:    d.bonus,
+                addedAt:  new Date().toISOString()
+            };
+            state.recentDraws.unshift(newDraw);
+            fbAddDraw(newDraw);
+            addedRecent++;
+        }
+
+        /* Save to savedPatternDraws (Pattern Detector format) */
+        var existsSaved = state.savedPatternDraws.some(function(r) {
+            return r.formatId === d.formatId && r.date === d.date && r.drawTime === d.drawTime;
+        });
+        if (!existsSaved) {
+            state.savedPatternDraws.unshift({
+                id:       drawId + '-spd',
+                formatId: d.formatId,
+                fmt:      d.fmt,
+                rawName:  d.rawName,
+                date:     d.date,
+                drawTime: d.drawTime,
+                numbers:  d.numbers,
+                bonus:    d.bonus,
+                savedAt:  new Date().toISOString()
+            });
+            addedSaved++;
+        }
+    });
+
+    if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
+    if (state.savedPatternDraws.length > MAX_SAVED_PATTERN_DRAWS) state.savedPatternDraws = state.savedPatternDraws.slice(0, MAX_SAVED_PATTERN_DRAWS);
+    persist();
+
+    /* Refresh related UI */
+    renderLiveDraws();
+    renderSavedPatternDraws();
+    updatePasteWorkspaceStatus();
+
+    /* Clear the digit-pattern paste canvas */
+    _dpPasteCanvasParsed = [];
+    document.getElementById('dp-paste-canvas').value = '';
+    document.getElementById('dp-paste-canvas-preview').innerHTML = '';
+    updateDpPasteWorkspaceStatus();
+
+    var total = addedRecent + addedSaved;
+    if (total > 0) {
+        showToast(addedSaved + ' draw' + (addedSaved !== 1 ? 's' : '') + ' saved to Digit Pattern (lottery format)!', 'success');
+    } else {
+        showToast('All draws were already in the system — nothing added.', 'info');
+    }
+}
+
+function clearDpPasteCanvas() {
+    document.getElementById('dp-paste-canvas').value = '';
+    document.getElementById('dp-paste-canvas-preview').innerHTML = '';
+    _dpPasteCanvasParsed = [];
+    updateDpPasteWorkspaceStatus();
+}
+
+function onDpPasteCanvasInput() {
+    var txt = document.getElementById('dp-paste-canvas').value.trim();
+    var dot = document.getElementById('dp-paste-status-dot');
+    var lbl = document.getElementById('dp-paste-status-label');
+    var saveBtn = document.getElementById('btn-dp-paste-save');
+    var badge   = document.getElementById('dp-paste-parsed-count-badge');
+    if (txt.length > 0) {
+        if (dot) { dot.className = 'paste-status-dot parsed'; }
+        if (lbl) lbl.textContent = 'Text entered — click Parse';
+    } else {
+        if (dot) { dot.className = 'paste-status-dot'; }
+        if (lbl) lbl.textContent = 'Ready';
+        if (saveBtn) saveBtn.style.display = 'none';
+        if (badge)   badge.style.display   = 'none';
+    }
+}
+
+function updateDpPasteWorkspaceStatus() {
+    var dot      = document.getElementById('dp-paste-status-dot');
+    var lbl      = document.getElementById('dp-paste-status-label');
+    var saveBtn  = document.getElementById('btn-dp-paste-save');
+    var badge    = document.getElementById('dp-paste-parsed-count-badge');
+    var countEl  = document.getElementById('dp-paste-parsed-count-val');
+    var savedEl  = document.getElementById('dp-paste-saved-count-val');
+    if (savedEl) savedEl.textContent = state.savedPatternDraws.length;
+    if (_dpPasteCanvasParsed.length > 0) {
+        if (dot) { dot.className = 'paste-status-dot ready'; }
+        if (lbl) lbl.textContent = _dpPasteCanvasParsed.length + ' draw' + (_dpPasteCanvasParsed.length !== 1 ? 's' : '') + ' parsed';
+        if (saveBtn) saveBtn.style.display = '';
+        if (badge)   badge.style.display   = '';
+        if (countEl) countEl.textContent   = _dpPasteCanvasParsed.length;
+    } else {
+        var txt = document.getElementById('dp-paste-canvas') ? document.getElementById('dp-paste-canvas').value.trim() : '';
+        if (txt.length > 0) {
+            if (dot) { dot.className = 'paste-status-dot parsed'; }
+            if (lbl) lbl.textContent = 'Text entered — click Parse';
+        } else {
+            if (dot) { dot.className = 'paste-status-dot'; }
+            if (lbl) lbl.textContent = 'Ready';
+        }
+        if (saveBtn) saveBtn.style.display = 'none';
+        if (badge)   badge.style.display   = 'none';
+    }
+}
+
 function runDigitPattern() {
     var fmtId   = document.getElementById('digitpattern-format').value;
     var scope   = parseInt(document.getElementById('digitpattern-scope').value, 10);
@@ -9652,6 +9945,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateHeader();
     renderSavedPatternDraws();
     updatePasteWorkspaceStatus();
+    updateDpPasteWorkspaceStatus();
     onAddDrawStatusUpdate();
     try {
         var savedTheme = localStorage.getItem('lotto_theme');
