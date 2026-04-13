@@ -10070,7 +10070,7 @@ function runDigitPattern() {
     function weightedPick(candidates, fallbackNum, rng) {
         if (!candidates.length) return fallbackNum;
         var totalW = 0;
-        /* Use the combined score as weight (plus baseline 0.5 so every candidate has a chance) */
+        /* Use the combined score as weight, plus a baseline so every candidate has a chance */
         var weights = candidates.map(function(c) { var w = c.score + 0.5; totalW += w; return w; });
         var r = rng() * totalW;
         var cum = 0;
