@@ -9916,8 +9916,8 @@ function runDigitPattern() {
         };
     }
 
-    function weightedPick(candidates, rng) {
-        if (!candidates.length) return 1;
+    function weightedPick(candidates, fallbackNum, rng) {
+        if (!candidates.length) return fallbackNum;
         /* Assign a base weight of 1 so even unseen candidates can appear */
         var totalW = 0;
         var weights = candidates.map(function(c) { var w = c.freq + 1; totalW += w; return w; });
@@ -9930,33 +9930,39 @@ function runDigitPattern() {
         return candidates[candidates.length - 1].num;
     }
 
+    function drawKey(draw) {
+        return draw.slice().sort(function(a,b){return a-b;}).join(',');
+    }
+
     var multiDraws = [];
     /* Draw 1 is the top prediction (most-frequent candidates) */
     multiDraws.push(predictedNumbers.slice());
 
     var rng = seededRandom(allDraws.length * 31 + posCount * 7 + 42);
     var seen = {};
-    seen[predictedNumbers.slice().sort(function(a,b){return a-b;}).join(',')] = true;
+    seen[drawKey(predictedNumbers)] = true;
 
+    var MAX_ATTEMPTS = TOTAL_PREDICTIONS * 50;
     var attempts = 0;
-    while (multiDraws.length < TOTAL_PREDICTIONS && attempts < TOTAL_PREDICTIONS * 50) {
+    while (multiDraws.length < TOTAL_PREDICTIONS && attempts < MAX_ATTEMPTS) {
         attempts++;
         var draw = [];
         for (var p = 0; p < posCount; p++) {
-            draw.push(weightedPick(posCandidates[p], rng));
+            draw.push(weightedPick(posCandidates[p], predictedNumbers[p], rng));
         }
-        var key = draw.slice().sort(function(a,b){return a-b;}).join(',');
+        var key = drawKey(draw);
         if (!seen[key]) {
             seen[key] = true;
             multiDraws.push(draw);
         }
     }
 
-    /* If we couldn't reach 20 unique draws (small number range), fill remaining */
+    /* If we couldn't reach 20 unique draws (small number range), fill with
+       non-duplicate-checked draws so the table always has 20 rows. */
     while (multiDraws.length < TOTAL_PREDICTIONS) {
         var fill = [];
         for (var p = 0; p < posCount; p++) {
-            fill.push(weightedPick(posCandidates[p], rng));
+            fill.push(weightedPick(posCandidates[p], predictedNumbers[p], rng));
         }
         multiDraws.push(fill);
     }
