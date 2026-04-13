@@ -9887,6 +9887,7 @@ function runDigitPattern() {
 
     var predictedNumbers = [];
     var alternateNumbers = [];
+    var posCandidates = [];   // full candidate list per position for multi-draw generation
     for (var p = 0; p < posCount; p++) {
         var targetRoot = predictedRoots[p];
         var candidates = [];
@@ -9898,9 +9899,69 @@ function runDigitPattern() {
         candidates.sort(function(a,b) { return b.freq - a.freq; });
         predictedNumbers.push(candidates.length ? candidates[0].num : Math.min(targetRoot, fmt.mainMax));
         alternateNumbers.push(candidates.slice(0, 5));
+        posCandidates.push(candidates);
     }
 
-    /* Sort the final predicted set for display */
+    /* ---------- 6. Generate 20 possible draws ---------- */
+    var TOTAL_PREDICTIONS = 20;
+
+    /* Weighted-random pick helper using candidates' historical frequency.
+       Uses a simple seeded PRNG so results are deterministic per dataset. */
+    function seededRandom(seed) {
+        var s = seed % 2147483647;
+        if (s <= 0) s += 2147483646;
+        return function() {
+            s = (s * 16807) % 2147483647;
+            return (s - 1) / 2147483646;
+        };
+    }
+
+    function weightedPick(candidates, rng) {
+        if (!candidates.length) return 1;
+        /* Assign a base weight of 1 so even unseen candidates can appear */
+        var totalW = 0;
+        var weights = candidates.map(function(c) { var w = c.freq + 1; totalW += w; return w; });
+        var r = rng() * totalW;
+        var cum = 0;
+        for (var i = 0; i < weights.length; i++) {
+            cum += weights[i];
+            if (r <= cum) return candidates[i].num;
+        }
+        return candidates[candidates.length - 1].num;
+    }
+
+    var multiDraws = [];
+    /* Draw 1 is the top prediction (most-frequent candidates) */
+    multiDraws.push(predictedNumbers.slice());
+
+    var rng = seededRandom(allDraws.length * 31 + posCount * 7 + 42);
+    var seen = {};
+    seen[predictedNumbers.slice().sort(function(a,b){return a-b;}).join(',')] = true;
+
+    var attempts = 0;
+    while (multiDraws.length < TOTAL_PREDICTIONS && attempts < TOTAL_PREDICTIONS * 50) {
+        attempts++;
+        var draw = [];
+        for (var p = 0; p < posCount; p++) {
+            draw.push(weightedPick(posCandidates[p], rng));
+        }
+        var key = draw.slice().sort(function(a,b){return a-b;}).join(',');
+        if (!seen[key]) {
+            seen[key] = true;
+            multiDraws.push(draw);
+        }
+    }
+
+    /* If we couldn't reach 20 unique draws (small number range), fill remaining */
+    while (multiDraws.length < TOTAL_PREDICTIONS) {
+        var fill = [];
+        for (var p = 0; p < posCount; p++) {
+            fill.push(weightedPick(posCandidates[p], rng));
+        }
+        multiDraws.push(fill);
+    }
+
+    /* Sort the first (top) predicted set for display */
     var sortedPrediction = predictedNumbers.slice().sort(function(a,b) { return a - b; });
 
     var rootBalls = predictedRoots.map(function(v, i) {
@@ -9914,6 +9975,19 @@ function runDigitPattern() {
         return '<span class="ball ball-main" style="font-size:1.4rem;">' + n + '</span>';
     }).join(' ');
 
+    /* Build 20-draw prediction table */
+    var multiDrawRows = multiDraws.map(function(draw, idx) {
+        var sorted = draw.slice().sort(function(a,b) { return a - b; });
+        var balls = sorted.map(function(n) {
+            return '<span class="ball ball-main ball-sm" style="width:36px;height:36px;">' + n + '</span>';
+        }).join(' ');
+        var label = idx === 0 ? '<strong>#1 (Top Pick)</strong>' : '#' + (idx + 1);
+        return '<tr>' +
+            '<td style="text-align:center;font-weight:700;white-space:nowrap;">' + label + '</td>' +
+            '<td>' + balls + '</td>' +
+            '</tr>';
+    }).join('');
+
     var altRows = alternateNumbers.map(function(alts, i) {
         var cells = alts.map(function(a) {
             return '<span class="ball ball-main ball-sm" style="width:38px;height:38px;">' + a.num + '</span>' +
@@ -9924,12 +9998,18 @@ function runDigitPattern() {
 
     predictionEl.innerHTML =
         '<div class="card" style="border:2px solid var(--purple);">' +
-        '<div class="pattern-section-title" style="font-size:1.3rem;">&#127919; Next Draw Prediction</div>' +
-        '<div class="algo-info" style="margin-bottom:16px;">Based on digit-root pattern analysis of <strong>' + allDraws.length + '</strong> draws.</div>' +
+        '<div class="pattern-section-title" style="font-size:1.3rem;">&#127919; 20 Possible Draw Predictions</div>' +
+        '<div class="algo-info" style="margin-bottom:16px;">Based on digit-root pattern analysis of <strong>' + allDraws.length + '</strong> draws. ' +
+        'Draw #1 is the top prediction; draws #2\u201320 are weighted variations from the candidate pools.</div>' +
         '<div style="margin-bottom:18px;"><strong>Predicted Digit Roots:</strong>' +
         '<div class="balls-row" style="margin-top:10px;justify-content:center;">' + rootBalls + '</div></div>' +
-        '<div style="margin-bottom:18px;"><strong>Predicted Numbers (sorted):</strong>' +
+        '<div style="margin-bottom:18px;"><strong>Top Predicted Numbers (sorted):</strong>' +
         '<div class="balls-row" style="margin-top:10px;justify-content:center;">' + numBalls + '</div></div>' +
+        '<div style="margin-bottom:18px;"><strong>&#127922; All 20 Predicted Draws:</strong>' +
+        '<div style="max-height:520px;overflow:auto;margin-top:10px;">' +
+        '<table class="simple-table" style="width:100%;border-collapse:collapse;font-size:0.88rem;">' +
+        '<thead><tr><th>Draw</th><th>Numbers</th></tr></thead>' +
+        '<tbody>' + multiDrawRows + '</tbody></table></div></div>' +
         '<div><strong>Alternate Number Candidates per Position:</strong>' +
         '<table class="simple-table" style="width:100%;border-collapse:collapse;font-size:0.88rem;margin-top:10px;">' +
         '<thead><tr><th>Position</th><th>Candidates (frequency in parens)</th></tr></thead>' +
