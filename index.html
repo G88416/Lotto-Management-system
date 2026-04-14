@@ -1773,8 +1773,7 @@
 
     <!-- INTELLIGENT CANVAS -->
     <section id="sec-intelligentcanvas" class="section">
-        <div class="section-title">&#127912; Intelligent Canvas</div>
-        <div class="algo-info">
+        <div class="section-title">&#127912; Intelligent Canvas</div>        <div class="algo-info">
             The Intelligent Canvas maps any draw result onto a visual number grid and draws a connecting path between the numbers in draw order.
             It then scans <strong>all saved draws</strong> across every lottery to find matching or similar patterns, and uses the most common patterns to <strong>predict</strong> the next likely draw.
         </div>
@@ -10319,6 +10318,10 @@ function runDigitPattern() {
    + delta-based prediction engine.
    ============================================================ */
 
+var IC_MAX_MATCHES          = 20;  /* top N matches to return   */
+var IC_MAX_DRAW_SELECT_OPTS = 50;  /* draws shown in the picker */
+var IC_PREDICTION_COUNT     = 5;   /* top patterns for predict  */
+
 /* ── Grid helpers ─────────────────────────────────────── */
 function icGetCols(mainMax) {
     /* Choose a clean column count that gives a roughly rectangular grid */
@@ -10497,16 +10500,16 @@ function icRenderCanvas(container, fmt, selectedNums, matchNums, predictNums) {
 /* ── Cross-lottery pattern search ─────────────────────── */
 function icFindMatches(signature, fmtId, refNumbers) {
     /* Search all draws from the selected format (or all if fmtId=all) */
-    var draws = getCombinedDrawsForFormat(fmtId);
-    var refSet = new Set(refNumbers);
-    var matches = [];
+    var draws      = getCombinedDrawsForFormat(fmtId);
+    var refSorted  = refNumbers.slice().sort(function(a,b){return a-b;});
+    var matches    = [];
 
     draws.forEach(function(d) {
         if (!d.numbers || d.numbers.length < 2) return;
         /* Skip the exact same draw (same numbers) */
-        var dNums = d.numbers.slice().sort(function(a,b){return a-b;});
-        var isSame = dNums.length === refNumbers.length &&
-            dNums.every(function(n, i) { return n === refNumbers.slice().sort(function(a,b){return a-b;})[i]; });
+        var dNums  = d.numbers.slice().sort(function(a,b){return a-b;});
+        var isSame = dNums.length === refSorted.length &&
+            dNums.every(function(n, i) { return n === refSorted[i]; });
         if (isSame) return;
 
         var dSig = icDeltaSignature(d.numbers);
@@ -10519,7 +10522,7 @@ function icFindMatches(signature, fmtId, refNumbers) {
     });
 
     matches.sort(function(a, b) { return b.score - a.score; });
-    return matches.slice(0, 20); /* top 20 */
+    return matches.slice(0, IC_MAX_MATCHES);
 }
 
 /* ── Prediction engine ────────────────────────────────── */
@@ -10542,11 +10545,11 @@ function icPredict(fmtId, fmt, refNumbers) {
     var patterns = Object.values(sigMap).sort(function(a, b) { return b.count - a.count; });
     if (patterns.length === 0) return null;
 
-    /* For each of the top 5 patterns, generate candidate numbers.
+    /* For each of the top N patterns, generate candidate numbers.
        Strategy: apply the pattern's deltas starting from the most-
        frequent starting number in that pattern's examples. */
     var predictions = [];
-    var topPatterns = patterns.slice(0, 5);
+    var topPatterns = patterns.slice(0, IC_PREDICTION_COUNT);
 
     topPatterns.forEach(function(p) {
         /* Collect all starting numbers from examples of this pattern */
@@ -10603,7 +10606,7 @@ function _icPopulateDrawSelect(fmtId) {
     var sel = document.getElementById('ic-draw-select');
     var draws = getCombinedDrawsForFormat(fmtId);
     sel.innerHTML = '<option value="">— choose a saved draw —</option>';
-    draws.slice(0, 50).forEach(function(d, i) {
+    draws.slice(0, IC_MAX_DRAW_SELECT_OPTS).forEach(function(d, i) {
         var label = (d.label || d.date || 'Draw ' + (i + 1)) + '  →  ' + d.numbers.join(', ');
         sel.innerHTML += '<option value="' + i + '">' + label + '</option>';
     });
