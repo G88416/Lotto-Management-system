@@ -2124,13 +2124,15 @@ function syncToFirestore() {
     updateSyncStatus('connecting');
     fbSyncTimer = setTimeout(function() {
         fbDb.collection('users').doc(fbUserId).collection('data').doc('main').set({
-            tickets:        state.tickets,
-            budget:         state.budget,
-            stats:          state.stats,
-            customDraws:    state.customDraws,
-            reverseHistory: state.reverseHistory,
-            seedHistory:    state.seedHistory,
-            updatedAt:      firebase.firestore.FieldValue.serverTimestamp()
+            tickets:           state.tickets,
+            budget:            state.budget,
+            stats:             state.stats,
+            customDraws:       state.customDraws,
+            reverseHistory:    state.reverseHistory,
+            seedHistory:       state.seedHistory,
+            customFormats:     state.customFormats     || [],
+            savedPatternDraws: state.savedPatternDraws || [],
+            updatedAt:         firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true }).then(function() {
             updateSyncStatus('synced');
         }).catch(function(err) {
@@ -2153,14 +2155,20 @@ function loadFromFirestore() {
             if (Array.isArray(d.customDraws))      state.customDraws    = d.customDraws;
             if (Array.isArray(d.reverseHistory))   state.reverseHistory = d.reverseHistory;
             if (Array.isArray(d.seedHistory))      state.seedHistory    = d.seedHistory;
+            if (Array.isArray(d.customFormats))    state.customFormats  = d.customFormats;
+            if (Array.isArray(d.savedPatternDraws)) state.savedPatternDraws = d.savedPatternDraws;
             /* Back-fill localStorage with the freshly loaded cloud state */
             try {
                 localStorage.setItem('lotto_state', JSON.stringify({
                     tickets:state.tickets, budget:state.budget, stats:state.stats,
                     customDraws:state.customDraws, reverseHistory:state.reverseHistory,
-                    seedHistory:state.seedHistory, recentDraws:state.recentDraws
+                    seedHistory:state.seedHistory, recentDraws:state.recentDraws,
+                    savedPatternDraws:state.savedPatternDraws,
+                    customFormats:state.customFormats
                 }));
             } catch(e) {}
+            /* Rebuild format dropdowns now that customFormats may have changed. */
+            buildFormatGrids();
             updateHeader();
             renderReverseHistory();
             renderSeedHistory();
@@ -2182,14 +2190,26 @@ function setupRealtimeListeners() {
         .orderBy('addedAt', 'desc')
         .limit(200)
         .onSnapshot(function(snapshot) {
-            var draws = [];
-            snapshot.forEach(function(doc) { draws.push(doc.data()); });
-            state.recentDraws = draws;
+            var fbDraws = [];
+            snapshot.forEach(function(doc) { fbDraws.push(doc.data()); });
+            /* Merge: preserve any in-memory draws not yet synced to Firestore
+               (e.g. draws added while Firebase was still initialising). */
+            var fbIds = new Set(fbDraws.map(function(d) { return d.id; }));
+            (state.recentDraws || []).forEach(function(d) {
+                if (!fbIds.has(d.id)) {
+                    fbAddDraw(d);   /* re-upload so it arrives in the next snapshot */
+                    fbIds.add(d.id);
+                    fbDraws.push(d);
+                }
+            });
+            state.recentDraws = fbDraws;
             try {
                 localStorage.setItem('lotto_state', JSON.stringify({
                     tickets:state.tickets, budget:state.budget, stats:state.stats,
                     customDraws:state.customDraws, reverseHistory:state.reverseHistory,
-                    seedHistory:state.seedHistory, recentDraws:state.recentDraws
+                    seedHistory:state.seedHistory, recentDraws:state.recentDraws,
+                    savedPatternDraws:state.savedPatternDraws,
+                    customFormats:state.customFormats
                 }));
             } catch(e) {}
             if (document.getElementById('sec-livedraws').classList.contains('active')) renderLiveDraws();
@@ -4396,6 +4416,16 @@ function addParsedDrawsToFormat() {
     if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
     if (state.savedPatternDraws.length > MAX_SAVED_PATTERN_DRAWS) state.savedPatternDraws = state.savedPatternDraws.slice(0, MAX_SAVED_PATTERN_DRAWS);
     persist();
+    /* Reset the live-draws filter to the format just added so the new draws
+       are immediately visible regardless of what filter was active before.
+       All draws in _addDrawCanvasParsed share the same formatId (taken from the
+       add-draw-format selector), so reading it directly here is safe. */
+    var addedFmtId = document.getElementById('add-draw-format').value;
+    var filterEl = document.getElementById('live-draws-format-filter');
+    if (filterEl && addedFmtId) {
+        var hasOpt = Array.from(filterEl.options).some(function(o) { return o.value === addedFmtId; });
+        if (hasOpt) filterEl.value = addedFmtId;
+    }
     renderLiveDraws();
     renderSavedPatternDraws();
     _addDrawCanvasParsed = [];
@@ -4844,6 +4874,10 @@ function importPastedDraws() {
 
     if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
     persist();
+    /* Reset the live-draws filter to "All Formats" so all newly imported draws
+       are immediately visible regardless of what filter was active before. */
+    var filterEl = document.getElementById('live-draws-format-filter');
+    if (filterEl) filterEl.value = 'all';
     renderLiveDraws();
 
     _pasteCanvasParsed = [];
