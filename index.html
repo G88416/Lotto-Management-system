@@ -239,6 +239,26 @@
         .ball-highlight { outline:3px solid #f59e0b; outline-offset:2px; animation:highlightPulse 1s infinite; }
         @keyframes highlightPulse { 0%,100%{outline-color:#f59e0b;} 50%{outline-color:#ef4444;} }
         .pattern-section-title { font-size:1rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:8px; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid var(--border); }
+        /* ── Intelligent Canvas ─────────────────────────────────────────── */
+        .ic-grid-wrap { position:relative; display:inline-block; margin:0 auto; user-select:none; }
+        .ic-grid-row  { display:flex; gap:4px; margin-bottom:4px; }
+        .ic-cell { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:0.88rem; font-weight:800; cursor:pointer; transition:background 0.2s, transform 0.15s; background:var(--surface2); border:2px solid var(--border); color:var(--text); position:relative; z-index:2; box-sizing:border-box; }
+        .ic-cell.ic-selected { background:linear-gradient(135deg,#8b5cf6,#06b6d4); color:#fff; border-color:transparent; transform:scale(1.1); box-shadow:0 4px 14px rgba(139,92,246,0.45); }
+        .ic-cell.ic-match    { background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(245,158,11,0.4); }
+        .ic-cell.ic-predict  { background:linear-gradient(135deg,#10b981,#059669); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(16,185,129,0.4); }
+        .ic-svg-overlay { position:absolute; top:0; left:0; pointer-events:none; z-index:3; overflow:visible; }
+        .ic-match-card { background:var(--surface); border-radius:14px; border:1.5px solid var(--border); padding:14px 16px; margin-bottom:10px; transition:box-shadow 0.2s; }
+        .ic-match-card:hover { box-shadow:0 6px 22px var(--shadow); }
+        .ic-match-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+        .ic-score-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.78rem; font-weight:700; padding:3px 10px; border-radius:20px; }
+        .ic-score-high { background:rgba(16,185,129,0.14); color:#059669; border:1px solid rgba(16,185,129,0.35); }
+        .ic-score-mid  { background:rgba(245,158,11,0.14); color:#92400e; border:1px solid rgba(245,158,11,0.35); }
+        .ic-score-low  { background:rgba(100,116,139,0.12); color:var(--text-muted); border:1px solid var(--border); }
+        .ic-predict-box { background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(5,150,105,0.05)); border-radius:14px; border:2px solid rgba(16,185,129,0.3); padding:18px 20px; margin-bottom:14px; }
+        .ic-predict-title { font-size:0.9rem; font-weight:800; color:#059669; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+        .ic-legend { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; font-size:0.78rem; font-weight:600; color:var(--text-muted); }
+        .ic-legend-item { display:flex; align-items:center; gap:5px; }
+        .ic-legend-swatch { width:16px; height:16px; border-radius:4px; }
         .search-number-input-row { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
         .repeat-filter-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
         .repeat-filter-label { font-size:0.82rem; font-weight:600; color:var(--text-muted); }
@@ -469,6 +489,7 @@
         <button class="tab-btn" onclick="switchTab('combimatrix')">&#128300; Combi-Matrix</button>
         <button class="tab-btn" onclick="switchTab('lottogap')">&#128207; Lotto Gap</button>
         <button class="tab-btn" onclick="switchTab('digitpattern')">&#128290; Digit Pattern</button>
+        <button class="tab-btn" onclick="switchTab('intelligentcanvas')">&#127912; Smart Canvas</button>
     </nav>
 
     <!-- QUICK PICK -->
@@ -1749,7 +1770,75 @@
         <div id="digitpattern-analysis" style="margin-top:16px;"></div>
         <div id="digitpattern-prediction" style="margin-top:16px;"></div>
     </section>
-</div>
+
+    <!-- INTELLIGENT CANVAS -->
+    <section id="sec-intelligentcanvas" class="section">
+        <div class="section-title">&#127912; Intelligent Canvas</div>
+        <div class="algo-info">
+            The Intelligent Canvas maps any draw result onto a visual number grid and draws a connecting path between the numbers in draw order.
+            It then scans <strong>all saved draws</strong> across every lottery to find matching or similar patterns, and uses the most common patterns to <strong>predict</strong> the next likely draw.
+        </div>
+
+        <!-- Configuration -->
+        <div class="card">
+            <div class="pattern-section-title">&#9881;&#65039; Configuration</div>
+            <div class="grid-2" style="margin-bottom:14px;">
+                <div>
+                    <label>Lottery Format</label>
+                    <select id="ic-format" onchange="onIcFormatChange()"></select>
+                </div>
+                <div>
+                    <label>Select a Saved Draw</label>
+                    <select id="ic-draw-select" onchange="onIcDrawSelect()">
+                        <option value="">— choose a draw —</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom:14px;">
+                <label>Or Enter Numbers Manually (space or comma separated)</label>
+                <input type="text" id="ic-manual-input" placeholder="e.g. 4 12 20 27 34" oninput="onIcManualInput()" />
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="runIntelligentCanvas()">&#127912; Draw Pattern &amp; Analyse</button>
+                <button class="btn btn-secondary" onclick="clearIntelligentCanvas()">&#10006; Clear</button>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="card" id="ic-canvas-card" style="display:none;">
+            <div class="pattern-section-title">&#127912; Pattern Canvas <span id="ic-canvas-label" class="text-muted text-sm fw-400" style="margin-left:8px;"></span></div>
+            <div style="overflow-x:auto;">
+                <div id="ic-canvas-container" style="display:flex; flex-direction:column; align-items:flex-start;"></div>
+            </div>
+            <div class="ic-legend">
+                <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:linear-gradient(135deg,#8b5cf6,#06b6d4);"></div> Drawn numbers</div>
+                <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:linear-gradient(135deg,#f59e0b,#d97706);"></div> Pattern match</div>
+                <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:linear-gradient(135deg,#10b981,#059669);"></div> Predicted next</div>
+                <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:var(--surface2);border:2px solid var(--border);"></div> Undrawn</div>
+            </div>
+        </div>
+
+        <!-- Pattern Matches -->
+        <div class="card" id="ic-matches-card" style="display:none;">
+            <div class="pattern-section-title">&#128270; Pattern Matches Across All Draws <span id="ic-match-count-badge" class="paste-count-badge" style="font-size:0.75rem;margin-left:6px;"></span></div>
+            <div class="algo-info" style="margin-bottom:14px;">
+                Draws whose delta-gap signature closely matches the current pattern. A <strong>100% score</strong> means an identical step sequence was found.
+            </div>
+            <div id="ic-matches-results">
+                <p class="text-muted text-sm text-center" style="padding:20px 0;">Draw a pattern first to search for matches.</p>
+            </div>
+        </div>
+
+        <!-- Prediction -->
+        <div class="card" id="ic-prediction-card" style="display:none;">
+            <div class="pattern-section-title">&#128302; Intelligent Prediction</div>
+            <div class="algo-info" style="margin-bottom:14px;">
+                Based on the <strong>most frequent delta patterns</strong> found in all draws for this lottery, the canvas predicts the most likely next set of numbers.
+                Predictions are sorted by pattern frequency &amp; confidence.
+            </div>
+            <div id="ic-prediction-results"></div>
+        </div>
+    </section>
 
 <!-- SAVE TICKET MODAL -->
 <div class="modal-backdrop" id="save-modal">
@@ -2314,7 +2403,7 @@ function purgeOrphanedDataManual() {
     }
 }
 
-var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern'];
+var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern','intelligentcanvas'];
 
 function switchTab(key) {
     TAB_KEYS.forEach(function(k, i) {
@@ -2332,6 +2421,7 @@ function switchTab(key) {
     if (key === 'combimatrix') { renderMatrixReconstructorDrawList(); }
     if (key === 'lottogap')    { runNumberOverdue(); }
     if (key === 'digitpattern') { runDigitPattern(); }
+    if (key === 'intelligentcanvas') { initIntelligentCanvas(); }
 }
 
 function switchSeedSub(idx) {
@@ -2354,7 +2444,7 @@ function buildFormatGrids() {
                 '<div class="jackpot">' + f.jackpot + '</div></div>';
         }).join('');
     });
-    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter','gap-format','gap-delta-format','gap-gen-format','gap-freq-format','digitpattern-format'].forEach(function(id) {
+    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter','gap-format','gap-delta-format','gap-gen-format','gap-freq-format','digitpattern-format','ic-format'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
@@ -10221,6 +10311,439 @@ function runDigitPattern() {
         '<thead><tr><th>Position</th><th>Candidates (frequency &amp; match type)</th></tr></thead>' +
         '<tbody>' + altRows + '</tbody></table></div>' +
         '</div>';
+}
+
+/* ============================================================
+   INTELLIGENT CANVAS
+   Visual pattern drawing + cross-lottery pattern matching
+   + delta-based prediction engine.
+   ============================================================ */
+
+/* ── Grid helpers ─────────────────────────────────────── */
+function icGetCols(mainMax) {
+    /* Choose a clean column count that gives a roughly rectangular grid */
+    if (mainMax <= 25)  return 5;
+    if (mainMax <= 36)  return 9;
+    if (mainMax <= 49)  return 7;
+    if (mainMax <= 60)  return 10;
+    if (mainMax <= 80)  return 10;
+    return 10;
+}
+
+function icCellPos(num, cols) {
+    /* Returns 0-based {row, col} for a number in a cols-wide grid */
+    return { row: Math.floor((num - 1) / cols), col: (num - 1) % cols };
+}
+
+function icGridRows(mainMax, cols) {
+    return Math.ceil(mainMax / cols);
+}
+
+/* ── Pattern signature ────────────────────────────────── */
+function icDeltaSignature(numbers) {
+    /* Returns array of successive differences between sorted numbers */
+    var sorted = numbers.slice().sort(function(a, b) { return a - b; });
+    var deltas = [];
+    for (var i = 1; i < sorted.length; i++) {
+        deltas.push(sorted[i] - sorted[i - 1]);
+    }
+    return deltas;
+}
+
+function icSimilarity(sig1, sig2) {
+    /* Normalised similarity 0-1 between two delta signatures of same length.
+       Uses per-position ratio: 1 - |a-b| / max(a,b,1) averaged over positions. */
+    if (sig1.length !== sig2.length || sig1.length === 0) return 0;
+    var total = 0;
+    for (var i = 0; i < sig1.length; i++) {
+        var a = sig1[i], b = sig2[i];
+        var denom = Math.max(a, b, 1);
+        total += 1 - Math.abs(a - b) / denom;
+    }
+    return total / sig1.length;
+}
+
+/* ── Render the number grid + SVG overlay ─────────────── */
+function icRenderCanvas(container, fmt, selectedNums, matchNums, predictNums) {
+    var cols    = icGetCols(fmt.mainMax);
+    var rows    = icGridRows(fmt.mainMax, cols);
+    var CELL    = 44;   /* px */
+    var GAP     = 4;    /* px */
+    var STEP    = CELL + GAP;
+    var selSet  = new Set(selectedNums || []);
+    var matchSet = new Set(matchNums   || []);
+    var predSet = new Set(predictNums  || []);
+
+    /* Build grid HTML */
+    var gridHtml = '<div class="ic-grid-wrap" id="ic-grid-wrap">';
+    for (var r = 0; r < rows; r++) {
+        gridHtml += '<div class="ic-grid-row">';
+        for (var c = 0; c < cols; c++) {
+            var num = r * cols + c + 1;
+            if (num > fmt.mainMax) {
+                /* Placeholder to keep grid alignment */
+                gridHtml += '<div class="ic-cell" style="visibility:hidden;"></div>';
+            } else {
+                var cls = 'ic-cell';
+                if (selSet.has(num))   cls += ' ic-selected';
+                else if (predSet.has(num))  cls += ' ic-predict';
+                else if (matchSet.has(num)) cls += ' ic-match';
+                gridHtml += '<div class="' + cls + '" id="ic-cell-' + num + '">' + num + '</div>';
+            }
+        }
+        gridHtml += '</div>';
+    }
+    gridHtml += '</div>';
+
+    container.innerHTML = gridHtml;
+
+    /* Draw SVG lines connecting selectedNums in draw order */
+    if (!selectedNums || selectedNums.length < 2) return;
+
+    var wrap  = container.querySelector('#ic-grid-wrap');
+    var svgW  = cols * STEP - GAP;
+    var svgH  = rows * STEP - GAP;
+
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width',  svgW);
+    svg.setAttribute('height', svgH);
+    svg.setAttribute('class', 'ic-svg-overlay');
+    svg.style.width  = svgW + 'px';
+    svg.style.height = svgH + 'px';
+
+    /* Add gradient defs */
+    var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    var grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    grad.setAttribute('id', 'ic-line-grad');
+    grad.setAttribute('gradientUnits', 'userSpaceOnUse');
+    var s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#8b5cf6');
+    var s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    s2.setAttribute('offset', '100%'); s2.setAttribute('stop-color', '#06b6d4');
+    grad.appendChild(s1); grad.appendChild(s2); defs.appendChild(grad);
+    svg.appendChild(defs);
+
+    function cellCx(num) {
+        var pos = icCellPos(num, cols);
+        return pos.col * STEP + CELL / 2;
+    }
+    function cellCy(num) {
+        var pos = icCellPos(num, cols);
+        return pos.row * STEP + CELL / 2;
+    }
+
+    /* Draw connecting path */
+    for (var i = 0; i < selectedNums.length - 1; i++) {
+        var n1 = selectedNums[i], n2 = selectedNums[i + 1];
+        if (n1 < 1 || n1 > fmt.mainMax || n2 < 1 || n2 > fmt.mainMax) continue;
+        var x1 = cellCx(n1), y1 = cellCy(n1);
+        var x2 = cellCx(n2), y2 = cellCy(n2);
+
+        /* Update gradient endpoints */
+        grad.setAttribute('x1', x1); grad.setAttribute('y1', y1);
+        grad.setAttribute('x2', x2); grad.setAttribute('y2', y2);
+
+        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+        line.setAttribute('stroke', 'url(#ic-line-grad)');
+        line.setAttribute('stroke-width', '3');
+        line.setAttribute('stroke-linecap', 'round');
+        line.setAttribute('opacity', '0.85');
+        svg.appendChild(line);
+
+        /* Arrow dot at each step except first */
+        if (i > 0) {
+            var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.setAttribute('cx', x1); dot.setAttribute('cy', y1);
+            dot.setAttribute('r', '5');
+            dot.setAttribute('fill', '#8b5cf6');
+            dot.setAttribute('opacity', '0.8');
+            svg.appendChild(dot);
+        }
+    }
+
+    /* Final dot */
+    var lastNum = selectedNums[selectedNums.length - 1];
+    if (lastNum >= 1 && lastNum <= fmt.mainMax) {
+        var lastDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        lastDot.setAttribute('cx', cellCx(lastNum));
+        lastDot.setAttribute('cy', cellCy(lastNum));
+        lastDot.setAttribute('r', '6');
+        lastDot.setAttribute('fill', '#06b6d4');
+        lastDot.setAttribute('opacity', '0.9');
+        svg.appendChild(lastDot);
+    }
+
+    /* Step-number labels on lines */
+    for (var j = 0; j < selectedNums.length; j++) {
+        var sn = selectedNums[j];
+        if (sn < 1 || sn > fmt.mainMax) continue;
+        var label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', cellCx(sn));
+        label.setAttribute('y', cellCy(sn) - CELL / 2 - 4);
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('font-size', '11');
+        label.setAttribute('font-weight', '700');
+        label.setAttribute('fill', '#8b5cf6');
+        label.setAttribute('opacity', '0.9');
+        label.textContent = j + 1;
+        svg.appendChild(label);
+    }
+
+    wrap.appendChild(svg);
+}
+
+/* ── Cross-lottery pattern search ─────────────────────── */
+function icFindMatches(signature, fmtId, refNumbers) {
+    /* Search all draws from the selected format (or all if fmtId=all) */
+    var draws = getCombinedDrawsForFormat(fmtId);
+    var refSet = new Set(refNumbers);
+    var matches = [];
+
+    draws.forEach(function(d) {
+        if (!d.numbers || d.numbers.length < 2) return;
+        /* Skip the exact same draw (same numbers) */
+        var dNums = d.numbers.slice().sort(function(a,b){return a-b;});
+        var isSame = dNums.length === refNumbers.length &&
+            dNums.every(function(n, i) { return n === refNumbers.slice().sort(function(a,b){return a-b;})[i]; });
+        if (isSame) return;
+
+        var dSig = icDeltaSignature(d.numbers);
+        if (dSig.length !== signature.length) return;
+
+        var score = icSimilarity(signature, dSig);
+        if (score >= 0.60) {
+            matches.push({ draw: d, sig: dSig, score: score });
+        }
+    });
+
+    matches.sort(function(a, b) { return b.score - a.score; });
+    return matches.slice(0, 20); /* top 20 */
+}
+
+/* ── Prediction engine ────────────────────────────────── */
+function icPredict(fmtId, fmt, refNumbers) {
+    var draws = getCombinedDrawsForFormat(fmtId);
+    if (draws.length < 5) return null;
+
+    /* Build frequency map of all delta signatures */
+    var sigMap = {}; /* JSON signature → {count, examples} */
+    draws.forEach(function(d) {
+        if (!d.numbers || d.numbers.length !== fmt.mainCount) return;
+        var sig = icDeltaSignature(d.numbers);
+        var key = sig.join(',');
+        if (!sigMap[key]) sigMap[key] = { sig: sig, count: 0, examples: [] };
+        sigMap[key].count++;
+        if (sigMap[key].examples.length < 3) sigMap[key].examples.push(d.numbers.slice().sort(function(a,b){return a-b;}));
+    });
+
+    /* Sort patterns by frequency */
+    var patterns = Object.values(sigMap).sort(function(a, b) { return b.count - a.count; });
+    if (patterns.length === 0) return null;
+
+    /* For each of the top 5 patterns, generate candidate numbers.
+       Strategy: apply the pattern's deltas starting from the most-
+       frequent starting number in that pattern's examples. */
+    var predictions = [];
+    var topPatterns = patterns.slice(0, 5);
+
+    topPatterns.forEach(function(p) {
+        /* Collect all starting numbers from examples of this pattern */
+        var startFreq = {};
+        p.examples.forEach(function(ex) {
+            var sn = ex[0];
+            startFreq[sn] = (startFreq[sn] || 0) + 1;
+        });
+        var bestStart = parseInt(Object.keys(startFreq).sort(function(a, b) {
+            return startFreq[b] - startFreq[a];
+        })[0], 10);
+
+        /* Build predicted numbers by applying deltas from bestStart */
+        var nums = [bestStart];
+        var valid = true;
+        for (var i = 0; i < p.sig.length; i++) {
+            var next = nums[nums.length - 1] + p.sig[i];
+            if (next < 1 || next > fmt.mainMax) { valid = false; break; }
+            nums.push(next);
+        }
+        if (!valid || nums.length !== fmt.mainCount) return;
+        /* Ensure unique */
+        if (new Set(nums).size !== nums.length) return;
+
+        predictions.push({
+            numbers: nums,
+            count: p.count,
+            sig: p.sig,
+            pct: (p.count / draws.length * 100).toFixed(1)
+        });
+    });
+
+    return { predictions: predictions, totalDraws: draws.length };
+}
+
+/* ── UI helpers ───────────────────────────────────────── */
+var _icCurrentNumbers = [];   /* numbers currently shown on canvas */
+var _icCurrentFmtId   = '';
+
+function initIntelligentCanvas() {
+    /* Re-populate draw selector when tab is activated */
+    var fmtId = document.getElementById('ic-format').value;
+    _icPopulateDrawSelect(fmtId);
+}
+
+function onIcFormatChange() {
+    var fmtId = document.getElementById('ic-format').value;
+    _icPopulateDrawSelect(fmtId);
+    document.getElementById('ic-manual-input').value = '';
+    _icHideResults();
+}
+
+function _icPopulateDrawSelect(fmtId) {
+    var sel = document.getElementById('ic-draw-select');
+    var draws = getCombinedDrawsForFormat(fmtId);
+    sel.innerHTML = '<option value="">— choose a saved draw —</option>';
+    draws.slice(0, 50).forEach(function(d, i) {
+        var label = (d.label || d.date || 'Draw ' + (i + 1)) + '  →  ' + d.numbers.join(', ');
+        sel.innerHTML += '<option value="' + i + '">' + label + '</option>';
+    });
+}
+
+function onIcDrawSelect() {
+    var fmtId = document.getElementById('ic-format').value;
+    var idx   = document.getElementById('ic-draw-select').value;
+    if (idx === '') return;
+    var draws = getCombinedDrawsForFormat(fmtId);
+    var d     = draws[parseInt(idx, 10)];
+    if (!d) return;
+    document.getElementById('ic-manual-input').value = d.numbers.join(' ');
+}
+
+function onIcManualInput() {
+    /* Clear draw select when user types manually */
+    document.getElementById('ic-draw-select').value = '';
+}
+
+function _icHideResults() {
+    document.getElementById('ic-canvas-card').style.display     = 'none';
+    document.getElementById('ic-matches-card').style.display    = 'none';
+    document.getElementById('ic-prediction-card').style.display = 'none';
+}
+
+function clearIntelligentCanvas() {
+    document.getElementById('ic-manual-input').value = '';
+    document.getElementById('ic-draw-select').value  = '';
+    _icCurrentNumbers = [];
+    _icHideResults();
+}
+
+function runIntelligentCanvas() {
+    var fmtId = document.getElementById('ic-format').value;
+    var fmt   = getAllFormats().find(function(f) { return f.id === fmtId; });
+    if (!fmt) { showToast('Please select a lottery format.', 'warning'); return; }
+
+    /* Parse numbers */
+    var raw  = document.getElementById('ic-manual-input').value.trim();
+    var nums = raw.split(/[\s,]+/).map(Number).filter(function(n) {
+        return !isNaN(n) && n >= 1 && n <= fmt.mainMax;
+    });
+    /* Remove duplicates, preserve order */
+    nums = nums.filter(function(n, i, arr) { return arr.indexOf(n) === i; });
+
+    if (nums.length < 2) {
+        showToast('Enter at least 2 valid numbers (1–' + fmt.mainMax + ') or select a draw.', 'warning');
+        return;
+    }
+
+    _icCurrentNumbers = nums;
+    _icCurrentFmtId   = fmtId;
+
+    /* ── 1. Render canvas ── */
+    var signature = icDeltaSignature(nums);
+    var matches   = icFindMatches(signature, fmtId, nums.slice().sort(function(a,b){return a-b;}));
+    var predData  = icPredict(fmtId, fmt, nums);
+
+    var matchNums   = [];
+    matches.slice(0, 3).forEach(function(m) { matchNums = matchNums.concat(m.draw.numbers); });
+    var predictNums = predData && predData.predictions.length > 0 ? predData.predictions[0].numbers : [];
+
+    var container = document.getElementById('ic-canvas-container');
+    icRenderCanvas(container, fmt, nums, matchNums, predictNums);
+
+    var labelEl = document.getElementById('ic-canvas-label');
+    labelEl.textContent = fmt.flag + ' ' + fmt.name + ' — ' + fmt.mainCount + '/' + fmt.mainMax +
+        '  |  Delta signature: [' + signature.join(', ') + ']';
+
+    document.getElementById('ic-canvas-card').style.display = 'block';
+
+    /* ── 2. Pattern matches ── */
+    _icRenderMatches(matches, fmt);
+
+    /* ── 3. Prediction ── */
+    _icRenderPrediction(predData, fmt);
+}
+
+function _icRenderMatches(matches, fmt) {
+    var card    = document.getElementById('ic-matches-card');
+    var results = document.getElementById('ic-matches-results');
+    var badge   = document.getElementById('ic-match-count-badge');
+
+    card.style.display = 'block';
+    badge.textContent  = matches.length + ' match' + (matches.length === 1 ? '' : 'es') + ' found';
+
+    if (matches.length === 0) {
+        results.innerHTML = '<p class="text-muted text-sm text-center" style="padding:20px 0;">No similar patterns found in saved draws. Try adding more draw history via the <strong>Live Draws</strong> tab.</p>';
+        return;
+    }
+
+    var html = '';
+    matches.forEach(function(m, i) {
+        var pct    = Math.round(m.score * 100);
+        var badgeCls = pct >= 90 ? 'ic-score-high' : (pct >= 70 ? 'ic-score-mid' : 'ic-score-low');
+        var balls  = m.draw.numbers.map(function(n) {
+            return '<span class="ball ball-main ball-sm">' + n + '</span>';
+        }).join(' ');
+        var sigStr = m.sig.join(', ');
+        html += '<div class="ic-match-card">' +
+            '<div class="ic-match-header">' +
+            '<span class="fw-700 text-sm">#' + (i+1) + ' &nbsp; ' +
+                (m.draw.label || m.draw.date || 'Draw') + '</span>' +
+            '<span class="ic-score-badge ' + badgeCls + '">&#127919; ' + pct + '% match</span>' +
+            '</div>' +
+            '<div class="balls-row" style="flex-wrap:wrap;">' + balls + '</div>' +
+            '<div class="text-muted text-sm" style="margin-top:6px;">Delta: [' + sigStr + ']</div>' +
+            '</div>';
+    });
+    results.innerHTML = html;
+}
+
+function _icRenderPrediction(predData, fmt) {
+    var card    = document.getElementById('ic-prediction-card');
+    var results = document.getElementById('ic-prediction-results');
+
+    card.style.display = 'block';
+
+    if (!predData || predData.predictions.length === 0) {
+        results.innerHTML = '<p class="text-muted text-sm text-center" style="padding:20px 0;">Not enough draw history to generate predictions. Add at least <strong>5</strong> draws for ' + fmt.flag + ' ' + fmt.name + '.</p>';
+        return;
+    }
+
+    var html = '<div class="text-muted text-sm" style="margin-bottom:14px;">Based on <strong>' + predData.totalDraws + '</strong> saved draws for ' + fmt.flag + ' ' + fmt.name + '</div>';
+
+    predData.predictions.forEach(function(p, i) {
+        var balls = p.numbers.map(function(n) {
+            return '<span class="ball ball-lucky ball-sm">' + n + '</span>';
+        }).join(' ');
+        html += '<div class="ic-predict-box">' +
+            '<div class="ic-predict-title">&#128302; Prediction #' + (i+1) +
+            ' <span class="ic-score-badge ic-score-' + (i === 0 ? 'high' : (i === 1 ? 'mid' : 'low')) + '">' +
+            p.pct + '% of draws use this pattern</span></div>' +
+            '<div class="balls-row" style="flex-wrap:wrap;">' + balls + '</div>' +
+            '<div class="text-muted text-sm" style="margin-top:6px;">Delta pattern: [' + p.sig.join(', ') + '] &nbsp;|&nbsp; Found in <strong>' + p.count + '</strong> draw' + (p.count === 1 ? '' : 's') + '</div>' +
+            '</div>';
+    });
+
+    results.innerHTML = html;
 }
 
 document.addEventListener('DOMContentLoaded', function() {
