@@ -2167,6 +2167,7 @@ function loadFromFirestore() {
                     customFormats:state.customFormats
                 }));
             } catch(e) {}
+            /* Rebuild format dropdowns now that customFormats may have changed. */
             buildFormatGrids();
             updateHeader();
             renderReverseHistory();
@@ -4416,8 +4417,10 @@ function addParsedDrawsToFormat() {
     if (state.savedPatternDraws.length > MAX_SAVED_PATTERN_DRAWS) state.savedPatternDraws = state.savedPatternDraws.slice(0, MAX_SAVED_PATTERN_DRAWS);
     persist();
     /* Reset the live-draws filter to the format just added so the new draws
-       are immediately visible regardless of what filter was active before. */
-    var addedFmtId = _addDrawCanvasParsed.length ? _addDrawCanvasParsed[0].formatId : null;
+       are immediately visible regardless of what filter was active before.
+       All draws in _addDrawCanvasParsed share the same formatId (taken from the
+       add-draw-format selector), so reading it directly here is safe. */
+    var addedFmtId = document.getElementById('add-draw-format').value;
     var filterEl = document.getElementById('live-draws-format-filter');
     if (filterEl && addedFmtId) {
         var hasOpt = Array.from(filterEl.options).some(function(o) { return o.value === addedFmtId; });
