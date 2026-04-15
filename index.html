@@ -437,6 +437,37 @@
         .gap-filter-result-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(56px,1fr)); gap:6px; margin-top:10px; }
         .gap-filter-ball { border-radius:50%; width:48px; height:48px; display:flex; align-items:center; justify-content:center; font-size:0.88rem; font-weight:800; color:#fff; cursor:default; transition:transform 0.15s; box-shadow:0 2px 8px rgba(0,0,0,0.15); }
         .gap-filter-ball:hover { transform:scale(1.12); }
+        /* ── Tetra-Gematria ─────────────────────────────────────────────── */
+        .gem-systems-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
+        .gem-system-card { border-radius:16px; padding:18px 20px; border:2px solid var(--border); background:var(--surface2); position:relative; overflow:hidden; transition:box-shadow 0.2s, transform 0.15s; }
+        .gem-system-card:hover { box-shadow:0 6px 22px var(--shadow); transform:translateY(-2px); }
+        .gem-system-name { font-size:0.78rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px; }
+        .gem-system-value { font-size:2.4rem; font-weight:900; line-height:1; margin-bottom:4px; }
+        .gem-system-root { font-size:0.82rem; font-weight:700; color:var(--text-muted); margin-bottom:10px; }
+        .gem-system-breakdown { font-size:0.75rem; font-weight:600; color:var(--text-muted); word-break:break-word; line-height:1.5; }
+        .gem-card-ordinal   { border-color:rgba(139,92,246,0.5); background:linear-gradient(135deg,rgba(139,92,246,0.07),rgba(79,70,229,0.04)); }
+        .gem-card-ordinal .gem-system-name { color:#7c3aed; }
+        .gem-card-ordinal .gem-system-value { color:#8b5cf6; }
+        .gem-card-pythagorean { border-color:rgba(6,182,212,0.5); background:linear-gradient(135deg,rgba(6,182,212,0.07),rgba(14,165,233,0.04)); }
+        .gem-card-pythagorean .gem-system-name { color:#0891b2; }
+        .gem-card-pythagorean .gem-system-value { color:#06b6d4; }
+        .gem-card-reverse   { border-color:rgba(245,158,11,0.5); background:linear-gradient(135deg,rgba(245,158,11,0.07),rgba(217,119,6,0.04)); }
+        .gem-card-reverse .gem-system-name { color:#b45309; }
+        .gem-card-reverse .gem-system-value { color:#f59e0b; }
+        .gem-card-revpyth   { border-color:rgba(16,185,129,0.5); background:linear-gradient(135deg,rgba(16,185,129,0.07),rgba(5,150,105,0.04)); }
+        .gem-card-revpyth .gem-system-name { color:#059669; }
+        .gem-card-revpyth .gem-system-value { color:#10b981; }
+        .gem-lotto-pattern-row { background:var(--surface2); border-radius:14px; border:1.5px solid var(--border); padding:14px 16px; margin-bottom:10px; }
+        .gem-lotto-pattern-label { font-size:0.78rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:8px; }
+        .gem-lotto-balls { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+        .gem-sum-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:20px; background:rgba(139,92,246,0.12); color:#7c3aed; border:1px solid rgba(139,92,246,0.3); margin-left:8px; }
+        .gem-mystical-box { border-radius:16px; padding:22px 24px; background:linear-gradient(135deg,rgba(139,92,246,0.08),rgba(6,182,212,0.06)); border:2px solid rgba(139,92,246,0.25); }
+        .gem-mystical-number { font-size:3.5rem; font-weight:900; background:var(--accent-grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; line-height:1; margin-bottom:6px; }
+        .gem-mystical-title { font-size:1.05rem; font-weight:800; color:var(--text); margin-bottom:8px; }
+        .gem-mystical-desc { font-size:0.88rem; color:var(--text-muted); line-height:1.65; }
+        .gem-affinity-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+        .gem-affinity-chip { padding:5px 14px; border-radius:20px; font-size:0.78rem; font-weight:700; background:var(--surface); border:1.5px solid var(--border); color:var(--text); }
+        .gem-affinity-chip.top { border-color:rgba(139,92,246,0.5); background:rgba(139,92,246,0.08); color:#7c3aed; }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -492,6 +523,7 @@
         <button class="tab-btn" onclick="switchTab('lottogap')">&#128207; Lotto Gap</button>
         <button class="tab-btn" onclick="switchTab('digitpattern')">&#128290; Digit Pattern</button>
         <button class="tab-btn" onclick="switchTab('intelligentcanvas')">&#127912; Smart Canvas</button>
+        <button class="tab-btn" onclick="switchTab('tetragematrn')">&#128302; Tetra-Gematria</button>
     </nav>
 
     <!-- QUICK PICK -->
@@ -1846,6 +1878,59 @@
         </div>
     </section>
 
+    <!-- TETRA-GEMATRIA -->
+    <section id="sec-tetragematrn" class="section">
+        <div class="section-title">&#128302; Tetra-Gematria Calculator</div>
+        <div class="algo-info">
+            Gematria is the ancient art of assigning numerical value to words and phrases to reveal hidden meaning.
+            Type any word or phrase to see its value across <strong>all 4 modern systems</strong> simultaneously,
+            then instantly convert each sum into matching lottery number patterns.
+            Discover the mystical thread connecting language, numbers, and your lottery strategy.
+        </div>
+
+        <!-- Input Card -->
+        <div class="card">
+            <div class="pattern-section-title">&#9999;&#65039; Enter Word or Phrase</div>
+            <div class="form-group">
+                <input type="text" id="gem-input"
+                       placeholder="e.g. Lucky, Abundance, your name, a date…"
+                       oninput="runGematria()"
+                       autocomplete="off"
+                       style="font-size:1.1rem;" />
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="runGematria()">&#128302; Calculate All 4 Systems</button>
+                <button class="btn btn-secondary" onclick="clearGematria()">&#10006; Clear</button>
+            </div>
+        </div>
+
+        <!-- 4-System Results -->
+        <div id="gem-results-card" class="card" style="display:none;">
+            <div class="pattern-section-title">&#128202; All 4 Modern Gematria Systems</div>
+            <div id="gem-systems-grid" class="gem-systems-grid"></div>
+        </div>
+
+        <!-- Lotto Pattern Card -->
+        <div id="gem-lotto-card" class="card" style="display:none;">
+            <div class="pattern-section-title">&#127920; Lotto Patterns from Gematria Sums</div>
+            <div class="algo-info" style="margin-bottom:14px;">
+                Each Gematria system produces a unique sum. The numbers below are generated so their total
+                matches that sum as closely as possible within the chosen lottery format.
+            </div>
+            <div class="form-group" style="max-width:340px; margin-bottom:18px;">
+                <label>Lottery Format</label>
+                <select id="gem-format" onchange="renderGematriaLotto()"></select>
+            </div>
+            <div id="gem-lotto-results"></div>
+        </div>
+
+        <!-- Mystical Connection Card -->
+        <div id="gem-mystical-card" class="card" style="display:none;">
+            <div class="pattern-section-title">&#10024; Mystical Connection</div>
+            <div id="gem-mystical-content"></div>
+        </div>
+    </section>
+
 <!-- SAVE TICKET MODAL -->
 <div class="modal-backdrop" id="save-modal">
     <div class="modal">
@@ -2409,7 +2494,7 @@ function purgeOrphanedDataManual() {
     }
 }
 
-var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern','intelligentcanvas'];
+var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern','intelligentcanvas','tetragematrn'];
 
 function switchTab(key) {
     TAB_KEYS.forEach(function(k, i) {
@@ -2428,6 +2513,7 @@ function switchTab(key) {
     if (key === 'lottogap')    { runNumberOverdue(); }
     if (key === 'digitpattern') { runDigitPattern(); }
     if (key === 'intelligentcanvas') { initIntelligentCanvas(); }
+    if (key === 'tetragematrn')      { initGematriaTab(); }
 }
 
 function switchSeedSub(idx) {
@@ -11057,6 +11143,253 @@ function icRegenerateDeltaPrediction() {
     });
     var container = document.getElementById('ic-canvas-container');
     icRenderCanvas(container, _icLastFmt, _icCurrentNumbers, _icLastMatchNums, predSets);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TETRA-GEMATRIA  — 4 Modern Systems Calculator
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Gematria calculation core ──────────────────────────────────── */
+function _digitReduce(n) {
+    while (n > 9) {
+        var s = 0;
+        var tmp = n;
+        while (tmp > 0) { s += tmp % 10; tmp = Math.floor(tmp / 10); }
+        n = s;
+    }
+    return n;
+}
+
+function gemEnglishOrdinal(text) {
+    var sum = 0;
+    var upper = text.toUpperCase();
+    for (var i = 0; i < upper.length; i++) {
+        var c = upper.charCodeAt(i) - 64;
+        if (c >= 1 && c <= 26) sum += c;
+    }
+    return sum;
+}
+
+function gemPythagorean(text) {
+    var sum = 0;
+    var upper = text.toUpperCase();
+    for (var i = 0; i < upper.length; i++) {
+        var c = upper.charCodeAt(i) - 64;
+        if (c >= 1 && c <= 26) sum += _digitReduce(c);
+    }
+    return sum;
+}
+
+function gemReverseOrdinal(text) {
+    var sum = 0;
+    var upper = text.toUpperCase();
+    for (var i = 0; i < upper.length; i++) {
+        var c = upper.charCodeAt(i) - 64;
+        if (c >= 1 && c <= 26) sum += (27 - c);
+    }
+    return sum;
+}
+
+function gemReversePythagorean(text) {
+    var sum = 0;
+    var upper = text.toUpperCase();
+    for (var i = 0; i < upper.length; i++) {
+        var c = upper.charCodeAt(i) - 64;
+        if (c >= 1 && c <= 26) sum += _digitReduce(27 - c);
+    }
+    return sum;
+}
+
+function _gemLetterBreakdown(text, valueFn) {
+    var parts = [];
+    var upper = text.toUpperCase();
+    for (var i = 0; i < upper.length; i++) {
+        var ch = upper[i];
+        var c = ch.charCodeAt(0) - 64;
+        if (c >= 1 && c <= 26) parts.push(ch + '=' + valueFn(ch));
+    }
+    return parts.slice(0, 24).join(', ') + (parts.length > 24 ? '\u2026' : '');
+}
+
+/* ── Sum-match lotto pattern generator ─────────────────────────── */
+function gemSumMatchPattern(count, max, target) {
+    var minSum = count * (count + 1) / 2;
+    var maxSum = count * max - count * (count - 1) / 2;
+    target = Math.max(minSum, Math.min(maxSum, target));
+
+    var nums = [];
+    for (var i = 1; i <= count; i++) nums.push(i);
+    var diff = target - minSum;
+    for (var j = count - 1; j >= 0 && diff > 0; j--) {
+        var ceil = max - (count - 1 - j);
+        var boost = Math.min(diff, ceil - nums[j]);
+        nums[j] += boost;
+        diff -= boost;
+    }
+    return nums.sort(function(a, b) { return a - b; });
+}
+
+/* ── Numerology meaning map ─────────────────────────────────────── */
+var _GEM_NUMEROLOGY = {
+    1: { title: 'The Leader',        desc: 'The number 1 vibrates with raw ambition, new beginnings, and the power of the individual will. It marks the start of every cycle.' },
+    2: { title: 'The Harmoniser',    desc: 'Balance, diplomacy, and partnership define the energy of 2. It speaks of duality \u2014 light and shadow, luck and strategy.' },
+    3: { title: 'The Communicator',  desc: 'Creativity, self-expression, and social energy radiate from 3. It is the number of expansion and abundance.' },
+    4: { title: 'The Builder',       desc: 'Stability, order, and hard work underpin the number 4. This vibration rewards discipline and long-term planning.' },
+    5: { title: 'The Adventurer',    desc: 'Freedom, change, and dynamic energy surge through 5. Unpredictable and spontaneous, it thrives on risk.' },
+    6: { title: 'The Nurturer',      desc: 'Harmony, responsibility, and compassion flow with 6. It is the vibration of care, home, and balanced fortune.' },
+    7: { title: 'The Seeker',        desc: 'Mysticism, intuition, and deep wisdom belong to 7. The most spiritual of numbers \u2014 trust your inner knowing.' },
+    8: { title: 'The Achiever',      desc: 'Power, material success, and karmic balance govern 8. It is the number of infinite cycles \u2014 what you give, returns.' },
+    9: { title: 'The Visionary',     desc: 'Completion, universal love, and humanitarian energy close the cycle with 9. It carries the wisdom of all that came before.' }
+};
+
+/* ── Affinity: which formats feel closest to a given sum ─────── */
+function _gemFormatAffinity(sum) {
+    return getAllFormats().map(function(f) {
+        var midSum = f.mainCount * (f.mainMax + 1) / 2;
+        return { fmt: f, delta: Math.abs(sum - midSum) };
+    }).sort(function(a, b) { return a.delta - b.delta; }).slice(0, 5);
+}
+
+/* ── Tab initialisation ─────────────────────────────────────────── */
+var _gemLastResults = null;
+
+function initGematriaTab() {
+    var sel = document.getElementById('gem-format');
+    if (sel && !sel.options.length) {
+        sel.innerHTML = getAllFormats().map(function(f) {
+            return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>';
+        }).join('');
+    }
+}
+
+/* ── Calculate and render all 4 systems ────────────────────────── */
+function runGematria() {
+    var raw = (document.getElementById('gem-input').value || '').trim();
+    if (!raw) { clearGematria(); return; }
+
+    var systems = [
+        {
+            key: 'ordinal',    cls: 'gem-card-ordinal',
+            name: 'English Ordinal',    icon: '\u{1F1E6}',
+            desc: 'A=1 \u2026 Z=26 \u2014 each letter holds its sequential position.',
+            fn: gemEnglishOrdinal,
+            letterFn: function(ch) { return ch.charCodeAt(0) - 64; }
+        },
+        {
+            key: 'pythagorean', cls: 'gem-card-pythagorean',
+            name: 'Full Reduction',     icon: '\u25CB',
+            desc: 'Pythagorean \u2014 each letter value is reduced to a single digit before summing.',
+            fn: gemPythagorean,
+            letterFn: function(ch) { return _digitReduce(ch.charCodeAt(0) - 64); }
+        },
+        {
+            key: 'reverse',    cls: 'gem-card-reverse',
+            name: 'Reverse Ordinal',    icon: '\u21A9',
+            desc: 'A=26 \u2026 Z=1 \u2014 the mirror image of the ordinal system.',
+            fn: gemReverseOrdinal,
+            letterFn: function(ch) { var c = ch.charCodeAt(0) - 64; return 27 - c; }
+        },
+        {
+            key: 'revpyth',    cls: 'gem-card-revpyth',
+            name: 'Reverse Reduction',  icon: '\u21AA',
+            desc: 'Reverse Pythagorean \u2014 reversed ordinal values each reduced to a single digit.',
+            fn: gemReversePythagorean,
+            letterFn: function(ch) { var c = ch.charCodeAt(0) - 64; return _digitReduce(27 - c); }
+        }
+    ];
+
+    var results = systems.map(function(s) {
+        var val = s.fn(raw);
+        return {
+            key: s.key, cls: s.cls, name: s.name, icon: s.icon, desc: s.desc,
+            value: val, root: _digitReduce(val),
+            breakdown: _gemLetterBreakdown(raw, s.letterFn)
+        };
+    });
+    _gemLastResults = results;
+
+    /* Render 4-system grid */
+    var grid = document.getElementById('gem-systems-grid');
+    grid.innerHTML = results.map(function(r) {
+        return '<div class="gem-system-card ' + r.cls + '">' +
+            '<div class="gem-system-name">' + r.icon + ' ' + r.name + '</div>' +
+            '<div class="gem-system-value">' + r.value + '</div>' +
+            '<div class="gem-system-root">Digit root: <strong>' + r.root + '</strong></div>' +
+            '<div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:8px;">' + r.desc + '</div>' +
+            '<div class="gem-system-breakdown">' + r.breakdown + '</div>' +
+            '</div>';
+    }).join('');
+    document.getElementById('gem-results-card').style.display = '';
+
+    initGematriaTab();
+    renderGematriaLotto();
+    renderGematriaMystical(results);
+
+    document.getElementById('gem-lotto-card').style.display    = '';
+    document.getElementById('gem-mystical-card').style.display = '';
+}
+
+function renderGematriaLotto() {
+    if (!_gemLastResults) return;
+    var fmtId = document.getElementById('gem-format').value;
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtId; });
+    if (!fmt) return;
+
+    var systemColors = ['ball-main', 'ball-lucky', 'ball-bonus', 'ball-power'];
+    var html = _gemLastResults.map(function(r, idx) {
+        var nums      = gemSumMatchPattern(fmt.mainCount, fmt.mainMax, r.value);
+        var actualSum = nums.reduce(function(a, b) { return a + b; }, 0);
+        var clamped   = actualSum !== r.value;
+        var balls = nums.map(function(n) {
+            return '<span class="ball ' + systemColors[idx] + ' ball-sm">' + n + '</span>';
+        }).join('');
+        return '<div class="gem-lotto-pattern-row">' +
+            '<div class="gem-lotto-pattern-label">' + r.icon + ' ' + r.name + ' \u2014 Gematria sum: ' + r.value + '</div>' +
+            '<div class="gem-lotto-balls">' + balls +
+            '<span class="gem-sum-badge">\u03A3 ' + actualSum +
+            (clamped ? ' <span style="font-size:0.68rem;opacity:0.75;">(clamped to format range)</span>' : '') +
+            '</span>' +
+            '</div>' +
+            '</div>';
+    }).join('');
+    document.getElementById('gem-lotto-results').innerHTML = html;
+}
+
+function renderGematriaMystical(results) {
+    var primary = results[0];
+    var root    = primary.root || 9;
+    var num     = _GEM_NUMEROLOGY[root] || _GEM_NUMEROLOGY[9];
+    var affinity = _gemFormatAffinity(primary.value);
+
+    var affinityChips = affinity.map(function(a, i) {
+        return '<span class="gem-affinity-chip' + (i === 0 ? ' top' : '') + '">' +
+            a.fmt.flag + ' ' + a.fmt.name + '</span>';
+    }).join('');
+
+    var html = '<div class="gem-mystical-box">' +
+        '<div class="gem-mystical-number">' + root + '</div>' +
+        '<div class="gem-mystical-title">Archetype: ' + num.title + '</div>' +
+        '<div class="gem-mystical-desc">' + num.desc + '</div>' +
+        '<div class="gem-mystical-desc" style="margin-top:12px;">' +
+        'Your phrase carries the vibrational sum of <strong>' + primary.value + '</strong> ' +
+        'in English Ordinal, condensing to the master digit <strong>' + root + '</strong>. ' +
+        'Across all four modern systems the energy of your words flows into lottery patterns ' +
+        'whose ball totals mirror those sacred sums \u2014 aligning your intention with the numbers you play.' +
+        '</div>' +
+        '<div style="margin-top:16px;font-size:0.82rem;font-weight:700;color:var(--text-muted);">' +
+        'Most harmonically aligned lottery formats for a sum of ' + primary.value + ':' +
+        '</div>' +
+        '<div class="gem-affinity-row">' + affinityChips + '</div>' +
+        '</div>';
+    document.getElementById('gem-mystical-content').innerHTML = html;
+}
+
+function clearGematria() {
+    document.getElementById('gem-input').value = '';
+    document.getElementById('gem-results-card').style.display   = 'none';
+    document.getElementById('gem-lotto-card').style.display     = 'none';
+    document.getElementById('gem-mystical-card').style.display  = 'none';
+    _gemLastResults = null;
 }
 
 document.addEventListener('DOMContentLoaded', function() {
