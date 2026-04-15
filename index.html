@@ -10391,7 +10391,7 @@ function icRenderCanvas(container, fmt, selectedNums, matchNums, predictNums) {
                 if (selSet.has(num))   cls += ' ic-selected';
                 else if (predSet.has(num))  cls += ' ic-predict';
                 else if (matchSet.has(num)) cls += ' ic-match';
-                gridHtml += '<div class="' + cls + '" id="ic-cell-' + num + '">' + num + '</div>';
+                gridHtml += '<div class="' + cls + '" id="ic-cell-' + num + '" onclick="icToggleCell(' + num + ')">' + num + '</div>';
             }
         }
         gridHtml += '</div>';
@@ -10631,6 +10631,39 @@ function _icHideResults() {
     document.getElementById('ic-canvas-card').style.display     = 'none';
     document.getElementById('ic-matches-card').style.display    = 'none';
     document.getElementById('ic-prediction-card').style.display = 'none';
+}
+
+function icToggleCell(num) {
+    /* Toggle the clicked number in the current pattern and regenerate */
+    var idx = _icCurrentNumbers.indexOf(num);
+    if (idx === -1) {
+        _icCurrentNumbers.push(num);
+    } else {
+        _icCurrentNumbers.splice(idx, 1);
+    }
+    /* Sync the manual input field to reflect the new pattern */
+    document.getElementById('ic-manual-input').value = _icCurrentNumbers.join(' ');
+    document.getElementById('ic-draw-select').value  = '';
+    /* Re-run full analysis so prediction regenerates immediately */
+    if (_icCurrentNumbers.length >= 2) {
+        runIntelligentCanvas();
+    } else if (_icCurrentNumbers.length === 0) {
+        _icHideResults();
+    } else {
+        /* Only 1 number selected – redraw canvas without analysis */
+        var fmtId = _icCurrentFmtId || document.getElementById('ic-format').value;
+        var fmt   = getAllFormats().find(function(f) { return f.id === fmtId; });
+        if (fmt) {
+            var container = document.getElementById('ic-canvas-container');
+            icRenderCanvas(container, fmt, _icCurrentNumbers, [], []);
+            var labelEl = document.getElementById('ic-canvas-label');
+            labelEl.textContent = fmt.flag + ' ' + fmt.name + ' — ' + fmt.mainCount + '/' + fmt.mainMax +
+                '  |  Select at least 2 numbers to analyse';
+            document.getElementById('ic-canvas-card').style.display = 'block';
+            document.getElementById('ic-matches-card').style.display    = 'none';
+            document.getElementById('ic-prediction-card').style.display = 'none';
+        }
+    }
 }
 
 function clearIntelligentCanvas() {
