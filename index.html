@@ -468,6 +468,11 @@
         .gem-affinity-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
         .gem-affinity-chip { padding:5px 14px; border-radius:20px; font-size:0.78rem; font-weight:700; background:var(--surface); border:1.5px solid var(--border); color:var(--text); }
         .gem-affinity-chip.top { border-color:rgba(139,92,246,0.5); background:rgba(139,92,246,0.08); color:#7c3aed; }
+        /* ── Hexagramaton ────────────────────────────────────────────────── */
+        .gem-hexagram-wrap { display:flex; justify-content:center; padding:10px 0 16px; }
+        .gem-hexagram-wrap svg { overflow:visible; }
+        @keyframes hexPulse { 0%,100%{opacity:1;} 50%{opacity:0.72;} }
+        .hex-pulse { animation:hexPulse 3.5s ease-in-out infinite; }
         /* ── Draw → Letters (reverse gematria) ─────────────────────────── */
         .gem-draw-systems-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
         .gem-draw-system-card { border-radius:16px; padding:18px 20px; border:2px solid var(--border); background:var(--surface2); }
@@ -1923,6 +1928,19 @@
         <div id="gem-results-card" class="card" style="display:none;">
             <div class="pattern-section-title">&#128202; All 4 Modern Gematria Systems</div>
             <div id="gem-systems-grid" class="gem-systems-grid"></div>
+        </div>
+
+        <!-- Hexagramaton -->
+        <div id="gem-hexagram-card" class="card" style="display:none;">
+            <div class="pattern-section-title">&#10017; Hexagramaton &mdash; Sacred Star of Gematria</div>
+            <div class="algo-info" style="margin-bottom:14px;">
+                The Hexagramaton maps your phrase across the six sacred points of the Star of Knowledge.
+                Each tip vibrates with a distinct gematria frequency &mdash; the four modern systems,
+                the digit root, and the combined total &mdash; with the living word at its centre.
+            </div>
+            <div class="gem-hexagram-wrap">
+                <div id="gem-hexagram-svg-wrap"></div>
+            </div>
         </div>
 
         <!-- Lotto Pattern Card -->
@@ -11366,6 +11384,7 @@ function runGematria() {
     initGematriaTab();
     renderGematriaLotto();
     renderGematriaMystical(results);
+    renderGematriaHexagram(results, raw);
 
     document.getElementById('gem-lotto-card').style.display    = '';
     document.getElementById('gem-mystical-card').style.display = '';
@@ -11428,15 +11447,154 @@ function renderGematriaMystical(results) {
 
 function clearGematria() {
     document.getElementById('gem-input').value = '';
-    document.getElementById('gem-results-card').style.display   = 'none';
-    document.getElementById('gem-lotto-card').style.display     = 'none';
-    document.getElementById('gem-mystical-card').style.display  = 'none';
+    document.getElementById('gem-results-card').style.display    = 'none';
+    document.getElementById('gem-hexagram-card').style.display   = 'none';
+    document.getElementById('gem-lotto-card').style.display      = 'none';
+    document.getElementById('gem-mystical-card').style.display   = 'none';
     _gemLastResults = null;
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   DRAW → LETTERS  (reverse gematria — numbers back to letters/words)
-   ════════════════════════════════════════════════════════════════════ */
+/* ── Hexagramaton — SVG Star-of-David gematria visualisation ────── */
+function _svgEsc(s) {
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function renderGematriaHexagram(results, phrase) {
+    var card = document.getElementById('gem-hexagram-card');
+    var wrap = document.getElementById('gem-hexagram-svg-wrap');
+    if (!card || !wrap) return;
+
+    var r0 = results[0], r1 = results[1], r2 = results[2], r3 = results[3];
+    var root     = r0.root != null ? r0.root : 9;
+    var totalSum = r0.value + r1.value + r2.value + r3.value;
+
+    /* ── Geometry ────────────────────────────────────────────────── */
+    var cx = 270, cy = 270, R = 140, LR = 192, CR = 24;
+    var PI = Math.PI;
+
+    /* 6 tips of the star, clockwise from top */
+    var tips = [];
+    for (var i = 0; i < 6; i++) {
+        var a = PI / 2 - i * PI / 3;
+        tips.push({ x: cx + R * Math.cos(a), y: cy - R * Math.sin(a) });
+    }
+    /* t[0]=top  t[1]=TR  t[2]=BR  t[3]=bottom  t[4]=BL  t[5]=TL */
+
+    /* Label circle centres */
+    var lbls = [];
+    for (var i = 0; i < 6; i++) {
+        var a = PI / 2 - i * PI / 3;
+        lbls.push({ x: cx + LR * Math.cos(a), y: cy - LR * Math.sin(a) });
+    }
+
+    /* Data for each of the 6 tips */
+    var pts = [
+        { label: 'Eng. Ordinal',  val: r0.value, color: '#8b5cf6' },
+        { label: 'Full Red.',     val: r1.value, color: '#06b6d4' },
+        { label: 'Rev. Ordinal',  val: r2.value, color: '#f59e0b' },
+        { label: 'Rev. Red.',     val: r3.value, color: '#10b981' },
+        { label: 'Digit Root',    val: root,     color: '#ec4899' },
+        { label: 'All-4 Sum',     val: totalSum, color: '#f97316' }
+    ];
+
+    /* ── Build SVG ───────────────────────────────────────────────── */
+    var S = [];
+
+    /* Triangles */
+    function poly(idx, fill, stroke) {
+        var coords = idx.map(function(i) {
+            return tips[i].x.toFixed(1) + ',' + tips[i].y.toFixed(1);
+        }).join(' ');
+        S.push('<polygon class="hex-pulse" points="' + coords + '"'
+            + ' fill="' + fill + '" stroke="' + stroke + '"'
+            + ' stroke-width="2.5" stroke-linejoin="round"'
+            + ' filter="url(#hexglow)"/>');
+    }
+    S.push('<defs>'
+        + '<filter id="hexglow" x="-40%" y="-40%" width="180%" height="180%">'
+        + '<feGaussianBlur stdDeviation="5" result="b"/>'
+        + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>'
+        + '</filter>'
+        + '</defs>');
+    S.push('<circle cx="' + cx + '" cy="' + cy + '" r="172"'
+        + ' fill="rgba(139,92,246,0.03)"/>');
+
+    poly([0, 2, 4], 'rgba(139,92,246,0.10)', '#8b5cf6');  /* upward   △ */
+    poly([1, 3, 5], 'rgba(6,182,212,0.08)',   '#06b6d4');  /* downward ▽ */
+
+    /* Inner hexagon outline */
+    var IR = R * 0.577; /* inner vertex radius ≈ R/√3 */
+    var hexPts = '';
+    for (var i = 0; i < 6; i++) {
+        var a = PI / 2 - i * PI / 3 - PI / 6;
+        hexPts += (cx + IR * Math.cos(a)).toFixed(1) + ',' + (cy - IR * Math.sin(a)).toFixed(1) + ' ';
+    }
+    S.push('<polygon points="' + hexPts.trim() + '"'
+        + ' fill="none" stroke="rgba(139,92,246,0.18)" stroke-width="1"/>');
+
+    /* Connector lines + label circles */
+    for (var i = 0; i < 6; i++) {
+        var p = pts[i], lb = lbls[i], ti = tips[i];
+        /* dashed spoke */
+        S.push('<line x1="' + ti.x.toFixed(1) + '" y1="' + ti.y.toFixed(1) + '"'
+            + ' x2="' + lb.x.toFixed(1) + '" y2="' + lb.y.toFixed(1) + '"'
+            + ' stroke="' + p.color + '" stroke-width="1.5"'
+            + ' stroke-opacity="0.38" stroke-dasharray="4,3"/>');
+        /* label circle */
+        S.push('<circle cx="' + lb.x.toFixed(1) + '" cy="' + lb.y.toFixed(1) + '" r="' + CR + '"'
+            + ' fill="rgba(10,6,30,0.78)" stroke="' + p.color + '" stroke-width="2.5"/>');
+        /* value text inside circle */
+        var valStr = String(p.val);
+        var vfs = valStr.length <= 3 ? 14 : valStr.length <= 5 ? 11 : 9;
+        S.push('<text x="' + lb.x.toFixed(1) + '" y="' + (lb.y + vfs * 0.38).toFixed(1) + '"'
+            + ' text-anchor="middle" font-size="' + vfs + '" font-weight="900"'
+            + ' fill="' + p.color + '">' + _svgEsc(valStr) + '</text>');
+        /* label name outside circle */
+        var cos_a = Math.cos(PI / 2 - i * PI / 3);
+        var sin_a = Math.sin(PI / 2 - i * PI / 3);
+        var ta, tx, ty;
+        if (Math.abs(cos_a) < 0.25) {         /* top or bottom */
+            ta = 'middle'; tx = lb.x;
+            ty = sin_a > 0 ? lb.y - CR - 8 : lb.y + CR + 15;
+        } else if (cos_a > 0) {               /* right */
+            ta = 'start'; tx = lb.x + CR + 6; ty = lb.y + 4;
+        } else {                              /* left */
+            ta = 'end';   tx = lb.x - CR - 6; ty = lb.y + 4;
+        }
+        S.push('<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '"'
+            + ' text-anchor="' + ta + '" font-size="10" font-weight="700"'
+            + ' fill="rgba(210,210,210,0.72)">' + _svgEsc(p.label) + '</text>');
+    }
+
+    /* Centre circle */
+    S.push('<circle cx="' + cx + '" cy="' + cy + '" r="53"'
+        + ' fill="rgba(10,6,30,0.85)" stroke="rgba(139,92,246,0.55)"'
+        + ' stroke-width="2.5" filter="url(#hexglow)"/>');
+
+    /* Centre text */
+    var disp = phrase.length > 9 ? phrase.substring(0, 9) + '\u2026' : phrase;
+    S.push('<text x="' + cx + '" y="' + (cy - 14) + '"'
+        + ' text-anchor="middle" font-size="11" font-weight="800"'
+        + ' fill="#a78bfa" letter-spacing="1">' + _svgEsc(disp.toUpperCase()) + '</text>');
+    S.push('<text x="' + cx + '" y="' + (cy + 3) + '"'
+        + ' text-anchor="middle" font-size="8" fill="rgba(167,139,250,0.5)">'
+        + '\u2500\u2500\u2500\u2500\u2500\u2500</text>');
+    S.push('<text x="' + cx + '" y="' + (cy + 18) + '"'
+        + ' text-anchor="middle" font-size="9" font-weight="600"'
+        + ' fill="rgba(210,200,255,0.55)">\u03A3\u00A0root\u00A0' + root + '</text>');
+
+    wrap.innerHTML = '<svg viewBox="0 0 540 540" width="100%"'
+        + ' style="max-width:480px;" xmlns="http://www.w3.org/2000/svg">'
+        + S.join('') + '</svg>';
+
+    card.style.display = '';
+}
+
+
 
 /* Reduce n to range 1-26 for ordinal-style systems */
 function _gemReduceTo26(n) {
