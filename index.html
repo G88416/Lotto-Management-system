@@ -11393,6 +11393,7 @@ function clearGematria() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    loadPersisted();
     purgeOrphanedData();
     buildFormatGrids();
     renderReverseHistory();
