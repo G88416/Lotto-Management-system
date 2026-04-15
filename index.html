@@ -11469,7 +11469,7 @@ function renderGematriaHexagram(results, phrase) {
     if (!card || !wrap) return;
 
     var r0 = results[0], r1 = results[1], r2 = results[2], r3 = results[3];
-    var root     = r0.root || 9;
+    var root     = r0.root != null ? r0.root : 9;
     var totalSum = r0.value + r1.value + r2.value + r3.value;
 
     /* ── Geometry ────────────────────────────────────────────────── */
