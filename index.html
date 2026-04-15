@@ -10553,7 +10553,7 @@ function icFindMatches(signature, fmtId, refNumbers) {
 
 /* Internal helper: run the Delta Pattern algorithm.
    Returns {predictions:[{numbers,count,sig,pct},...]} or null. */
-function _icRunDelta(draws, fmt) {
+function _icRunDelta(draws, fmt, randomize) {
     var sigMap = {};
     draws.forEach(function(d) {
         if (!d.numbers || d.numbers.length !== fmt.mainCount) return;
@@ -10569,16 +10569,34 @@ function _icRunDelta(draws, fmt) {
 
     var predictions = [];
     patterns.slice(0, IC_PREDICTION_COUNT).forEach(function(p) {
-        var startFreq = {};
-        p.examples.forEach(function(ex) {
-            var sn = ex[0];
-            startFreq[sn] = (startFreq[sn] || 0) + 1;
-        });
-        var bestStart = parseInt(Object.keys(startFreq).sort(function(a, b) {
-            return startFreq[b] - startFreq[a];
-        })[0], 10);
+        var startNum;
+        if (randomize) {
+            /* Collect every valid starting position for this delta pattern */
+            var validStarts = [];
+            for (var s = 1; s <= fmt.mainMax; s++) {
+                var testNums = [s];
+                var testValid = true;
+                for (var ti = 0; ti < p.sig.length; ti++) {
+                    var testNext = testNums[testNums.length - 1] + p.sig[ti];
+                    if (testNext < 1 || testNext > fmt.mainMax) { testValid = false; break; }
+                    testNums.push(testNext);
+                }
+                if (testValid && testNums.length === fmt.mainCount) validStarts.push(s);
+            }
+            if (validStarts.length === 0) return;
+            startNum = validStarts[Math.floor(Math.random() * validStarts.length)];
+        } else {
+            var startFreq = {};
+            p.examples.forEach(function(ex) {
+                var sn = ex[0];
+                startFreq[sn] = (startFreq[sn] || 0) + 1;
+            });
+            startNum = parseInt(Object.keys(startFreq).sort(function(a, b) {
+                return startFreq[b] - startFreq[a];
+            })[0], 10);
+        }
 
-        var nums = [bestStart];
+        var nums = [startNum];
         var valid = true;
         for (var i = 0; i < p.sig.length; i++) {
             var next = nums[nums.length - 1] + p.sig[i];
@@ -10763,6 +10781,9 @@ function icPredict(fmtId, fmt, refNumbers) {
 /* ── UI helpers ───────────────────────────────────────── */
 var _icCurrentNumbers = [];   /* numbers currently shown on canvas */
 var _icCurrentFmtId   = '';
+var _icLastPredData   = null; /* latest prediction data for delta regenerate */
+var _icLastFmt        = null; /* fmt object used for latest prediction       */
+var _icLastMatchNums  = [];   /* match nums used for canvas redraw           */
 
 function initIntelligentCanvas() {
     /* Re-populate draw selector when tab is activated */
@@ -10878,6 +10899,11 @@ function runIntelligentCanvas() {
     var matchNums = [];
     matches.slice(0, 3).forEach(function(m) { matchNums = matchNums.concat(m.draw.numbers); });
 
+    /* Store for delta regeneration */
+    _icLastPredData  = predData;
+    _icLastFmt       = fmt;
+    _icLastMatchNums = matchNums;
+
     /* Build predSets: one entry per algorithm that produced a result */
     var predSets = [];
     if (predData) {
@@ -10968,7 +10994,13 @@ function _icRenderPrediction(predData, fmt) {
         var titleStyle   = 'font-size:0.9rem; font-weight:800; color:' + col.title + '; margin-bottom:10px; display:flex; align-items:center; gap:6px;';
 
         html += '<div style="' + sectionStyle + '">';
-        html += '<div style="' + titleStyle + '">' + algo.icon + ' ' + algo.name + '</div>';
+        if (algo.cls === 'ic-predict') {
+            html += '<div style="' + titleStyle + '">' + algo.icon + ' ' + algo.name +
+                '<button class="btn btn-secondary" style="margin-left:auto;padding:4px 12px;font-size:0.78rem;font-weight:700;" onclick="icRegenerateDeltaPrediction()">&#128260; Regenerate</button>' +
+                '</div>';
+        } else {
+            html += '<div style="' + titleStyle + '">' + algo.icon + ' ' + algo.name + '</div>';
+        }
 
         if (!algo.result || algo.result.predictions.length === 0) {
             html += '<p class="text-muted text-sm" style="margin:0;">Not enough matching history for this algorithm.</p>';
@@ -10998,6 +11030,33 @@ function _icRenderPrediction(predData, fmt) {
     }
 
     results.innerHTML = html;
+}
+
+function icRegenerateDeltaPrediction() {
+    if (!_icLastPredData || !_icLastFmt || !_icCurrentFmtId) {
+        showToast('Run an analysis first before regenerating.', 'warning');
+        return;
+    }
+    var draws = getCombinedDrawsForFormat(_icCurrentFmtId);
+
+    /* Re-run the delta algorithm with randomised starting numbers */
+    var deltaAlgo = _icLastPredData.algorithms.find(function(a) { return a.cls === 'ic-predict'; });
+    if (deltaAlgo) {
+        deltaAlgo.result = _icRunDelta(draws, _icLastFmt, true);
+    }
+
+    /* Refresh the prediction card */
+    _icRenderPrediction(_icLastPredData, _icLastFmt);
+
+    /* Update canvas overlay to reflect the new delta top-prediction */
+    var predSets = [];
+    _icLastPredData.algorithms.forEach(function(algo) {
+        if (algo.result && algo.result.predictions.length > 0) {
+            predSets.push({ nums: algo.result.predictions[0].numbers, cls: algo.cls });
+        }
+    });
+    var container = document.getElementById('ic-canvas-container');
+    icRenderCanvas(container, _icLastFmt, _icCurrentNumbers, _icLastMatchNums, predSets);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
