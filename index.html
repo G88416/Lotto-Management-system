@@ -243,9 +243,11 @@
         .ic-grid-wrap { position:relative; display:inline-block; margin:0 auto; user-select:none; }
         .ic-grid-row  { display:flex; gap:4px; margin-bottom:4px; }
         .ic-cell { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:0.88rem; font-weight:800; cursor:pointer; transition:background 0.2s, transform 0.15s; background:var(--surface2); border:2px solid var(--border); color:var(--text); position:relative; z-index:2; box-sizing:border-box; }
-        .ic-cell.ic-selected { background:linear-gradient(135deg,#8b5cf6,#06b6d4); color:#fff; border-color:transparent; transform:scale(1.1); box-shadow:0 4px 14px rgba(139,92,246,0.45); }
-        .ic-cell.ic-match    { background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(245,158,11,0.4); }
-        .ic-cell.ic-predict  { background:linear-gradient(135deg,#10b981,#059669); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(16,185,129,0.4); }
+        .ic-cell.ic-selected    { background:linear-gradient(135deg,#8b5cf6,#06b6d4); color:#fff; border-color:transparent; transform:scale(1.1); box-shadow:0 4px 14px rgba(139,92,246,0.45); }
+        .ic-cell.ic-match       { background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(245,158,11,0.4); }
+        .ic-cell.ic-predict     { background:linear-gradient(135deg,#10b981,#059669); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(16,185,129,0.4); }
+        .ic-cell.ic-predict-hot { background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(59,130,246,0.4); }
+        .ic-cell.ic-predict-sum { background:linear-gradient(135deg,#ec4899,#9d174d); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(236,72,153,0.4); }
         .ic-svg-overlay { position:absolute; top:0; left:0; pointer-events:none; z-index:3; overflow:visible; }
         .ic-match-card { background:var(--surface); border-radius:14px; border:1.5px solid var(--border); padding:14px 16px; margin-bottom:10px; transition:box-shadow 0.2s; }
         .ic-match-card:hover { box-shadow:0 6px 22px var(--shadow); }
@@ -1812,7 +1814,9 @@
             <div class="ic-legend">
                 <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:linear-gradient(135deg,#8b5cf6,#06b6d4);"></div> Drawn numbers</div>
                 <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:linear-gradient(135deg,#f59e0b,#d97706);"></div> Pattern match</div>
-                <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:linear-gradient(135deg,#10b981,#059669);"></div> Predicted next</div>
+                <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:linear-gradient(135deg,#10b981,#059669);"></div> &#128207; Delta prediction</div>
+                <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);"></div> &#128293; Hot-Structure prediction</div>
+                <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:linear-gradient(135deg,#ec4899,#9d174d);"></div> &#8721; Sum-Band prediction</div>
                 <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:var(--surface2);border:2px solid var(--border);"></div> Undrawn</div>
             </div>
         </div>
@@ -1832,8 +1836,11 @@
         <div class="card" id="ic-prediction-card" style="display:none;">
             <div class="pattern-section-title">&#128302; Intelligent Prediction</div>
             <div class="algo-info" style="margin-bottom:14px;">
-                Based on the <strong>most frequent delta patterns</strong> found in all draws for this lottery, the canvas predicts the most likely next set of numbers.
-                Predictions are sorted by pattern frequency &amp; confidence.
+                Three independent algorithms analyse the saved draw history to predict the next likely draw.
+                <strong>&#128207; Delta Pattern</strong> replays the most frequent gap sequences.
+                <strong>&#128293; Hot-Structure</strong> picks the most-drawn numbers from structurally similar draws (same odd/even &amp; high/low split).
+                <strong>&#8721; Sum-Band</strong> targets numbers that dominate draws with a similar total sum.
+                Predictions regenerate automatically as you build the pattern on the canvas.
             </div>
             <div id="ic-prediction-results"></div>
         </div>
@@ -10367,15 +10374,32 @@ function icSimilarity(sig1, sig2) {
 }
 
 /* ── Render the number grid + SVG overlay ─────────────── */
-function icRenderCanvas(container, fmt, selectedNums, matchNums, predictNums) {
+/* predSets: array of { nums: [...], cls: 'ic-predict-xxx' } – one entry per algorithm.
+   Each number is coloured with the class of the first algorithm that predicts it.
+   For backward-compat, a bare array is treated as a single Delta set. */
+function icRenderCanvas(container, fmt, selectedNums, matchNums, predSets) {
+    /* Normalise predSets */
+    if (!predSets) predSets = [];
+    if (Array.isArray(predSets) && (predSets.length === 0 || typeof predSets[0] === 'number')) {
+        /* Legacy: plain number array → wrap as single delta set */
+        predSets = predSets.length ? [{ nums: predSets, cls: 'ic-predict' }] : [];
+    }
+
     var cols    = icGetCols(fmt.mainMax);
     var rows    = icGridRows(fmt.mainMax, cols);
     var CELL    = 44;   /* px */
     var GAP     = 4;    /* px */
     var STEP    = CELL + GAP;
-    var selSet  = new Set(selectedNums || []);
-    var matchSet = new Set(matchNums   || []);
-    var predSet = new Set(predictNums  || []);
+    var selSet   = new Set(selectedNums || []);
+    var matchSet = new Set(matchNums    || []);
+
+    /* Build a per-number → css-class map (first algorithm wins) */
+    var predClassMap = {};
+    predSets.forEach(function(ps) {
+        (ps.nums || []).forEach(function(n) {
+            if (!predClassMap[n]) predClassMap[n] = ps.cls;
+        });
+    });
 
     /* Build grid HTML */
     var gridHtml = '<div class="ic-grid-wrap" id="ic-grid-wrap">';
@@ -10388,9 +10412,9 @@ function icRenderCanvas(container, fmt, selectedNums, matchNums, predictNums) {
                 gridHtml += '<div class="ic-cell" style="visibility:hidden;"></div>';
             } else {
                 var cls = 'ic-cell';
-                if (selSet.has(num))   cls += ' ic-selected';
-                else if (predSet.has(num))  cls += ' ic-predict';
-                else if (matchSet.has(num)) cls += ' ic-match';
+                if (selSet.has(num))          cls += ' ic-selected';
+                else if (predClassMap[num])   cls += ' ' + predClassMap[num];
+                else if (matchSet.has(num))   cls += ' ic-match';
                 gridHtml += '<div class="' + cls + '" id="ic-cell-' + num + '" onclick="icToggleCell(' + num + ')">' + num + '</div>';
             }
         }
@@ -10526,12 +10550,11 @@ function icFindMatches(signature, fmtId, refNumbers) {
 }
 
 /* ── Prediction engine ────────────────────────────────── */
-function icPredict(fmtId, fmt, refNumbers) {
-    var draws = getCombinedDrawsForFormat(fmtId);
-    if (draws.length < 5) return null;
 
-    /* Build frequency map of all delta signatures */
-    var sigMap = {}; /* JSON signature → {count, examples} */
+/* Internal helper: run the Delta Pattern algorithm.
+   Returns {predictions:[{numbers,count,sig,pct},...]} or null. */
+function _icRunDelta(draws, fmt) {
+    var sigMap = {};
     draws.forEach(function(d) {
         if (!d.numbers || d.numbers.length !== fmt.mainCount) return;
         var sig = icDeltaSignature(d.numbers);
@@ -10541,18 +10564,11 @@ function icPredict(fmtId, fmt, refNumbers) {
         if (sigMap[key].examples.length < 3) sigMap[key].examples.push(d.numbers.slice().sort(function(a,b){return a-b;}));
     });
 
-    /* Sort patterns by frequency */
     var patterns = Object.values(sigMap).sort(function(a, b) { return b.count - a.count; });
     if (patterns.length === 0) return null;
 
-    /* For each of the top N patterns, generate candidate numbers.
-       Strategy: apply the pattern's deltas starting from the most-
-       frequent starting number in that pattern's examples. */
     var predictions = [];
-    var topPatterns = patterns.slice(0, IC_PREDICTION_COUNT);
-
-    topPatterns.forEach(function(p) {
-        /* Collect all starting numbers from examples of this pattern */
+    patterns.slice(0, IC_PREDICTION_COUNT).forEach(function(p) {
         var startFreq = {};
         p.examples.forEach(function(ex) {
             var sn = ex[0];
@@ -10562,7 +10578,6 @@ function icPredict(fmtId, fmt, refNumbers) {
             return startFreq[b] - startFreq[a];
         })[0], 10);
 
-        /* Build predicted numbers by applying deltas from bestStart */
         var nums = [bestStart];
         var valid = true;
         for (var i = 0; i < p.sig.length; i++) {
@@ -10571,18 +10586,178 @@ function icPredict(fmtId, fmt, refNumbers) {
             nums.push(next);
         }
         if (!valid || nums.length !== fmt.mainCount) return;
-        /* Ensure unique */
         if (new Set(nums).size !== nums.length) return;
 
         predictions.push({
             numbers: nums,
-            count: p.count,
-            sig: p.sig,
-            pct: (p.count / draws.length * 100).toFixed(1)
+            count:   p.count,
+            sig:     p.sig,
+            pct:     (p.count / draws.length * 100).toFixed(1),
+            detail:  'Delta [' + p.sig.join(', ') + '] — found in ' + p.count + ' draw' + (p.count === 1 ? '' : 's')
         });
     });
 
-    return { predictions: predictions, totalDraws: draws.length };
+    return predictions.length ? { predictions: predictions } : null;
+}
+
+/* Internal helper: Hot-Numbers + Structure Match algorithm.
+   Finds draws with the same odd/even count and high/low split (±1 tolerance),
+   then returns the most-frequent numbers from those draws as a single ticket. */
+function _icRunHotStructure(draws, fmt, refNumbers) {
+    var validDraws = draws.filter(function(d) {
+        return d.numbers && d.numbers.length === fmt.mainCount;
+    });
+    if (validDraws.length < 5) return null;
+
+    var mid    = Math.floor(fmt.mainMax / 2);
+    var inOdd  = refNumbers.filter(function(n){ return n % 2 === 1; }).length;
+    var inHigh = refNumbers.filter(function(n){ return n > mid; }).length;
+
+    /* Find structurally similar draws.
+       Tolerance ±1 on both odd-count and high-count keeps the pool large enough
+       for useful frequency stats while excluding draws with a very different balance. */
+    var structMatches = validDraws.filter(function(d) {
+        var dOdd  = d.numbers.filter(function(n){ return n % 2 === 1; }).length;
+        var dHigh = d.numbers.filter(function(n){ return n > mid; }).length;
+        return Math.abs(dOdd - inOdd) <= 1 && Math.abs(dHigh - inHigh) <= 1;
+    });
+    if (structMatches.length < 3) return null;
+
+    /* Build per-number frequency from matching draws */
+    var freq = {};
+    structMatches.forEach(function(d) {
+        d.numbers.forEach(function(n) {
+            if (n >= 1 && n <= fmt.mainMax) freq[n] = (freq[n] || 0) + 1;
+        });
+    });
+
+    /* Rank numbers by frequency */
+    var ranked = [];
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        if (freq[n]) ranked.push({ num: n, freq: freq[n] });
+    }
+    ranked.sort(function(a, b) { return b.freq - a.freq; });
+
+    /* Pick top candidates while respecting target odd/even count */
+    var targetOdd  = inOdd;
+    var targetEven = fmt.mainCount - inOdd;
+    var picks = [];
+    var oddCount = 0, evenCount = 0;
+
+    for (var i = 0; i < ranked.length && picks.length < fmt.mainCount; i++) {
+        var c = ranked[i].num;
+        var isOdd = c % 2 === 1;
+        if (isOdd  && oddCount  < targetOdd)  { picks.push(c); oddCount++;  }
+        else if (!isOdd && evenCount < targetEven) { picks.push(c); evenCount++; }
+    }
+    /* Fall back: fill remaining slots with any unused top-ranked numbers */
+    if (picks.length < fmt.mainCount) {
+        for (var j = 0; j < ranked.length && picks.length < fmt.mainCount; j++) {
+            if (picks.indexOf(ranked[j].num) === -1) picks.push(ranked[j].num);
+        }
+    }
+    if (picks.length !== fmt.mainCount) return null;
+
+    picks.sort(function(a, b) { return a - b; });
+    var prediction = {
+        numbers: picks,
+        count:   structMatches.length,
+        sig:     icDeltaSignature(picks),
+        pct:     (structMatches.length / validDraws.length * 100).toFixed(1),
+        detail:  'From ' + structMatches.length + ' draws with ' + inOdd + ' odd + ' + (fmt.mainCount - inOdd) + ' even numbers'
+    };
+    return { predictions: [prediction] };
+}
+
+/* Internal helper: Sum-Band algorithm.
+   Groups historical draws by total sum; finds the band closest to the
+   input sum and returns the most-frequent numbers from that band. */
+function _icRunSumBand(draws, fmt, refNumbers) {
+    var validDraws = draws.filter(function(d) {
+        return d.numbers && d.numbers.length === fmt.mainCount;
+    });
+    if (validDraws.length < 5) return null;
+
+    var refSum = refNumbers.reduce(function(a, b) { return a + b; }, 0);
+
+    var sums = validDraws.map(function(d) {
+        return d.numbers.reduce(function(a, b) { return a + b; }, 0);
+    });
+    var minS = Math.min.apply(null, sums);
+    var maxS = Math.max.apply(null, sums);
+    /* Start with a 15 % half-width of the full sum range (min 10) so the band
+       covers a representative cluster of draws without being too broad. */
+    var bandwidth = Math.max((maxS - minS) * 0.15, 10);
+
+    var bandDraws = validDraws.filter(function(d) {
+        var s = d.numbers.reduce(function(a, b) { return a + b; }, 0);
+        return Math.abs(s - refSum) <= bandwidth;
+    });
+    /* If fewer than 3 draws match, widen to 30 % (min 20) as a fallback. */
+    if (bandDraws.length < 3) {
+        bandwidth = Math.max((maxS - minS) * 0.30, 20);
+        bandDraws = validDraws.filter(function(d) {
+            var s = d.numbers.reduce(function(a, b) { return a + b; }, 0);
+            return Math.abs(s - refSum) <= bandwidth;
+        });
+    }
+    if (bandDraws.length < 3) return null;
+
+    var freq = {};
+    bandDraws.forEach(function(d) {
+        d.numbers.forEach(function(n) {
+            if (n >= 1 && n <= fmt.mainMax) freq[n] = (freq[n] || 0) + 1;
+        });
+    });
+
+    var ranked = [];
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        if (freq[n]) ranked.push({ num: n, freq: freq[n] });
+    }
+    ranked.sort(function(a, b) { return b.freq - a.freq; });
+
+    var nums = ranked.slice(0, fmt.mainCount).map(function(r) { return r.num; });
+    if (nums.length !== fmt.mainCount) return null;
+    nums.sort(function(a, b) { return a - b; });
+
+    var prediction = {
+        numbers: nums,
+        count:   bandDraws.length,
+        sig:     icDeltaSignature(nums),
+        pct:     (bandDraws.length / validDraws.length * 100).toFixed(1),
+        detail:  'From ' + bandDraws.length + ' draws with sum near ' + refSum + ' (±' + Math.round(bandwidth) + ')'
+    };
+    return { predictions: [prediction] };
+}
+
+/* Main orchestrator: runs all 3 algorithms and returns combined results.
+   Returns { totalDraws, algorithms:[{name,icon,cls,result},...] } or null. */
+function icPredict(fmtId, fmt, refNumbers) {
+    var draws = getCombinedDrawsForFormat(fmtId);
+    if (draws.length < 5) return null;
+
+    var algos = [
+        {
+            name:   'Delta Pattern',
+            icon:   '&#128207;',
+            cls:    'ic-predict',
+            result: _icRunDelta(draws, fmt)
+        },
+        {
+            name:   'Hot-Structure Match',
+            icon:   '&#128293;',
+            cls:    'ic-predict-hot',
+            result: _icRunHotStructure(draws, fmt, refNumbers)
+        },
+        {
+            name:   'Sum-Band Analysis',
+            icon:   '&#8721;',
+            cls:    'ic-predict-sum',
+            result: _icRunSumBand(draws, fmt, refNumbers)
+        }
+    ];
+
+    return { totalDraws: draws.length, algorithms: algos };
 }
 
 /* ── UI helpers ───────────────────────────────────────── */
@@ -10694,28 +10869,41 @@ function runIntelligentCanvas() {
     _icCurrentNumbers = nums;
     _icCurrentFmtId   = fmtId;
 
-    /* ── 1. Render canvas ── */
+    /* ── 1. Build pattern data ── */
     var signature = icDeltaSignature(nums);
     var matches   = icFindMatches(signature, fmtId, nums.slice().sort(function(a,b){return a-b;}));
     var predData  = icPredict(fmtId, fmt, nums);
 
-    var matchNums   = [];
+    /* Collect match numbers for canvas highlight */
+    var matchNums = [];
     matches.slice(0, 3).forEach(function(m) { matchNums = matchNums.concat(m.draw.numbers); });
-    var predictNums = predData && predData.predictions.length > 0 ? predData.predictions[0].numbers : [];
 
+    /* Build predSets: one entry per algorithm that produced a result */
+    var predSets = [];
+    if (predData) {
+        predData.algorithms.forEach(function(algo) {
+            if (algo.result && algo.result.predictions.length > 0) {
+                predSets.push({ nums: algo.result.predictions[0].numbers, cls: algo.cls });
+            }
+        });
+    }
+
+    /* ── 2. Render canvas with all algorithm predictions ── */
     var container = document.getElementById('ic-canvas-container');
-    icRenderCanvas(container, fmt, nums, matchNums, predictNums);
+    icRenderCanvas(container, fmt, nums, matchNums, predSets);
 
     var labelEl = document.getElementById('ic-canvas-label');
+    var activeCount = predSets.length;
     labelEl.textContent = fmt.flag + ' ' + fmt.name + ' — ' + fmt.mainCount + '/' + fmt.mainMax +
-        '  |  Delta signature: [' + signature.join(', ') + ']';
+        '  |  Delta: [' + signature.join(', ') + ']' +
+        (activeCount > 0 ? '  |  ' + activeCount + ' algorithm' + (activeCount === 1 ? '' : 's') + ' active' : '');
 
     document.getElementById('ic-canvas-card').style.display = 'block';
 
-    /* ── 2. Pattern matches ── */
+    /* ── 3. Pattern matches ── */
     _icRenderMatches(matches, fmt);
 
-    /* ── 3. Prediction ── */
+    /* ── 4. Predictions from all 3 algorithms ── */
     _icRenderPrediction(predData, fmt);
 }
 
@@ -10759,25 +10947,55 @@ function _icRenderPrediction(predData, fmt) {
 
     card.style.display = 'block';
 
-    if (!predData || predData.predictions.length === 0) {
+    if (!predData) {
         results.innerHTML = '<p class="text-muted text-sm text-center" style="padding:20px 0;">Not enough draw history to generate predictions. Add at least <strong>5</strong> draws for ' + fmt.flag + ' ' + fmt.name + '.</p>';
         return;
     }
 
+    /* Colour palette for algorithm headers (matches legend) */
+    var algoColors = {
+        'ic-predict':     { border: 'rgba(16,185,129,0.3)',  bg: 'rgba(16,185,129,0.08)',  title: '#059669' },
+        'ic-predict-hot': { border: 'rgba(59,130,246,0.3)',  bg: 'rgba(59,130,246,0.08)',  title: '#1d4ed8' },
+        'ic-predict-sum': { border: 'rgba(236,72,153,0.3)',  bg: 'rgba(236,72,153,0.08)',  title: '#9d174d' }
+    };
+
     var html = '<div class="text-muted text-sm" style="margin-bottom:14px;">Based on <strong>' + predData.totalDraws + '</strong> saved draws for ' + fmt.flag + ' ' + fmt.name + '</div>';
 
-    predData.predictions.forEach(function(p, i) {
-        var balls = p.numbers.map(function(n) {
-            return '<span class="ball ball-lucky ball-sm">' + n + '</span>';
-        }).join(' ');
-        html += '<div class="ic-predict-box">' +
-            '<div class="ic-predict-title">&#128302; Prediction #' + (i+1) +
-            ' <span class="ic-score-badge ic-score-' + (i === 0 ? 'high' : (i === 1 ? 'mid' : 'low')) + '">' +
-            p.pct + '% of draws use this pattern</span></div>' +
-            '<div class="balls-row" style="flex-wrap:wrap;">' + balls + '</div>' +
-            '<div class="text-muted text-sm" style="margin-top:6px;">Delta pattern: [' + p.sig.join(', ') + '] &nbsp;|&nbsp; Found in <strong>' + p.count + '</strong> draw' + (p.count === 1 ? '' : 's') + '</div>' +
-            '</div>';
+    var anyResult = false;
+    predData.algorithms.forEach(function(algo) {
+        var col = algoColors[algo.cls] || algoColors['ic-predict'];
+        var sectionStyle = 'border-radius:14px; border:2px solid ' + col.border + '; background:' + col.bg + '; padding:16px 18px; margin-bottom:14px;';
+        var titleStyle   = 'font-size:0.9rem; font-weight:800; color:' + col.title + '; margin-bottom:10px; display:flex; align-items:center; gap:6px;';
+
+        html += '<div style="' + sectionStyle + '">';
+        html += '<div style="' + titleStyle + '">' + algo.icon + ' ' + algo.name + '</div>';
+
+        if (!algo.result || algo.result.predictions.length === 0) {
+            html += '<p class="text-muted text-sm" style="margin:0;">Not enough matching history for this algorithm.</p>';
+        } else {
+            anyResult = true;
+            algo.result.predictions.slice(0, IC_PREDICTION_COUNT).forEach(function(p, i) {
+                var balls = p.numbers.map(function(n) {
+                    return '<span class="ball ball-lucky ball-sm">' + n + '</span>';
+                }).join(' ');
+                var scoreCls = i === 0 ? 'ic-score-high' : (i === 1 ? 'ic-score-mid' : 'ic-score-low');
+                if (i > 0) html += '<div style="border-top:1px solid ' + col.border + '; margin:10px 0;"></div>';
+                html += '<div>' +
+                    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+                    '<span class="fw-700 text-sm">Prediction #' + (i + 1) + '</span>' +
+                    '<span class="ic-score-badge ' + scoreCls + '">' + p.pct + '% of draws</span>' +
+                    '</div>' +
+                    '<div class="balls-row" style="flex-wrap:wrap;">' + balls + '</div>' +
+                    '<div class="text-muted text-sm" style="margin-top:5px;">' + (p.detail || 'Delta: [' + p.sig.join(', ') + ']') + '</div>' +
+                    '</div>';
+            });
+        }
+        html += '</div>';
     });
+
+    if (!anyResult) {
+        html += '<p class="text-muted text-sm text-center" style="padding:10px 0;">No algorithms produced predictions. Add more draw history via the <strong>Live Draws</strong> tab.</p>';
+    }
 
     results.innerHTML = html;
 }
