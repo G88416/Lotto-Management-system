@@ -468,6 +468,21 @@
         .gem-affinity-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
         .gem-affinity-chip { padding:5px 14px; border-radius:20px; font-size:0.78rem; font-weight:700; background:var(--surface); border:1.5px solid var(--border); color:var(--text); }
         .gem-affinity-chip.top { border-color:rgba(139,92,246,0.5); background:rgba(139,92,246,0.08); color:#7c3aed; }
+        /* ── Draw → Letters (reverse gematria) ─────────────────────────── */
+        .gem-draw-systems-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+        .gem-draw-system-card { border-radius:16px; padding:18px 20px; border:2px solid var(--border); background:var(--surface2); }
+        .gem-draw-system-card.gem-card-ordinal    { border-color:rgba(139,92,246,0.5); background:linear-gradient(135deg,rgba(139,92,246,0.07),rgba(79,70,229,0.04)); }
+        .gem-draw-system-card.gem-card-pythagorean{ border-color:rgba(6,182,212,0.5);  background:linear-gradient(135deg,rgba(6,182,212,0.07),rgba(14,165,233,0.04)); }
+        .gem-draw-system-card.gem-card-reverse    { border-color:rgba(245,158,11,0.5); background:linear-gradient(135deg,rgba(245,158,11,0.07),rgba(217,119,6,0.04)); }
+        .gem-draw-system-card.gem-card-revpyth    { border-color:rgba(16,185,129,0.5); background:linear-gradient(135deg,rgba(16,185,129,0.07),rgba(5,150,105,0.04)); }
+        .gem-draw-system-name { font-size:0.78rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px; }
+        .gem-draw-word { font-size:1.9rem; font-weight:900; letter-spacing:0.08em; word-break:break-all; line-height:1.2; margin-bottom:8px; }
+        .gem-draw-mapping-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+        .gem-draw-mapping-chip { display:inline-flex; align-items:center; gap:3px; padding:3px 9px; border-radius:12px; background:var(--surface); border:1px solid var(--border); font-size:0.75rem; font-weight:700; }
+        .gem-draw-mapping-num  { color:var(--text-muted); }
+        .gem-draw-mapping-sep  { color:var(--text-muted); font-size:0.7rem; }
+        .gem-draw-mapping-letter { color:var(--text); }
+        .gem-draw-alts { font-size:0.72rem; color:var(--text-muted); margin-top:10px; line-height:1.6; }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1928,6 +1943,33 @@
         <div id="gem-mystical-card" class="card" style="display:none;">
             <div class="pattern-section-title">&#10024; Mystical Connection</div>
             <div id="gem-mystical-content"></div>
+        </div>
+
+        <!-- ── Enter Draw: Numbers → Letters ─────────────────────────── -->
+        <div class="card" style="margin-top:28px;">
+            <div class="pattern-section-title">&#127922; Enter Draw — Numbers to Letters &amp; Words</div>
+            <div class="algo-info">
+                Enter a draw (the winning or played lottery numbers, separated by commas or spaces).
+                Each number is decoded back into letters across <strong>all 4 gematria systems</strong>,
+                revealing the hidden words or letter-sequences encoded within your draw.
+            </div>
+            <div class="form-group">
+                <input type="text" id="gem-draw-input"
+                       placeholder="e.g. 7 14 21 35 42  or  3, 17, 26, 44"
+                       oninput="runDrawGematria()"
+                       autocomplete="off"
+                       style="font-size:1.1rem;" />
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="runDrawGematria()">&#128302; Decode Draw to Letters</button>
+                <button class="btn btn-secondary" onclick="clearDrawGematria()">&#10006; Clear</button>
+            </div>
+        </div>
+
+        <!-- Draw-to-letters results -->
+        <div id="gem-draw-results-card" class="card" style="display:none;">
+            <div class="pattern-section-title">&#128288; Letter &amp; Word Decoded from Draw</div>
+            <div id="gem-draw-systems-grid" class="gem-draw-systems-grid"></div>
         </div>
     </section>
 
@@ -11390,6 +11432,167 @@ function clearGematria() {
     document.getElementById('gem-lotto-card').style.display     = 'none';
     document.getElementById('gem-mystical-card').style.display  = 'none';
     _gemLastResults = null;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   DRAW → LETTERS  (reverse gematria — numbers back to letters/words)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Reduce n to range 1-26 for ordinal-style systems */
+function _gemReduceTo26(n) {
+    var r = Math.abs(n) || 1;
+    while (r > 26) {
+        var s = 0, tmp = r;
+        while (tmp > 0) { s += tmp % 10; tmp = Math.floor(tmp / 10); }
+        r = s || 9;
+    }
+    return r;
+}
+
+/* Reduce n to range 1-9 for Pythagorean-style systems */
+function _gemReduceTo9(n) {
+    var r = Math.abs(n) || 1;
+    while (r > 9) {
+        var s = 0, tmp = r;
+        while (tmp > 0) { s += tmp % 10; tmp = Math.floor(tmp / 10); }
+        r = s || 9;
+    }
+    return r;
+}
+
+/* English Ordinal: A=1…Z=26. Numbers >26 are digit-reduced. */
+function _drawOrdinalLetter(n) {
+    return String.fromCharCode(64 + _gemReduceTo26(n));
+}
+
+/* Full Reduction (Pythagorean): digit-reduce to 1-9; return ALL matching letters */
+function _drawPythagoreanLetters(n) {
+    var d = _gemReduceTo9(n);
+    var out = [];
+    for (var i = 1; i <= 26; i++) {
+        if (_digitReduce(i) === d) out.push(String.fromCharCode(64 + i));
+    }
+    return out; /* e.g. d=1 → ['A','J','S'] */
+}
+
+/* Reverse Ordinal: A=26…Z=1. Reduced position = 27-n; then letter = pos-th letter. */
+function _drawReverseOrdinalLetter(n) {
+    var reduced = _gemReduceTo26(n);
+    var pos = 27 - reduced;
+    if (pos < 1)  pos = 1;
+    if (pos > 26) pos = 26;
+    return String.fromCharCode(64 + pos);
+}
+
+/* Reverse Reduction (Reverse Pythagorean): digit-reduce to 1-9; return ALL matching letters */
+function _drawRevPythagoreanLetters(n) {
+    var d = _gemReduceTo9(n);
+    var out = [];
+    for (var i = 1; i <= 26; i++) {
+        if (_digitReduce(27 - i) === d) out.push(String.fromCharCode(64 + i));
+    }
+    return out;
+}
+
+/* Parse the draw input into an array of positive integers */
+function _parseDrawNumbers(raw) {
+    return raw.split(/[\s,;]+/)
+              .map(function(t) { return parseInt(t, 10); })
+              .filter(function(v) { return !isNaN(v) && v > 0; });
+}
+
+/* ── Main decode function ───────────────────────────────────────── */
+function runDrawGematria() {
+    var raw = (document.getElementById('gem-draw-input').value || '').trim();
+    var nums = _parseDrawNumbers(raw);
+    if (!nums.length) { clearDrawGematria(); return; }
+
+    var systems = [
+        {
+            key: 'ordinal',    cls: 'gem-card-ordinal',
+            name: 'English Ordinal',    icon: '\u{1F1E6}',
+            desc: 'A=1 \u2026 Z=26 \u2014 each number maps directly to its sequential letter.',
+            single: true,
+            lettersFn: function(n) { return [_drawOrdinalLetter(n)]; }
+        },
+        {
+            key: 'pythagorean', cls: 'gem-card-pythagorean',
+            name: 'Full Reduction',     icon: '\u25CB',
+            desc: 'Pythagorean \u2014 each number is digit-reduced to 1-9; all matching letters are shown.',
+            single: false,
+            lettersFn: function(n) { return _drawPythagoreanLetters(n); }
+        },
+        {
+            key: 'reverse',    cls: 'gem-card-reverse',
+            name: 'Reverse Ordinal',    icon: '\u21A9',
+            desc: 'A=26 \u2026 Z=1 \u2014 each number resolves to its mirror-position letter.',
+            single: true,
+            lettersFn: function(n) { return [_drawReverseOrdinalLetter(n)]; }
+        },
+        {
+            key: 'revpyth',    cls: 'gem-card-revpyth',
+            name: 'Reverse Reduction',  icon: '\u21AA',
+            desc: 'Reverse Pythagorean \u2014 digit-reduced reverse values; all matching letters shown.',
+            single: false,
+            lettersFn: function(n) { return _drawRevPythagoreanLetters(n); }
+        }
+    ];
+
+    var systemColors = {
+        ordinal: '#8b5cf6', pythagorean: '#06b6d4',
+        reverse: '#f59e0b', revpyth: '#10b981'
+    };
+
+    var grid = document.getElementById('gem-draw-systems-grid');
+    grid.innerHTML = systems.map(function(sys) {
+        /* Build per-number mappings */
+        var mappings = nums.map(function(n) {
+            return { num: n, letters: sys.lettersFn(n) };
+        });
+
+        /* Primary word = first letter of each number */
+        var word = mappings.map(function(m) { return m.letters[0] || '?'; }).join('');
+
+        /* Spaced sentence = each group separated by space (readable) */
+        var sentence = mappings.map(function(m) { return m.letters.join('/'); }).join(' · ');
+
+        /* Mapping chips */
+        var chips = mappings.map(function(m) {
+            return '<span class="gem-draw-mapping-chip">' +
+                '<span class="gem-draw-mapping-num">' + m.num + '</span>' +
+                '<span class="gem-draw-mapping-sep">\u2192</span>' +
+                '<span class="gem-draw-mapping-letter">' + m.letters.join('/') + '</span>' +
+                '</span>';
+        }).join('');
+
+        /* Alternatives note for multi-letter systems */
+        var altsHtml = '';
+        if (!sys.single) {
+            var altsText = mappings.map(function(m) {
+                return m.num + '\u2192[' + m.letters.join(', ') + ']';
+            }).join('  ');
+            altsHtml = '<div class="gem-draw-alts">&#9432; Each number may represent any of its matching letters: ' + altsText + '</div>';
+        }
+
+        var nameColor = systemColors[sys.key];
+        return '<div class="gem-draw-system-card ' + sys.cls + '">' +
+            '<div class="gem-draw-system-name" style="color:' + nameColor + ';">' + sys.icon + ' ' + sys.name + '</div>' +
+            '<div class="gem-draw-word" style="color:' + nameColor + ';">' + word + '</div>' +
+            '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">' + sentence + '</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:10px;">' + sys.desc + '</div>' +
+            '<div class="gem-draw-mapping-row">' + chips + '</div>' +
+            altsHtml +
+            '</div>';
+    }).join('');
+
+    document.getElementById('gem-draw-results-card').style.display = '';
+}
+
+function clearDrawGematria() {
+    var inp = document.getElementById('gem-draw-input');
+    if (inp) inp.value = '';
+    var card = document.getElementById('gem-draw-results-card');
+    if (card) card.style.display = 'none';
 }
 
 document.addEventListener('DOMContentLoaded', function() {
