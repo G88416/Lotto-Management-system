@@ -4903,9 +4903,9 @@ function pasteCanvasSplitNumbers(str, count, maxVal) {
 var _pasteCanvasParsed = [];
 
 function _pcHashSeed(str) {
-    var s = 0;
-    String(str || '').split('').forEach(function(ch, i) { s = (s + ch.charCodeAt(0) * (i + 11)) % 2147483647; });
-    return s || 12345;
+    var hash = 0;
+    String(str || '').split('').forEach(function(ch, i) { hash = (hash + ch.charCodeAt(0) * (i + 11)) % 2147483647; });
+    return hash || 12345;
 }
 
 function _pcUniquePoolFromDraw(d) {
@@ -4916,20 +4916,20 @@ function _pcUniquePoolFromDraw(d) {
     return pool;
 }
 
-function _pcBuildNumbersForFormat(pool, fmt, seedBase, forBonus) {
+function _pcBuildNumbersForFormat(pool, fmt, seedBase, isBonusNumber) {
     var out = [];
-    var count = forBonus ? fmt.bonusCount : fmt.mainCount;
-    var maxV  = forBonus ? (fmt.bonusMax || fmt.mainMax) : fmt.mainMax;
+    var count = isBonusNumber ? fmt.bonusCount : fmt.mainCount;
+    var maxV  = isBonusNumber ? (fmt.bonusMax || fmt.mainMax) : fmt.mainMax;
     if (count <= 0) return out;
     var src = pool.length ? pool.slice() : [seedBase % maxV || 1];
     var cursor = 0;
     while (out.length < count) {
         var raw = src[cursor % src.length];
-        var n = ((Math.abs(raw) + seedBase + (cursor + 1) * (forBonus ? 23 : 17)) % maxV) + 1;
-        var guard = 0;
-        while (out.indexOf(n) !== -1 && guard < maxV + 5) {
+        var n = ((Math.abs(raw) + seedBase + (cursor + 1) * (isBonusNumber ? 23 : 17)) % maxV) + 1;
+        var retryCount = 0;
+        while (out.indexOf(n) !== -1 && retryCount < maxV + 5) {
             n = (n % maxV) + 1;
-            guard++;
+            retryCount++;
         }
         if (out.indexOf(n) === -1) out.push(n);
         cursor++;
@@ -10910,7 +10910,7 @@ function _icRunMirrorPredictor(draws, fmt, refNumbers) {
     });
     if (validDraws.length < 3) return null;
 
-    var mirrorBase = refNumbers.map(function(n) { return (fmt.mainMax + 1) - n; });
+    var mirroredNumbers = refNumbers.map(function(n) { return (fmt.mainMax + 1) - n; });
     var freq = {};
     validDraws.forEach(function(d) {
         d.numbers.forEach(function(n) {
@@ -10919,13 +10919,13 @@ function _icRunMirrorPredictor(draws, fmt, refNumbers) {
     });
 
     var scored = [];
-    mirrorBase.forEach(function(n, idx) {
+    mirroredNumbers.forEach(function(n, idx) {
         var m = Math.max(1, Math.min(fmt.mainMax, n));
-        var bonus = freq[m] || 0;
+        var frequencyScore = freq[m] || 0;
         /* Also consider a near-mirror if the exact mirror is weak */
-        var alt = m < fmt.mainMax ? m + 1 : m - 1;
-        if ((freq[alt] || 0) > bonus) m = alt;
-        scored.push({ num: m, score: (freq[m] || 0) + (mirrorBase[idx] === m ? 1 : 0) });
+        var nearbyMirror = m < fmt.mainMax ? m + 1 : m - 1;
+        if ((freq[nearbyMirror] || 0) > frequencyScore) m = nearbyMirror;
+        scored.push({ num: m, score: (freq[m] || 0) + (mirroredNumbers[idx] === m ? 1 : 0) });
     });
 
     scored.sort(function(a,b){ return b.score - a.score; });
@@ -10940,7 +10940,7 @@ function _icRunMirrorPredictor(draws, fmt, refNumbers) {
         numbers: picks,
         count:   validDraws.length,
         sig:     icDeltaSignature(picks),
-        pct:     (Math.min(100, (picks.filter(function(n){ return mirrorBase.indexOf(n) !== -1; }).length / fmt.mainCount) * 100)).toFixed(1),
+        pct:     (Math.min(100, (picks.filter(function(n){ return mirroredNumbers.indexOf(n) !== -1; }).length / fmt.mainCount) * 100)).toFixed(1),
         detail:  'Mirror of active pattern around midpoint ' + Math.ceil(fmt.mainMax / 2) + ' with historical frequency boost'
     };
     return { predictions: [prediction] };
@@ -11341,9 +11341,9 @@ function _icgBuildScoreMap(fmt) {
     }, 0);
     var limit = state.budget && state.budget.limit ? state.budget.limit : 0;
     if (limit > 0 && spent >= limit) {
-        for (var b1 = 1; b1 <= Math.floor(fmt.mainMax / 2); b1++) score[b1] += 0.35;
+        for (var lowNumber = 1; lowNumber <= Math.floor(fmt.mainMax / 2); lowNumber++) score[lowNumber] += 0.35;
     } else if (limit > 0 && spent < limit * 0.5) {
-        for (var b2 = Math.floor(fmt.mainMax / 2); b2 <= fmt.mainMax; b2++) score[b2] += 0.35;
+        for (var highNumber = Math.floor(fmt.mainMax / 2); highNumber <= fmt.mainMax; highNumber++) score[highNumber] += 0.35;
     }
 
     /* 🔬 Combi-Matrix */
@@ -11382,10 +11382,10 @@ function _icgBuildScoreMap(fmt) {
             rootFreq[r] = (rootFreq[r] || 0) + 1;
         });
     });
-    Object.keys(rootFreq).forEach(function(rk) {
-        var rv = parseInt(rk, 10);
+    Object.keys(rootFreq).forEach(function(rootKey) {
+        var rootValue = parseInt(rootKey, 10);
         for (var n = 1; n <= fmt.mainMax; n++) {
-            if (digitRoot(n) === rv) score[n] += rootFreq[rk] * 0.02;
+            if (digitRoot(n) === rootValue) score[n] += rootFreq[rootKey] * 0.02;
         }
     });
 
