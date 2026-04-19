@@ -248,6 +248,7 @@
         .ic-cell.ic-predict     { background:linear-gradient(135deg,#10b981,#059669); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(16,185,129,0.4); }
         .ic-cell.ic-predict-hot { background:linear-gradient(135deg,#3b82f6,#1d4ed8); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(59,130,246,0.4); }
         .ic-cell.ic-predict-sum { background:linear-gradient(135deg,#ec4899,#9d174d); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(236,72,153,0.4); }
+        .ic-cell.ic-predict-mirror { background:linear-gradient(135deg,#7c3aed,#5b21b6); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(124,58,237,0.4); }
         .ic-svg-overlay { position:absolute; top:0; left:0; pointer-events:none; z-index:3; overflow:visible; }
         .ic-match-card { background:var(--surface); border-radius:14px; border:1.5px solid var(--border); padding:14px 16px; margin-bottom:10px; transition:box-shadow 0.2s; }
         .ic-match-card:hover { box-shadow:0 6px 22px var(--shadow); }
@@ -543,7 +544,7 @@
         <button class="tab-btn" onclick="switchTab('lottogap')">&#128207; Lotto Gap</button>
         <button class="tab-btn" onclick="switchTab('digitpattern')">&#128290; Digit Pattern</button>
         <button class="tab-btn" onclick="switchTab('intelligentcanvas')">&#127912; Smart Canvas</button>
-        <button class="tab-btn" onclick="switchTab('tetragematrn')">&#128302; Tetra-Gematria</button>
+        <button class="tab-btn" onclick="switchTab('tetragematrn')">&#129504; Intelligent Generator</button>
     </nav>
 
     <!-- QUICK PICK -->
@@ -1869,6 +1870,7 @@
                 <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:linear-gradient(135deg,#10b981,#059669);"></div> &#128207; Delta prediction</div>
                 <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);"></div> &#128293; Hot-Structure prediction</div>
                 <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:linear-gradient(135deg,#ec4899,#9d174d);"></div> &#8721; Sum-Band prediction</div>
+                <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);"></div> &#129695; Mirror prediction</div>
                 <div class="ic-legend-item"><div class="ic-legend-swatch" style="background:var(--surface2);border:2px solid var(--border);"></div> Undrawn</div>
             </div>
         </div>
@@ -1888,107 +1890,55 @@
         <div class="card" id="ic-prediction-card" style="display:none;">
             <div class="pattern-section-title">&#128302; Intelligent Prediction</div>
             <div class="algo-info" style="margin-bottom:14px;">
-                Three independent algorithms analyse the saved draw history to predict the next likely draw.
+                Four independent algorithms analyse the saved draw history to predict the next likely draw.
                 <strong>&#128207; Delta Pattern</strong> replays the most frequent gap sequences.
                 <strong>&#128293; Hot-Structure</strong> picks the most-drawn numbers from structurally similar draws (same odd/even &amp; high/low split).
                 <strong>&#8721; Sum-Band</strong> targets numbers that dominate draws with a similar total sum.
+                <strong>&#129695; Mirror Predictor</strong> reflects active patterns around the format midpoint and ranks mirrored repeats.
                 Predictions regenerate automatically as you build the pattern on the canvas.
             </div>
             <div id="ic-prediction-results"></div>
         </div>
     </section>
 
-    <!-- TETRA-GEMATRIA -->
+    <!-- INTELLIGENT PREDICTION GENERATOR -->
     <section id="sec-tetragematrn" class="section">
-        <div class="section-title">&#128302; Tetra-Gematria Calculator</div>
+        <div class="section-title">&#129504; Intelligent Canvas Prediction Generator</div>
         <div class="algo-info">
-            Gematria is the ancient art of assigning numerical value to words and phrases to reveal hidden meaning.
-            Type any word or phrase to see its value across <strong>all 4 modern systems</strong> simultaneously,
-            then instantly convert each sum into matching lottery number patterns.
-            Discover the mystical thread connecting language, numbers, and your lottery strategy.
+            Generates predictions by combining signals from:
+            <strong>&#127920; Quick Pick</strong>,
+            <strong>&#9999;&#65039; Manual Pick</strong>,
+            <strong>&#127967; My Tickets</strong>,
+            <strong>&#127921; Wheeling</strong>,
+            <strong>&#127807; Seed Engine</strong>,
+            <strong>&#128176; Budget</strong>,
+            <strong>&#128197; Draws</strong>,
+            <strong>&#128995; Live Draws</strong>,
+            <strong>&#129302; Patterns</strong>,
+            <strong>&#128300; Combi-Matrix</strong>,
+            <strong>&#128207; Lotto Gap</strong>,
+            <strong>&#128290; Digit Pattern</strong>,
+            and <strong>&#127912; Smart Canvas</strong>.
+            The generator outputs <strong>10 predictions per format</strong>.
         </div>
-
-        <!-- Input Card -->
         <div class="card">
-            <div class="pattern-section-title">&#9999;&#65039; Enter Word or Phrase</div>
-            <div class="form-group">
-                <input type="text" id="gem-input"
-                       placeholder="e.g. Lucky, Abundance, your name, a date…"
-                       oninput="runGematria()"
-                       autocomplete="off"
-                       style="font-size:1.1rem;" />
+            <div class="pattern-section-title">&#9881;&#65039; Generator Configuration</div>
+            <div class="grid-2" style="margin-bottom:14px;">
+                <div>
+                    <label>Lottery Format</label>
+                    <select id="icg-format"></select>
+                </div>
+                <div>
+                    <label>Predictions per Format</label>
+                    <input type="number" id="icg-count" min="1" max="20" value="10" />
+                </div>
             </div>
             <div class="btn-row">
-                <button class="btn btn-primary" onclick="runGematria()">&#128302; Calculate All 4 Systems</button>
-                <button class="btn btn-secondary" onclick="clearGematria()">&#10006; Clear</button>
+                <button class="btn btn-primary" onclick="runIntelligentGenerator()">&#9889; Generate Intelligent Predictions</button>
+                <button class="btn btn-secondary" onclick="clearIntelligentGenerator()">&#10006; Clear</button>
             </div>
         </div>
-
-        <!-- 4-System Results -->
-        <div id="gem-results-card" class="card" style="display:none;">
-            <div class="pattern-section-title">&#128202; All 4 Modern Gematria Systems</div>
-            <div id="gem-systems-grid" class="gem-systems-grid"></div>
-        </div>
-
-        <!-- Hexagramaton -->
-        <div id="gem-hexagram-card" class="card" style="display:none;">
-            <div class="pattern-section-title">&#10017; Hexagramaton &mdash; Sacred Star of Gematria</div>
-            <div class="algo-info" style="margin-bottom:14px;">
-                The Hexagramaton maps your phrase across the six sacred points of the Star of Knowledge.
-                Each tip vibrates with a distinct gematria frequency &mdash; the four modern systems,
-                the digit root, and the combined total &mdash; with the living word at its centre.
-            </div>
-            <div class="gem-hexagram-wrap">
-                <div id="gem-hexagram-svg-wrap"></div>
-            </div>
-        </div>
-
-        <!-- Lotto Pattern Card -->
-        <div id="gem-lotto-card" class="card" style="display:none;">
-            <div class="pattern-section-title">&#127920; Lotto Patterns from Gematria Sums</div>
-            <div class="algo-info" style="margin-bottom:14px;">
-                Each Gematria system produces a unique sum. The numbers below are generated so their total
-                matches that sum as closely as possible within the chosen lottery format.
-            </div>
-            <div class="form-group" style="max-width:340px; margin-bottom:18px;">
-                <label>Lottery Format</label>
-                <select id="gem-format" onchange="renderGematriaLotto()"></select>
-            </div>
-            <div id="gem-lotto-results"></div>
-        </div>
-
-        <!-- Mystical Connection Card -->
-        <div id="gem-mystical-card" class="card" style="display:none;">
-            <div class="pattern-section-title">&#10024; Mystical Connection</div>
-            <div id="gem-mystical-content"></div>
-        </div>
-
-        <!-- ── Enter Draw: Numbers → Letters ─────────────────────────── -->
-        <div class="card" style="margin-top:28px;">
-            <div class="pattern-section-title">&#127922; Enter Draw — Numbers to Letters &amp; Words</div>
-            <div class="algo-info">
-                Enter a draw (the winning or played lottery numbers, separated by commas or spaces).
-                Each number is decoded back into letters across <strong>all 4 gematria systems</strong>,
-                revealing the hidden words or letter-sequences encoded within your draw.
-            </div>
-            <div class="form-group">
-                <input type="text" id="gem-draw-input"
-                       placeholder="e.g. 7 14 21 35 42  or  3, 17, 26, 44"
-                       oninput="runDrawGematria()"
-                       autocomplete="off"
-                       style="font-size:1.1rem;" />
-            </div>
-            <div class="btn-row">
-                <button class="btn btn-primary" onclick="runDrawGematria()">&#128302; Decode Draw to Letters</button>
-                <button class="btn btn-secondary" onclick="clearDrawGematria()">&#10006; Clear</button>
-            </div>
-        </div>
-
-        <!-- Draw-to-letters results -->
-        <div id="gem-draw-results-card" class="card" style="display:none;">
-            <div class="pattern-section-title">&#128288; Letter &amp; Word Decoded from Draw</div>
-            <div id="gem-draw-systems-grid" class="gem-draw-systems-grid"></div>
-        </div>
+        <div id="icg-results"></div>
     </section>
 
 <!-- SAVE TICKET MODAL -->
@@ -2573,7 +2523,7 @@ function switchTab(key) {
     if (key === 'lottogap')    { runNumberOverdue(); }
     if (key === 'digitpattern') { runDigitPattern(); }
     if (key === 'intelligentcanvas') { initIntelligentCanvas(); }
-    if (key === 'tetragematrn')      { initGematriaTab(); }
+    if (key === 'tetragematrn')      { initIntelligentGeneratorTab(); }
 }
 
 function switchSeedSub(idx) {
@@ -4952,6 +4902,62 @@ function pasteCanvasSplitNumbers(str, count, maxVal) {
 
 var _pasteCanvasParsed = [];
 
+function _pcHashSeed(str) {
+    var hash = 0;
+    String(str || '').split('').forEach(function(ch, i) { hash = (hash + ch.charCodeAt(0) * (i + 11)) % 2147483647; });
+    return hash || 12345;
+}
+
+function _pcUniquePoolFromDraw(d) {
+    var pool = [];
+    (d.numbers || []).concat(d.bonus || []).forEach(function(n) {
+        if (typeof n === 'number' && !isNaN(n) && pool.indexOf(n) === -1) pool.push(n);
+    });
+    return pool;
+}
+
+function _pcBuildNumbersForFormat(pool, fmt, seedBase, isBonusNumber) {
+    var out = [];
+    var count = isBonusNumber ? fmt.bonusCount : fmt.mainCount;
+    var maxV  = isBonusNumber ? (fmt.bonusMax || fmt.mainMax) : fmt.mainMax;
+    if (count <= 0) return out;
+    var src = pool.length ? pool.slice() : [seedBase % maxV || 1];
+    var cursor = 0;
+    while (out.length < count) {
+        var raw = src[cursor % src.length];
+        var n = ((Math.abs(raw) + seedBase + (cursor + 1) * (isBonusNumber ? 23 : 17)) % maxV) + 1;
+        var retryCount = 0;
+        while (out.indexOf(n) !== -1 && retryCount < maxV + 5) {
+            n = (n % maxV) + 1;
+            retryCount++;
+        }
+        if (out.indexOf(n) === -1) out.push(n);
+        cursor++;
+        if (cursor > maxV * 3 && src.length < maxV) src.push((seedBase + cursor * 7) % maxV + 1);
+    }
+    return out.sort(function(a,b){ return a-b; });
+}
+
+function expandPastedDrawToAllFormats(d) {
+    var formats = getAllFormats();
+    var pool = _pcUniquePoolFromDraw(d);
+    var seedBase = _pcHashSeed((d.rawName || '') + '|' + (d.date || '') + '|' + (d.drawTime || ''));
+    return formats.map(function(fmt, idx) {
+        var localSeed = seedBase + idx * 131;
+        var main  = _pcBuildNumbersForFormat(pool, fmt, localSeed, false);
+        var bonus = _pcBuildNumbersForFormat(pool.slice().reverse(), fmt, localSeed + 97, true);
+        return {
+            formatId: fmt.id,
+            fmt: fmt,
+            rawName: d.rawName || fmt.name,
+            date: d.date,
+            drawTime: d.drawTime || '',
+            numbers: main,
+            bonus: bonus
+        };
+    });
+}
+
 function parsePasteCanvas() {
     var text = document.getElementById('paste-canvas').value.trim();
     if (!text) { showToast('Please paste draw results first', 'error'); return; }
@@ -5092,26 +5098,26 @@ function importPastedDraws() {
 
     var imported = 0;
     _pasteCanvasParsed.forEach(function(d) {
-        /* Skip duplicates: same format + same date */
-        var exists = state.recentDraws.some(function(r) {
-            return r.formatId === d.formatId && r.date === d.date;
+        expandPastedDrawToAllFormats(d).forEach(function(ed) {
+            var exists = state.recentDraws.some(function(r) {
+                return r.formatId === ed.formatId && r.date === ed.date && r.drawTime === ed.drawTime;
+            });
+            if (exists) return;
+            var newDraw = {
+                id: (typeof crypto !== 'undefined' && crypto.randomUUID)
+                    ? crypto.randomUUID()
+                    : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36),
+                formatId: ed.formatId,
+                date:     ed.date,
+                drawTime: ed.drawTime,
+                numbers:  ed.numbers,
+                bonus:    ed.bonus,
+                addedAt:  new Date().toISOString()
+            };
+            state.recentDraws.unshift(newDraw);
+            fbAddDraw(newDraw);
+            imported++;
         });
-        if (exists) return;
-
-        var newDraw = {
-            id: (typeof crypto !== 'undefined' && crypto.randomUUID)
-                ? crypto.randomUUID()
-                : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36),
-            formatId: d.formatId,
-            date:     d.date,
-            drawTime: d.drawTime,
-            numbers:  d.numbers,
-            bonus:    d.bonus,
-            addedAt:  new Date().toISOString()
-        };
-        state.recentDraws.unshift(newDraw);
-        fbAddDraw(newDraw);
-        imported++;
     });
 
     if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
@@ -5197,25 +5203,26 @@ function saveParsedToPatterns() {
     if (!_pasteCanvasParsed.length) { showToast('Parse some draws first', 'error'); return; }
     var added = 0;
     _pasteCanvasParsed.forEach(function(d) {
-        /* Skip duplicates: same format + same date + same time */
-        var exists = state.savedPatternDraws.some(function(r) {
-            return r.formatId === d.formatId && r.date === d.date && r.drawTime === d.drawTime;
+        expandPastedDrawToAllFormats(d).forEach(function(ed) {
+            var exists = state.savedPatternDraws.some(function(r) {
+                return r.formatId === ed.formatId && r.date === ed.date && r.drawTime === ed.drawTime;
+            });
+            if (exists) return;
+            state.savedPatternDraws.unshift({
+                id:       (typeof crypto !== 'undefined' && crypto.randomUUID)
+                            ? crypto.randomUUID()
+                            : String(Date.now()) + '-' + Math.random().toString(36).substring(2, 11) + '-' + Math.random().toString(36).substring(2, 11),
+                formatId: ed.formatId,
+                fmt:      ed.fmt,
+                rawName:  ed.rawName,
+                date:     ed.date,
+                drawTime: ed.drawTime,
+                numbers:  ed.numbers,
+                bonus:    ed.bonus,
+                savedAt:  new Date().toISOString()
+            });
+            added++;
         });
-        if (exists) return;
-        state.savedPatternDraws.unshift({
-            id:       (typeof crypto !== 'undefined' && crypto.randomUUID)
-                        ? crypto.randomUUID()
-                        : String(Date.now()) + '-' + Math.random().toString(36).substring(2, 11) + '-' + Math.random().toString(36).substring(2, 11),
-            formatId: d.formatId,
-            fmt:      d.fmt,
-            rawName:  d.rawName,
-            date:     d.date,
-            drawTime: d.drawTime,
-            numbers:  d.numbers,
-            bonus:    d.bonus,
-            savedAt:  new Date().toISOString()
-        });
-        added++;
     });
     /* Cap at MAX_SAVED_PATTERN_DRAWS to stay within localStorage limits */
     if (state.savedPatternDraws.length > MAX_SAVED_PATTERN_DRAWS) state.savedPatternDraws = state.savedPatternDraws.slice(0, MAX_SAVED_PATTERN_DRAWS);
@@ -9922,47 +9929,47 @@ function saveDpPastedDraws() {
 
     var addedRecent = 0, addedSaved = 0;
     _dpPasteCanvasParsed.forEach(function(d) {
-        var drawId = (typeof crypto !== 'undefined' && crypto.randomUUID)
-            ? crypto.randomUUID()
-            : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36);
+        expandPastedDrawToAllFormats(d).forEach(function(ed) {
+            var drawId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36);
 
-        /* Save to recentDraws (Live Draws format) */
-        var existsRecent = state.recentDraws.some(function(r) {
-            return r.formatId === d.formatId && r.date === d.date && r.drawTime === d.drawTime;
-        });
-        if (!existsRecent) {
-            var newDraw = {
-                id:       drawId,
-                formatId: d.formatId,
-                date:     d.date,
-                drawTime: d.drawTime,
-                numbers:  d.numbers,
-                bonus:    d.bonus,
-                addedAt:  new Date().toISOString()
-            };
-            state.recentDraws.unshift(newDraw);
-            fbAddDraw(newDraw);
-            addedRecent++;
-        }
-
-        /* Save to savedPatternDraws (Pattern Detector format) */
-        var existsSaved = state.savedPatternDraws.some(function(r) {
-            return r.formatId === d.formatId && r.date === d.date && r.drawTime === d.drawTime;
-        });
-        if (!existsSaved) {
-            state.savedPatternDraws.unshift({
-                id:       drawId + '-spd',
-                formatId: d.formatId,
-                fmt:      d.fmt,
-                rawName:  d.rawName,
-                date:     d.date,
-                drawTime: d.drawTime,
-                numbers:  d.numbers,
-                bonus:    d.bonus,
-                savedAt:  new Date().toISOString()
+            var existsRecent = state.recentDraws.some(function(r) {
+                return r.formatId === ed.formatId && r.date === ed.date && r.drawTime === ed.drawTime;
             });
-            addedSaved++;
-        }
+            if (!existsRecent) {
+                var newDraw = {
+                    id:       drawId,
+                    formatId: ed.formatId,
+                    date:     ed.date,
+                    drawTime: ed.drawTime,
+                    numbers:  ed.numbers,
+                    bonus:    ed.bonus,
+                    addedAt:  new Date().toISOString()
+                };
+                state.recentDraws.unshift(newDraw);
+                fbAddDraw(newDraw);
+                addedRecent++;
+            }
+
+            var existsSaved = state.savedPatternDraws.some(function(r) {
+                return r.formatId === ed.formatId && r.date === ed.date && r.drawTime === ed.drawTime;
+            });
+            if (!existsSaved) {
+                state.savedPatternDraws.unshift({
+                    id:       drawId + '-spd',
+                    formatId: ed.formatId,
+                    fmt:      ed.fmt,
+                    rawName:  ed.rawName,
+                    date:     ed.date,
+                    drawTime: ed.drawTime,
+                    numbers:  ed.numbers,
+                    bonus:    ed.bonus,
+                    savedAt:  new Date().toISOString()
+                });
+                addedSaved++;
+            }
+        });
     });
 
     if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
@@ -10894,7 +10901,52 @@ function _icRunSumBand(draws, fmt, refNumbers) {
     return { predictions: [prediction] };
 }
 
-/* Main orchestrator: runs all 3 algorithms and returns combined results.
+/* Internal helper: Mirror Predictor algorithm.
+   Mirrors each reference number around the midpoint and boosts mirrored numbers
+   that historically reappear in the same format. */
+function _icRunMirrorPredictor(draws, fmt, refNumbers) {
+    var validDraws = draws.filter(function(d) {
+        return d.numbers && d.numbers.length === fmt.mainCount;
+    });
+    if (validDraws.length < 3) return null;
+
+    var mirroredNumbers = refNumbers.map(function(n) { return (fmt.mainMax + 1) - n; });
+    var freq = {};
+    validDraws.forEach(function(d) {
+        d.numbers.forEach(function(n) {
+            if (n >= 1 && n <= fmt.mainMax) freq[n] = (freq[n] || 0) + 1;
+        });
+    });
+
+    var scored = [];
+    mirroredNumbers.forEach(function(n, idx) {
+        var m = Math.max(1, Math.min(fmt.mainMax, n));
+        var frequencyScore = freq[m] || 0;
+        /* Also consider a near-mirror if the exact mirror is weak */
+        var nearbyMirror = m < fmt.mainMax ? m + 1 : m - 1;
+        if ((freq[nearbyMirror] || 0) > frequencyScore) m = nearbyMirror;
+        scored.push({ num: m, score: (freq[m] || 0) + (mirroredNumbers[idx] === m ? 1 : 0) });
+    });
+
+    scored.sort(function(a,b){ return b.score - a.score; });
+    var picks = [];
+    scored.forEach(function(s) { if (picks.indexOf(s.num) === -1 && picks.length < fmt.mainCount) picks.push(s.num); });
+    for (var n = 1; picks.length < fmt.mainCount && n <= fmt.mainMax; n++) {
+        if (picks.indexOf(n) === -1) picks.push(n);
+    }
+    picks.sort(function(a,b){ return a-b; });
+
+    var prediction = {
+        numbers: picks,
+        count:   validDraws.length,
+        sig:     icDeltaSignature(picks),
+        pct:     (Math.min(100, (picks.filter(function(n){ return mirroredNumbers.indexOf(n) !== -1; }).length / fmt.mainCount) * 100)).toFixed(1),
+        detail:  'Mirror of active pattern around midpoint ' + Math.ceil(fmt.mainMax / 2) + ' with historical frequency boost'
+    };
+    return { predictions: [prediction] };
+}
+
+/* Main orchestrator: runs all algorithms and returns combined results.
    Returns { totalDraws, algorithms:[{name,icon,cls,result},...] } or null. */
 function icPredict(fmtId, fmt, refNumbers) {
     var draws = getCombinedDrawsForFormat(fmtId);
@@ -10918,6 +10970,12 @@ function icPredict(fmtId, fmt, refNumbers) {
             icon:   '&#8721;',
             cls:    'ic-predict-sum',
             result: _icRunSumBand(draws, fmt, refNumbers)
+        },
+        {
+            name:   'Mirror Predictor',
+            icon:   '&#129695;',
+            cls:    'ic-predict-mirror',
+            result: _icRunMirrorPredictor(draws, fmt, refNumbers)
         }
     ];
 
@@ -11075,7 +11133,7 @@ function runIntelligentCanvas() {
     /* ── 3. Pattern matches ── */
     _icRenderMatches(matches, fmt);
 
-    /* ── 4. Predictions from all 3 algorithms ── */
+    /* ── 4. Predictions from all algorithms ── */
     _icRenderPrediction(predData, fmt);
 }
 
@@ -11128,7 +11186,8 @@ function _icRenderPrediction(predData, fmt) {
     var algoColors = {
         'ic-predict':     { border: 'rgba(16,185,129,0.3)',  bg: 'rgba(16,185,129,0.08)',  title: '#059669' },
         'ic-predict-hot': { border: 'rgba(59,130,246,0.3)',  bg: 'rgba(59,130,246,0.08)',  title: '#1d4ed8' },
-        'ic-predict-sum': { border: 'rgba(236,72,153,0.3)',  bg: 'rgba(236,72,153,0.08)',  title: '#9d174d' }
+        'ic-predict-sum': { border: 'rgba(236,72,153,0.3)',  bg: 'rgba(236,72,153,0.08)',  title: '#9d174d' },
+        'ic-predict-mirror': { border: 'rgba(124,58,237,0.3)', bg: 'rgba(124,58,237,0.08)', title: '#5b21b6' }
     };
 
     var html = '<div class="text-muted text-sm" style="margin-bottom:14px;">Based on <strong>' + predData.totalDraws + '</strong> saved draws for ' + fmt.flag + ' ' + fmt.name + '</div>';
@@ -11203,6 +11262,220 @@ function icRegenerateDeltaPrediction() {
     });
     var container = document.getElementById('ic-canvas-container');
     icRenderCanvas(container, _icLastFmt, _icCurrentNumbers, _icLastMatchNums, predSets);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   INTELLIGENT PREDICTION GENERATOR
+   ═══════════════════════════════════════════════════════════════════ */
+
+var _icgLastResults = [];
+
+function initIntelligentGeneratorTab() {
+    var sel = document.getElementById('icg-format');
+    if (!sel) return;
+    var prev = sel.value || 'all';
+    sel.innerHTML = '<option value="all">🌍 All Lottery Formats</option>' + getAllFormats().map(function(f) {
+        return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>';
+    }).join('');
+    var exists = Array.from(sel.options).some(function(o) { return o.value === prev; });
+    sel.value = exists ? prev : 'all';
+}
+
+function clearIntelligentGenerator() {
+    _icgLastResults = [];
+    var out = document.getElementById('icg-results');
+    if (out) out.innerHTML = '';
+}
+
+function _icgAddScore(score, n, max, weight) {
+    if (typeof n !== 'number' || isNaN(n) || n < 1 || n > max) return;
+    score[n] = (score[n] || 0) + weight;
+}
+
+function _icgBuildScoreMap(fmt) {
+    var score = {};
+    for (var n = 1; n <= fmt.mainMax; n++) score[n] = 0;
+
+    /* 🎰 Quick Pick + global stats */
+    var fmtStats = state.stats[fmt.id] || {};
+    var allStats = state.stats.all || {};
+    for (var q = 1; q <= fmt.mainMax; q++) {
+        score[q] += (fmtStats[q] || 0) * 0.8 + (allStats[q] || 0) * 0.15;
+    }
+
+    /* ✏️ Manual Pick + 🏟 My Tickets */
+    (state.tickets || []).filter(function(t) { return t.formatId === fmt.id; }).forEach(function(t) {
+        (t.main || []).forEach(function(n) { _icgAddScore(score, n, fmt.mainMax, 2.4); });
+    });
+
+    /* 🟣 Live Draws + 🤖 Patterns + 📅 Draws */
+    getCombinedDrawsForFormat(fmt.id).forEach(function(d) {
+        (d.numbers || []).forEach(function(n) { _icgAddScore(score, n, fmt.mainMax, 2.2); });
+    });
+
+    /* 🤖 Patterns detailed */
+    var pd = computePatternData(fmt.id);
+    if (pd) {
+        (pd.hotNums || []).forEach(function(n, i) { _icgAddScore(score, n, fmt.mainMax, 3.2 - i * 0.2); });
+        (pd.coldNums || []).forEach(function(n, i) { _icgAddScore(score, n, fmt.mainMax, 0.9 - i * 0.05); });
+    }
+
+    /* 🎱 Wheeling */
+    if (typeof _wheelState !== 'undefined' && _wheelState && _wheelState.fmtId === fmt.id) {
+        (_wheelState.combos || []).forEach(function(c) {
+            (c || []).forEach(function(n) { _icgAddScore(score, n, fmt.mainMax, 1.5); });
+        });
+    }
+
+    /* 🌿 Seed Engine */
+    (state.seedHistory || []).forEach(function(item) {
+        (item.seeds || []).forEach(function(seed) {
+            var n = (Math.abs(parseInt(seed, 10) || 0) % fmt.mainMax) + 1;
+            _icgAddScore(score, n, fmt.mainMax, 1.2);
+        });
+    });
+
+    /* 💰 Budget */
+    var spent = (state.tickets || []).reduce(function(s, t) {
+        return t.formatId === fmt.id ? s + (t.price || 0) : s;
+    }, 0);
+    var limit = state.budget && state.budget.limit ? state.budget.limit : 0;
+    if (limit > 0 && spent >= limit) {
+        for (var lowNumber = 1; lowNumber <= Math.floor(fmt.mainMax / 2); lowNumber++) score[lowNumber] += 0.35;
+    } else if (limit > 0 && spent < limit * 0.5) {
+        for (var highNumber = Math.floor(fmt.mainMax / 2); highNumber <= fmt.mainMax; highNumber++) score[highNumber] += 0.35;
+    }
+
+    /* 🔬 Combi-Matrix */
+    (typeof _matrixResults !== 'undefined' ? _matrixResults : []).forEach(function(set) {
+        if (set.formatId !== fmt.id) return;
+        (set.main || []).forEach(function(n) { _icgAddScore(score, n, fmt.mainMax, 1.8); });
+    });
+    (typeof _combinatorResults !== 'undefined' ? _combinatorResults : []).forEach(function(set) {
+        if (set.formatId !== fmt.id) return;
+        (set.main || []).forEach(function(n) { _icgAddScore(score, n, fmt.mainMax, 1.8); });
+    });
+    if (typeof _lastConsensusNums !== 'undefined' && _lastConsensusNums && _lastConsensusNums.formatId === fmt.id) {
+        (_lastConsensusNums.main || []).forEach(function(n) { _icgAddScore(score, n, fmt.mainMax, 2.6); });
+    }
+    (typeof _lastTop5Predictions !== 'undefined' ? _lastTop5Predictions : []).forEach(function(set) {
+        if (set.formatId !== fmt.id) return;
+        (set.main || []).forEach(function(n) { _icgAddScore(score, n, fmt.mainMax, 2.0); });
+    });
+
+    /* 📏 Lotto Gap */
+    (typeof _gapFilterData !== 'undefined' ? _gapFilterData : []).forEach(function(g) {
+        if (!g || typeof g.num !== 'number' || typeof g.gap !== 'number') return;
+        _icgAddScore(score, g.num, fmt.mainMax, Math.min(2.2, g.gap * 0.08));
+    });
+    (typeof _gapGenSets !== 'undefined' ? _gapGenSets : []).forEach(function(set) {
+        if (set.formatId !== fmt.id) return;
+        (set.main || []).forEach(function(n) { _icgAddScore(score, n, fmt.mainMax, 1.5); });
+    });
+
+    /* 🔢 Digit Pattern */
+    var draws = getCombinedDrawsForFormat(fmt.id).slice(0, 60);
+    var rootFreq = {};
+    draws.forEach(function(d) {
+        (d.numbers || []).forEach(function(n) {
+            var r = digitRoot(n);
+            rootFreq[r] = (rootFreq[r] || 0) + 1;
+        });
+    });
+    Object.keys(rootFreq).forEach(function(rootKey) {
+        var rootValue = parseInt(rootKey, 10);
+        for (var n = 1; n <= fmt.mainMax; n++) {
+            if (digitRoot(n) === rootValue) score[n] += rootFreq[rootKey] * 0.02;
+        }
+    });
+
+    /* 🎨 Smart Canvas */
+    if (typeof _icCurrentFmtId !== 'undefined' && _icCurrentFmtId === fmt.id && _icLastPredData) {
+        (_icLastPredData.algorithms || []).forEach(function(a) {
+            if (!a.result || !a.result.predictions || !a.result.predictions.length) return;
+            (a.result.predictions[0].numbers || []).forEach(function(n) { _icgAddScore(score, n, fmt.mainMax, 2.4); });
+        });
+    }
+
+    return score;
+}
+
+function _icgGenerateForFormat(fmt, count) {
+    var score = _icgBuildScoreMap(fmt);
+    var ranked = Object.keys(score).map(function(k) {
+        return { num: parseInt(k, 10), score: score[k] };
+    }).sort(function(a,b){ return b.score - a.score; });
+
+    var predictions = [];
+    var seen = {};
+    var idx = 0;
+    while (predictions.length < count && idx < ranked.length * 4) {
+        var main = [];
+        var pos = idx;
+        while (main.length < fmt.mainCount) {
+            var candidate = ranked[pos % ranked.length].num;
+            if (main.indexOf(candidate) === -1) main.push(candidate);
+            pos += 2;
+        }
+        main.sort(function(a,b){ return a-b; });
+        var key = main.join(',');
+        if (!seen[key]) {
+            seen[key] = true;
+            var bonus = [];
+            if (fmt.bonusCount > 0) {
+                var bSeen = {};
+                var bSeed = idx + fmt.mainMax;
+                while (bonus.length < fmt.bonusCount) {
+                    var bn = (Math.abs(bSeed * 37 + bonus.length * 17) % fmt.bonusMax) + 1;
+                    if (!bSeen[bn]) { bSeen[bn] = true; bonus.push(bn); }
+                    bSeed++;
+                }
+                bonus.sort(function(a,b){ return a-b; });
+            }
+            predictions.push({ main: main, bonus: bonus });
+        }
+        idx++;
+    }
+    return predictions.slice(0, count);
+}
+
+function runIntelligentGenerator() {
+    var sel = document.getElementById('icg-format');
+    var countEl = document.getElementById('icg-count');
+    var out = document.getElementById('icg-results');
+    if (!sel || !out) return;
+
+    var predictionCount = Math.max(1, Math.min(20, parseInt(countEl && countEl.value, 10) || 10));
+    var targets = sel.value === 'all'
+        ? getAllFormats()
+        : getAllFormats().filter(function(f) { return f.id === sel.value; });
+    if (!targets.length) { showToast('Select a lottery format first', 'error'); return; }
+
+    _icgLastResults = targets.map(function(fmt) {
+        return { fmt: fmt, predictions: _icgGenerateForFormat(fmt, predictionCount) };
+    });
+
+    var html = _icgLastResults.map(function(item) {
+        var fmt = item.fmt;
+        var body = item.predictions.map(function(p, i) {
+            return '<div class="draw-result-card" style="margin-bottom:8px;">' +
+                '<div class="draw-result-header"><span class="fw-700 text-sm">#' + (i + 1) + '</span></div>' +
+                '<div class="balls-row">' +
+                p.main.map(function(n){ return '<span class="ball ball-main ball-sm">' + n + '</span>'; }).join('') +
+                (p.bonus && p.bonus.length
+                    ? '<span class="ball-separator">+</span>' + p.bonus.map(function(n){ return '<span class="ball ' + (fmt.bonusColor || 'ball-bonus') + ' ball-sm">' + n + '</span>'; }).join('')
+                    : '') +
+                '</div></div>';
+        }).join('');
+        return '<div class="card">' +
+            '<div class="pattern-section-title">' + fmt.flag + ' ' + fmt.name + ' — ' + predictionCount + ' predictions</div>' +
+            '<div class="algo-info" style="margin-bottom:12px;">Combined engines: Quick Pick, Manual Pick, My Tickets, Wheeling, Seed Engine, Budget, Draws, Live Draws, Patterns, Combi-Matrix, Lotto Gap, Digit Pattern, Smart Canvas.</div>' +
+            body +
+            '</div>';
+    }).join('');
+
+    out.innerHTML = html;
+    showToast('Generated ' + predictionCount + ' prediction' + (predictionCount !== 1 ? 's' : '') + ' for ' + targets.length + ' format' + (targets.length !== 1 ? 's' : '') + '.', 'success');
 }
 
 /* ═══════════════════════════════════════════════════════════════════
