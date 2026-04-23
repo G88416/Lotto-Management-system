@@ -12361,9 +12361,13 @@ function _prngLcgAnalysis(nums, maxVal) {
     });
     var expected = nums.length / bins;
     var chi2 = binCounts.reduce(function(s, c) { return s + Math.pow(c - expected, 2) / expected; }, 0);
-    var isUniform = chi2 < 14.07; /* df=7, p=0.05 critical value */
+    /* Chi-squared critical value 14.07 = df (bins-1=7) at p=0.05 significance level */
+    var CHI2_CRITICAL = 14.07;
+    var isUniform = chi2 < CHI2_CRITICAL;
 
-    /* Runs test */
+    /* Runs test — simplified approximation for large samples.
+       Exact variance = (2*n1*n2*(2*n1*n2-n)) / (n^2*(n-1)); here we use n/4
+       as a conservative approximation valid when n1 ≈ n2 ≈ n/2. */
     var aboveMean = nums.filter(function(x) { return x > mean; }).length;
     var belowMean = nums.length - aboveMean;
     var runs = 1;
@@ -12457,11 +12461,13 @@ function _runPrngTrainer(fmt, draws) {
         }
     }
 
-    /* 5. Recency decay scores (exponential, last 10 draws) */
+    /* 5. Recency decay scores — exponential decay factor 0.7 per draw age
+          gives roughly half-life of 2 draws, balancing recent vs. historical signal */
+    var RECENCY_DECAY = 0.7;
     var recentScore = {};
     for (var k = 1; k <= fmt.mainMax; k++) recentScore[k] = 0;
     draws.slice(0, Math.min(10, n)).forEach(function(d, di) {
-        var w = Math.pow(0.7, di);
+        var w = Math.pow(RECENCY_DECAY, di);
         (d.numbers || []).forEach(function(x) { if (recentScore[x] !== undefined) recentScore[x] += w; });
     });
 
@@ -12568,28 +12574,44 @@ function runPrngMlPredict() {
     var fmt    = model.fmt;
     var draws  = model.draws;
 
+    /* Signal weights — total 100 pts */
+    var W_FREQ    = 30; /* historical frequency */
+    var W_RECENCY = 25; /* exponential recency decay */
+    var W_PAIR    = 20; /* pair co-occurrence */
+    var W_GAP     = 15; /* overdue / gap */
+    var W_MARKOV  = 10; /* Markov zone transition */
+
+    /* Confidence band: base pts + sum-fit contribution + top-rank contribution */
+    var CONF_MAX  = 95;
+    var CONF_BASE = 42;
+    var CONF_SUM  = 33; /* scaled by how close pick sum is to target */
+    var CONF_RANK = 15; /* scaled by highest-scorer appearing in pick */
+
+    /* Bonus-ball shuffle multipliers (coprime, for even distribution) */
+    var SHUF_A = 37, SHUF_B = 13, SHUF_C = 7;
+
     /* Build composite score */
     var score = {};
-    for (var n = 1; n <= fmt.mainMax; n++) score[n] = 0;
+    for (var num = 1; num <= fmt.mainMax; num++) score[num] = 0;
 
-    /* Signal 1: frequency (30 pts) */
+    /* Signal 1: frequency */
     var freq = {};
-    for (var n = 1; n <= fmt.mainMax; n++) freq[n] = 0;
+    for (var num = 1; num <= fmt.mainMax; num++) freq[num] = 0;
     draws.forEach(function(d) { (d.numbers || []).forEach(function(x) { if (freq[x] !== undefined) freq[x]++; }); });
     var maxFreq = 0;
     Object.keys(freq).forEach(function(k) { if (freq[k] > maxFreq) maxFreq = freq[k]; });
     maxFreq = maxFreq || 1;
-    for (var n = 1; n <= fmt.mainMax; n++) score[n] += (freq[n] / maxFreq) * 30;
+    for (var num = 1; num <= fmt.mainMax; num++) score[num] += (freq[num] / maxFreq) * W_FREQ;
 
-    /* Signal 2: recency decay (25 pts) */
+    /* Signal 2: recency decay */
     var maxRecency = 0;
     Object.keys(model.recentScore).forEach(function(k) { if (model.recentScore[k] > maxRecency) maxRecency = model.recentScore[k]; });
     maxRecency = maxRecency || 1;
-    for (var n = 1; n <= fmt.mainMax; n++) score[n] += ((model.recentScore[n] || 0) / maxRecency) * 25;
+    for (var num = 1; num <= fmt.mainMax; num++) score[num] += ((model.recentScore[num] || 0) / maxRecency) * W_RECENCY;
 
-    /* Signal 3: pair-score (20 pts) */
+    /* Signal 3: pair-score */
     var pairScore = {};
-    for (var n = 1; n <= fmt.mainMax; n++) pairScore[n] = 0;
+    for (var num = 1; num <= fmt.mainMax; num++) pairScore[num] = 0;
     Object.keys(model.pairFreq).forEach(function(k) {
         var parts = k.split('-');
         var a = parseInt(parts[0], 10), b = parseInt(parts[1], 10);
@@ -12599,32 +12621,32 @@ function runPrngMlPredict() {
     var maxPair = 0;
     Object.keys(pairScore).forEach(function(k) { if (pairScore[k] > maxPair) maxPair = pairScore[k]; });
     maxPair = maxPair || 1;
-    for (var n = 1; n <= fmt.mainMax; n++) score[n] += ((pairScore[n] || 0) / maxPair) * 20;
+    for (var num = 1; num <= fmt.mainMax; num++) score[num] += ((pairScore[num] || 0) / maxPair) * W_PAIR;
 
-    /* Signal 4: overdue / gap (15 pts) */
+    /* Signal 4: overdue / gap */
     var lastSeen = {};
     for (var j = 1; j <= fmt.mainMax; j++) lastSeen[j] = -1;
     for (var di = draws.length - 1; di >= 0; di--) {
         (draws[di].numbers || []).forEach(function(x) { if (lastSeen[x] === -1) lastSeen[x] = di; });
     }
     var maxGap = 0;
-    for (var n = 1; n <= fmt.mainMax; n++) {
-        var g = lastSeen[n] === -1 ? draws.length : draws.length - 1 - lastSeen[n];
+    for (var num = 1; num <= fmt.mainMax; num++) {
+        var g = lastSeen[num] === -1 ? draws.length : draws.length - 1 - lastSeen[num];
         if (g > maxGap) maxGap = g;
     }
     maxGap = maxGap || 1;
-    for (var n = 1; n <= fmt.mainMax; n++) {
-        var g = lastSeen[n] === -1 ? draws.length : draws.length - 1 - lastSeen[n];
-        score[n] += (g / maxGap) * 15;
+    for (var num = 1; num <= fmt.mainMax; num++) {
+        var g = lastSeen[num] === -1 ? draws.length : draws.length - 1 - lastSeen[num];
+        score[num] += (g / maxGap) * W_GAP;
     }
 
-    /* Signal 5: Markov zone transition from last draw (10 pts) */
+    /* Signal 5: Markov zone transition from last draw */
     if (draws[0]) {
         (draws[0].numbers || []).forEach(function(x) {
             var fromZone = model.getZone(x);
             var transRow = model.zoneProbs[fromZone] || [];
-            for (var n = 1; n <= fmt.mainMax; n++) {
-                score[n] += (transRow[model.getZone(n)] || 0) * 10;
+            for (var num = 1; num <= fmt.mainMax; num++) {
+                score[num] += (transRow[model.getZone(num)] || 0) * W_MARKOV;
             }
         });
     }
@@ -12654,14 +12676,15 @@ function runPrngMlPredict() {
         if (fmt.bonusCount > 0) {
             var bPool = [];
             for (var b = 1; b <= fmt.bonusMax; b++) bPool.push(b);
+            /* Deterministic Fisher-Yates using coprime multipliers SHUF_A/B/C */
             for (var bi = bPool.length - 1; bi > 0; bi--) {
-                var bj = (attempt * 37 + bi * 13 + predictions.length * 7) % (bi + 1);
+                var bj = (attempt * SHUF_A + bi * SHUF_B + predictions.length * SHUF_C) % (bi + 1);
                 var tmp = bPool[bi]; bPool[bi] = bPool[bj]; bPool[bj] = tmp;
             }
             for (var bc = 0; bc < fmt.bonusCount; bc++) bonus.push(bPool[bc]);
             bonus.sort(function(a, b) { return a - b; });
         }
-        var conf = Math.min(95, Math.round(42 + sumScore * 33 + (ranked[0] && ranked[0].sc > 0 ? (score[pick[0]] / ranked[0].sc) * 15 : 0)));
+        var conf = Math.min(CONF_MAX, Math.round(CONF_BASE + sumScore * CONF_SUM + (ranked[0] && ranked[0].sc > 0 ? (score[pick[0]] / ranked[0].sc) * CONF_RANK : 0)));
         predictions.push({ main: pick, bonus: bonus, sum: pickSum, conf: conf });
     }
 
@@ -12715,6 +12738,9 @@ function _prngSamplePick(ranked, count, max, targetSum, tolerance, seed) {
         if (remaining > 0) {
             var minReach = currentSum + remaining;         /* if remaining picks are all 1 */
             var maxReach = currentSum + remaining * max;  /* if remaining picks are all max */
+            /* Upper bound uses 2× tolerance to allow picks that exceed the mean — lottery
+               sums are skewed high when high numbers are selected early in the loop.
+               Lower bound keeps the strict 1× tolerance to avoid very low sums. */
             if (maxReach < targetSum - tolerance || minReach > targetSum + tolerance * 2) {
                 used[idx] = true;
                 continue;
