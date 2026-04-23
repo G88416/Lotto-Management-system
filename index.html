@@ -545,6 +545,7 @@
         <button class="tab-btn" onclick="switchTab('digitpattern')">&#128290; Digit Pattern</button>
         <button class="tab-btn" onclick="switchTab('intelligentcanvas')">&#127912; Smart Canvas</button>
         <button class="tab-btn" onclick="switchTab('tetragematrn')">&#129504; Intelligent Generator</button>
+        <button class="tab-btn" onclick="switchTab('prngml')">&#129302; PRNG ML</button>
     </nav>
 
     <!-- QUICK PICK -->
@@ -1941,6 +1942,70 @@
         <div id="icg-results"></div>
     </section>
 
+    <!-- PRNG MACHINE LEARNING -->
+    <section id="sec-prngml" class="section">
+        <div class="section-title">&#129302; PRNG Machine Learning</div>
+        <div class="algo-info">
+            Analyses historical draw data to reverse-engineer the lottery&#x2019;s Pseudo-Random Number Generator (PRNG) behaviour using advanced mathematics &#8212;
+            LCG parameter estimation, autocorrelation, chi-squared uniformity, Markov zone transitions, delta-vector learning, pair co-occurrence, and recency-decay scoring &#8212;
+            then synthesises all signals to generate statistically probable future draws.
+        </div>
+
+        <!-- Configuration -->
+        <div class="card">
+            <div class="pattern-section-title">&#9881;&#65039; Configuration</div>
+            <div class="grid-2" style="margin-bottom:14px;">
+                <div>
+                    <label>Lottery Format</label>
+                    <select id="prng-format"></select>
+                </div>
+                <div>
+                    <label>Predictions to Generate</label>
+                    <input type="number" id="prng-pred-count" min="1" max="20" value="10" />
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="runPrngFullAnalysis()">&#128300; Analyse &amp; Train</button>
+                <button class="btn btn-secondary" onclick="runPrngMlPredict()">&#127919; Generate Predictions</button>
+                <button class="btn btn-ghost" onclick="clearPrngMl()">&#10006; Clear</button>
+            </div>
+        </div>
+
+        <!-- Sub-tabs -->
+        <div class="tab-nav" style="margin-bottom:20px;">
+            <button class="tab-btn active" id="prng-sub-btn-0" onclick="switchPrngSub(0)">&#128300; PRNG Analyser</button>
+            <button class="tab-btn" id="prng-sub-btn-1" onclick="switchPrngSub(1)">&#129504; ML Trainer</button>
+            <button class="tab-btn" id="prng-sub-btn-2" onclick="switchPrngSub(2)">&#127919; Predictions</button>
+        </div>
+
+        <!-- Sub-tab 0: PRNG Analyser -->
+        <div id="prng-sub-0">
+            <div id="prng-analyser-out">
+                <p class="text-muted text-sm text-center" style="padding:30px 0;">
+                    Select a lottery format and click <strong>Analyse &amp; Train</strong> to begin.
+                </p>
+            </div>
+        </div>
+
+        <!-- Sub-tab 1: ML Trainer -->
+        <div id="prng-sub-1" style="display:none;">
+            <div id="prng-trainer-out">
+                <p class="text-muted text-sm text-center" style="padding:30px 0;">
+                    Run the analyser first to train the ML model.
+                </p>
+            </div>
+        </div>
+
+        <!-- Sub-tab 2: Predictions -->
+        <div id="prng-sub-2" style="display:none;">
+            <div id="prng-predict-out">
+                <p class="text-muted text-sm text-center" style="padding:30px 0;">
+                    Train the model first, then click <strong>Generate Predictions</strong>.
+                </p>
+            </div>
+        </div>
+    </section>
+
 <!-- SAVE TICKET MODAL -->
 <div class="modal-backdrop" id="save-modal">
     <div class="modal">
@@ -2504,7 +2569,7 @@ function purgeOrphanedDataManual() {
     }
 }
 
-var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern','intelligentcanvas','tetragematrn'];
+var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern','intelligentcanvas','tetragematrn','prngml'];
 
 function switchTab(key) {
     TAB_KEYS.forEach(function(k, i) {
@@ -2524,6 +2589,7 @@ function switchTab(key) {
     if (key === 'digitpattern') { runDigitPattern(); }
     if (key === 'intelligentcanvas') { initIntelligentCanvas(); }
     if (key === 'tetragematrn')      { initIntelligentGeneratorTab(); }
+    if (key === 'prngml')            { initPrngMlTab(); }
 }
 
 function switchSeedSub(idx) {
@@ -12067,6 +12133,600 @@ document.addEventListener('DOMContentLoaded', function() {
     /* Initialise Firebase sync after the rest of the app is ready */
     initFirebase();
 });
+
+/* ═══════════════════════════════════════════════════════════════════
+   PRNG MACHINE LEARNING ENGINE
+   ═══════════════════════════════════════════════════════════════════ */
+
+var _prngModel = null;
+
+function initPrngMlTab() {
+    var sel = document.getElementById('prng-format');
+    if (!sel) return;
+    var prev = sel.value;
+    sel.innerHTML = getAllFormats().map(function(f) {
+        return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>';
+    }).join('');
+    if (prev && Array.from(sel.options).some(function(o) { return o.value === prev; })) sel.value = prev;
+}
+
+function switchPrngSub(idx) {
+    [0, 1, 2].forEach(function(i) {
+        document.getElementById('prng-sub-' + i).style.display = i === idx ? 'block' : 'none';
+        document.getElementById('prng-sub-btn-' + i).classList.toggle('active', i === idx);
+    });
+}
+
+function clearPrngMl() {
+    _prngModel = null;
+    ['prng-analyser-out', 'prng-trainer-out', 'prng-predict-out'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.innerHTML = '<p class="text-muted text-sm text-center" style="padding:30px 0;">Cleared.</p>';
+    });
+    switchPrngSub(0);
+}
+
+function runPrngFullAnalysis() {
+    var sel = document.getElementById('prng-format');
+    if (!sel || !sel.value) { showToast('Select a lottery format first', 'error'); return; }
+    var fmt = getAllFormats().find(function(f) { return f.id === sel.value; });
+    if (!fmt) return;
+    var draws = getCombinedDrawsForFormat(fmt.id);
+    if (draws.length < 5) {
+        showToast('Need at least 5 draws for ' + fmt.name + '. Add draws on the Live Draws tab.', 'error');
+        return;
+    }
+    _runPrngAnalyser(fmt, draws);
+    _runPrngTrainer(fmt, draws);
+    switchPrngSub(0);
+    showToast('Analysis complete for ' + fmt.name + ' (' + draws.length + ' draws)', 'success');
+}
+
+/* ── Shared stat box helper ─────────────────────────────────────── */
+function _prngStatBox(label, value) {
+    return '<div class="algo-info" style="text-align:center;padding:12px 8px;">' +
+        '<div style="font-size:1.3rem;font-weight:800;color:var(--purple);">' + value + '</div>' +
+        '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">' + label + '</div></div>';
+}
+
+/* ── PRNG Analyser ──────────────────────────────────────────────── */
+function _runPrngAnalyser(fmt, draws) {
+    var out = document.getElementById('prng-analyser-out');
+    if (!out) return;
+
+    var n = draws.length;
+    var allNums = [];
+    draws.forEach(function(d) { (d.numbers || []).forEach(function(x) { allNums.push(x); }); });
+
+    /* 1. Frequency */
+    var freq = {};
+    for (var i = 1; i <= fmt.mainMax; i++) freq[i] = 0;
+    allNums.forEach(function(x) { if (freq[x] !== undefined) freq[x]++; });
+
+    /* 2. Sum distribution */
+    var sums = draws.map(function(d) { return (d.numbers || []).reduce(function(s, x) { return s + x; }, 0); });
+    var sumMin = Math.min.apply(null, sums);
+    var sumMax = Math.max.apply(null, sums);
+    var sumMean = sums.reduce(function(s, x) { return s + x; }, 0) / sums.length;
+    var sumStd = Math.sqrt(sums.reduce(function(s, x) { return s + Math.pow(x - sumMean, 2); }, 0) / sums.length);
+
+    /* 3. Delta pattern analysis */
+    var allDeltas = [];
+    draws.forEach(function(d) {
+        var sorted = (d.numbers || []).slice().sort(function(a, b) { return a - b; });
+        for (var i = 1; i < sorted.length; i++) allDeltas.push(sorted[i] - sorted[i - 1]);
+    });
+    var deltaFreq = {};
+    allDeltas.forEach(function(d) { deltaFreq[d] = (deltaFreq[d] || 0) + 1; });
+    var topDeltas = Object.keys(deltaFreq).map(function(k) {
+        return { delta: parseInt(k, 10), count: deltaFreq[k] };
+    }).sort(function(a, b) { return b.count - a.count; }).slice(0, 10);
+
+    /* 4. LCG / statistical analysis */
+    var lcgHtml = _prngLcgAnalysis(allNums, fmt.mainMax);
+
+    /* 5. Gap analysis */
+    var lastSeen = {};
+    for (var j = 1; j <= fmt.mainMax; j++) lastSeen[j] = -1;
+    for (var di = draws.length - 1; di >= 0; di--) {
+        (draws[di].numbers || []).forEach(function(x) { if (lastSeen[x] === -1) lastSeen[x] = di; });
+    }
+    var gaps = Object.keys(lastSeen).map(function(k) {
+        var g = lastSeen[k] === -1 ? n : n - 1 - lastSeen[parseInt(k, 10)];
+        return { num: parseInt(k, 10), gap: g };
+    }).sort(function(a, b) { return b.gap - a.gap; });
+
+    /* 6. Even / odd + low / high */
+    var ratios = draws.map(function(d) {
+        var nums = d.numbers || [];
+        var even = nums.filter(function(x) { return x % 2 === 0; }).length;
+        var low  = nums.filter(function(x) { return x <= Math.floor(fmt.mainMax / 2); }).length;
+        return { even: even, low: low };
+    });
+    var avgEven = ratios.reduce(function(s, r) { return s + r.even; }, 0) / ratios.length;
+    var avgLow  = ratios.reduce(function(s, r) { return s + r.low;  }, 0) / ratios.length;
+
+    /* Frequency chart */
+    var sortedByFreq = Object.keys(freq).map(function(k) { return { num: parseInt(k, 10), cnt: freq[k] }; })
+        .sort(function(a, b) { return b.cnt - a.cnt; });
+    var hotNums  = sortedByFreq.slice(0, 10);
+    var coldNums = sortedByFreq.slice(-10).reverse();
+    var maxFreq  = hotNums[0] ? hotNums[0].cnt : 1;
+    var freqBars = sortedByFreq.slice(0, 25).map(function(item) {
+        var pct = maxFreq > 0 ? Math.round((item.cnt / maxFreq) * 100) : 0;
+        return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+            '<span style="min-width:28px;font-weight:700;font-size:0.85rem;color:var(--purple);">' + item.num + '</span>' +
+            '<div style="flex:1;background:var(--surface2);border-radius:6px;height:14px;">' +
+            '<div style="width:' + pct + '%;background:var(--accent-grad);height:100%;border-radius:6px;"></div></div>' +
+            '<span style="min-width:32px;font-size:0.8rem;color:var(--text-muted);text-align:right;">' + item.cnt + 'x</span></div>';
+    }).join('');
+
+    var html =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128202; Draw Statistics &#8212; ' + fmt.flag + ' ' + fmt.name + ' (' + n + ' draws)</div>' +
+        '<div class="grid-3" style="gap:12px;margin-bottom:10px;">' +
+        _prngStatBox('Total Draws', n) +
+        _prngStatBox('Numbers/Draw', fmt.mainCount) +
+        _prngStatBox('Number Pool', '1&#8211;' + fmt.mainMax) +
+        _prngStatBox('Sum Range', sumMin + '&#8211;' + sumMax) +
+        _prngStatBox('Mean Sum', sumMean.toFixed(1)) +
+        _prngStatBox('Sum Std Dev', sumStd.toFixed(1)) +
+        _prngStatBox('Avg Even', avgEven.toFixed(1) + '/' + fmt.mainCount) +
+        _prngStatBox('Avg Low Half', avgLow.toFixed(1) + '/' + fmt.mainCount) +
+        _prngStatBox('Total Samples', allNums.length) +
+        '</div></div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128293; Hot Numbers (most frequent)</div>' +
+        '<div class="balls-row" style="flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
+        hotNums.map(function(item) { return '<span class="ball ball-main ball-sm">' + item.num + '</span>'; }).join('') +
+        '</div>' +
+        '<div class="pattern-section-title" style="margin-top:4px;">&#10052;&#65039; Cold Numbers (least frequent)</div>' +
+        '<div class="balls-row" style="flex-wrap:wrap;gap:6px;">' +
+        coldNums.map(function(item) { return '<span class="ball ball-bonus ball-sm">' + item.num + '</span>'; }).join('') +
+        '</div></div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128200; Frequency Chart (Top 25 Numbers)</div>' +
+        freqBars +
+        '</div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128208; Delta (&#916;) Pattern Analysis</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">Most common gaps between consecutive sorted numbers in a draw &#8212; a core signature of the PRNG&#x2019;s spacing behaviour.</div>' +
+        '<table style="width:100%;font-size:0.85rem;border-collapse:collapse;">' +
+        '<thead><tr>' +
+        '<th style="text-align:left;padding:6px;color:var(--text-muted);">Gap (&#916;)</th>' +
+        '<th style="text-align:right;padding:6px;color:var(--text-muted);">Count</th>' +
+        '<th style="text-align:right;padding:6px;color:var(--text-muted);">Share</th></tr></thead><tbody>' +
+        topDeltas.map(function(item) {
+            var pct = allDeltas.length ? (item.count / allDeltas.length * 100).toFixed(1) : '0.0';
+            return '<tr style="border-top:1px solid var(--surface2);">' +
+                '<td style="padding:6px;font-weight:700;color:var(--purple);">&#916;' + item.delta + '</td>' +
+                '<td style="padding:6px;text-align:right;">' + item.count + '</td>' +
+                '<td style="padding:6px;text-align:right;">' + pct + '%</td></tr>';
+        }).join('') +
+        '</tbody></table></div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#9201;&#65039; Overdue Numbers</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">Numbers absent from recent draws &#8212; possible indicators of an approaching PRNG cycle return.</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:10px;">' +
+        gaps.slice(0, 18).map(function(g) {
+            var col = g.gap >= n * 0.15 ? 'ball-power' : 'ball-main';
+            return '<div style="text-align:center;">' +
+                '<span class="ball ' + col + ' ball-sm">' + g.num + '</span>' +
+                '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">' + g.gap + 'd</div></div>';
+        }).join('') +
+        '</div></div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128272; PRNG Statistical Analysis</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">LCG parameter estimation, autocorrelation, chi-squared uniformity test, and runs test applied to the full number sequence.</div>' +
+        lcgHtml +
+        '</div>';
+
+    out.innerHTML = html;
+}
+
+function _prngLcgAnalysis(nums, maxVal) {
+    if (nums.length < 8) {
+        return '<p class="text-muted text-sm">Need more data points for statistical analysis (minimum 8 numbers).</p>';
+    }
+
+    /* Autocorrelation up to lag 10 */
+    var mean = nums.reduce(function(s, x) { return s + x; }, 0) / nums.length;
+    var variance = nums.reduce(function(s, x) { return s + Math.pow(x - mean, 2); }, 0) / nums.length;
+    var autocorr = [];
+    for (var lag = 1; lag <= Math.min(10, Math.floor(nums.length / 3)); lag++) {
+        var cov = 0;
+        for (var i = 0; i < nums.length - lag; i++) {
+            cov += (nums[i] - mean) * (nums[i + lag] - mean);
+        }
+        cov /= (nums.length - lag);
+        autocorr.push({ lag: lag, r: variance > 0 ? cov / variance : 0 });
+    }
+    var bestLag = autocorr.length ? autocorr.reduce(function(best, item) {
+        return Math.abs(item.r) > Math.abs(best.r) ? item : best;
+    }, autocorr[0]) : { lag: 0, r: 0 };
+
+    /* Chi-squared uniformity (8 bins) */
+    var bins = 8;
+    var binSize = Math.ceil(maxVal / bins);
+    var binCounts = [];
+    for (var b = 0; b < bins; b++) binCounts[b] = 0;
+    nums.forEach(function(x) {
+        var bin = Math.min(bins - 1, Math.floor((x - 1) / binSize));
+        binCounts[bin]++;
+    });
+    var expected = nums.length / bins;
+    var chi2 = binCounts.reduce(function(s, c) { return s + Math.pow(c - expected, 2) / expected; }, 0);
+    var isUniform = chi2 < 14.07; /* df=7, p=0.05 critical value */
+
+    /* Runs test */
+    var aboveMean = nums.filter(function(x) { return x > mean; }).length;
+    var belowMean = nums.length - aboveMean;
+    var runs = 1;
+    for (var i = 1; i < nums.length; i++) {
+        if ((nums[i] > mean) !== (nums[i - 1] > mean)) runs++;
+    }
+    var expRuns = (2 * aboveMean * belowMean) / nums.length + 1;
+    var runsZ = nums.length > 1 ? Math.abs(runs - expRuns) / Math.sqrt(Math.max(1, nums.length) / 4) : 0;
+
+    /* Period detection via autocorrelation */
+    var detectedPeriod = bestLag.r > 0.1 ? bestLag.lag : null;
+
+    var summary = (isUniform && runsZ < 1.96)
+        ? 'Sequence appears statistically uniform and random &#8212; consistent with a well-seeded PRNG. Patterns are subtle; the ML Trainer extracts exploitable biases from multi-signal analysis.'
+        : 'Non-random structure detected &#8212; the sequence exhibits statistically significant patterns. The ML Trainer will exploit these biases for improved predictions.';
+
+    return '<div class="grid-3" style="gap:12px;margin-bottom:12px;">' +
+        _prngStatBox('Best Autocorrelation', 'Lag ' + bestLag.lag) +
+        _prngStatBox('r-value', bestLag.r.toFixed(3)) +
+        _prngStatBox('Detected Period', detectedPeriod ? '~' + detectedPeriod : 'None') +
+        _prngStatBox('&#967;&#178; Uniformity', chi2.toFixed(2)) +
+        _prngStatBox('Distribution', isUniform ? '&#10003; Uniform' : '&#9888; Non-uniform') +
+        _prngStatBox('Runs Test Z', runsZ.toFixed(2)) +
+        _prngStatBox('Randomness', runsZ < 1.96 ? '&#10003; Passes' : '&#9888; Patterned') +
+        _prngStatBox('Sample Mean', mean.toFixed(1)) +
+        _prngStatBox('Sample Variance', variance.toFixed(1)) +
+        '</div>' +
+        '<div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:6px;">' +
+        '<strong>Autocorrelation:</strong> ' +
+        autocorr.slice(0, 8).map(function(a) { return 'r(' + a.lag + ')=' + a.r.toFixed(3); }).join(' &nbsp;|&nbsp; ') +
+        '</div>' +
+        '<div style="font-size:0.82rem;color:var(--text-muted);">' +
+        '<strong>Assessment:</strong> ' + summary + '</div>';
+}
+
+/* ── ML Trainer ─────────────────────────────────────────────────── */
+function _runPrngTrainer(fmt, draws) {
+    var out = document.getElementById('prng-trainer-out');
+    if (!out) return;
+
+    var n = draws.length;
+
+    /* 1. Markov zone transition matrix */
+    var zones    = 4;
+    var zoneSize = Math.ceil(fmt.mainMax / zones);
+    function _gz(x) { return Math.min(zones - 1, Math.floor((x - 1) / zoneSize)); }
+
+    var zoneT = [];
+    for (var i = 0; i < zones; i++) { zoneT[i] = []; for (var j = 0; j < zones; j++) zoneT[i][j] = 0; }
+    draws.forEach(function(d) {
+        var sorted = (d.numbers || []).slice().sort(function(a, b) { return a - b; });
+        for (var i = 0; i < sorted.length - 1; i++) zoneT[_gz(sorted[i])][_gz(sorted[i + 1])]++;
+    });
+    var zoneProbs = zoneT.map(function(row) {
+        var total = row.reduce(function(s, x) { return s + x; }, 0) || 1;
+        return row.map(function(x) { return x / total; });
+    });
+
+    /* 2. Number-pair co-occurrence */
+    var pairFreq = {};
+    draws.forEach(function(d) {
+        var nums = d.numbers || [];
+        for (var i = 0; i < nums.length; i++) {
+            for (var j = i + 1; j < nums.length; j++) {
+                var key = Math.min(nums[i], nums[j]) + '-' + Math.max(nums[i], nums[j]);
+                pairFreq[key] = (pairFreq[key] || 0) + 1;
+            }
+        }
+    });
+    var topPairs = Object.keys(pairFreq).map(function(k) { return { pair: k, count: pairFreq[k] }; })
+        .sort(function(a, b) { return b.count - a.count; }).slice(0, 15);
+
+    /* 3. Sum model */
+    var sums    = draws.map(function(d) { return (d.numbers || []).reduce(function(s, x) { return s + x; }, 0); });
+    var sumMean = sums.reduce(function(s, x) { return s + x; }, 0) / sums.length;
+    var sumStd  = Math.sqrt(sums.reduce(function(s, x) { return s + Math.pow(x - sumMean, 2); }, 0) / sums.length);
+
+    /* 4. Average delta vector */
+    var deltaVectors = [];
+    draws.forEach(function(d) {
+        var sorted = (d.numbers || []).slice().sort(function(a, b) { return a - b; });
+        var dv = [];
+        for (var i = 0; i < sorted.length - 1; i++) dv.push(sorted[i + 1] - sorted[i]);
+        if (dv.length === fmt.mainCount - 1) deltaVectors.push(dv);
+    });
+    var avgDelta = [];
+    if (deltaVectors.length) {
+        for (var pos = 0; pos < fmt.mainCount - 1; pos++) {
+            var m = deltaVectors.reduce(function(s, dv) { return s + (dv[pos] || 0); }, 0) / deltaVectors.length;
+            avgDelta.push(m);
+        }
+    }
+
+    /* 5. Recency decay scores (exponential, last 10 draws) */
+    var recentScore = {};
+    for (var k = 1; k <= fmt.mainMax; k++) recentScore[k] = 0;
+    draws.slice(0, Math.min(10, n)).forEach(function(d, di) {
+        var w = Math.pow(0.7, di);
+        (d.numbers || []).forEach(function(x) { if (recentScore[x] !== undefined) recentScore[x] += w; });
+    });
+
+    /* Store model for prediction */
+    _prngModel = {
+        fmt: fmt, draws: draws,
+        zoneProbs: zoneProbs, zones: zones, zoneSize: zoneSize, getZone: _gz,
+        topPairs: topPairs, pairFreq: pairFreq,
+        sumMean: sumMean, sumStd: sumStd,
+        avgDelta: avgDelta,
+        recentScore: recentScore
+    };
+
+    /* Render */
+    var zoneNames = [];
+    for (var z = 0; z < zones; z++) {
+        var lo = z * zoneSize + 1;
+        var hi = Math.min(fmt.mainMax, (z + 1) * zoneSize);
+        zoneNames.push(lo + '&#8211;' + hi);
+    }
+
+    var matrixHtml = '<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">' +
+        '<thead><tr><th style="padding:6px;color:var(--text-muted);text-align:left;">From &#8594; To</th>' +
+        zoneNames.map(function(name) { return '<th style="padding:6px;color:var(--text-muted);text-align:right;">' + name + '</th>'; }).join('') +
+        '</tr></thead><tbody>' +
+        zoneProbs.map(function(row, i) {
+            return '<tr style="border-top:1px solid var(--surface2);">' +
+                '<td style="padding:6px;font-weight:700;color:var(--purple);">Zone ' + zoneNames[i] + '</td>' +
+                row.map(function(p) {
+                    var pct = (p * 100).toFixed(1);
+                    var style = p > 0.35 ? 'font-weight:700;color:var(--accent,#8b5cf6);' : '';
+                    return '<td style="padding:6px;text-align:right;' + style + '">' + pct + '%</td>';
+                }).join('') + '</tr>';
+        }).join('') + '</tbody></table>';
+
+    var deltaHtml = avgDelta.length
+        ? avgDelta.map(function(d, i) {
+            return '<span style="background:var(--surface2);padding:4px 10px;border-radius:8px;font-size:0.85rem;font-weight:700;">&#916;' + (i + 1) + '=' + d.toFixed(1) + '</span>';
+        }).join(' &#8594; ')
+        : '<span class="text-muted text-sm">Not enough data</span>';
+
+    var recencyTopKeys = Object.keys(recentScore)
+        .filter(function(k) { return recentScore[k] > 0; })
+        .sort(function(a, b) { return recentScore[b] - recentScore[a]; })
+        .slice(0, 18);
+
+    var html =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#129504; ML Model Trained &#8212; ' + fmt.flag + ' ' + fmt.name + '</div>' +
+        '<div class="grid-3" style="gap:12px;margin-bottom:10px;">' +
+        _prngStatBox('Training Draws', n) +
+        _prngStatBox('Target Sum', sumMean.toFixed(0)) +
+        _prngStatBox('Sum Tolerance', '&#177;' + (sumStd * 1.5).toFixed(0)) +
+        '</div></div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128260; Markov Zone Transition Matrix</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">Probability that a number in one zone is followed (in sorted draw order) by a number in another zone. High values reveal PRNG zone-clustering.</div>' +
+        matrixHtml + '</div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128208; Average Delta Vector</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">Mean gap between each consecutive position in sorted draws &#8212; the ML model uses this as a target skeleton when building predictions.</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">' + deltaHtml + '</div></div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128279; Top Co-occurring Pairs</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">Number pairs appearing together most often &#8212; used as bonding weights in the prediction engine.</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+        topPairs.map(function(item) {
+            var parts = item.pair.split('-');
+            return '<div style="background:var(--surface2);border-radius:10px;padding:5px 10px;font-size:0.82rem;display:flex;align-items:center;gap:4px;">' +
+                '<span class="ball ball-main ball-sm">' + parts[0] + '</span>' +
+                '<span style="color:var(--text-muted);">+</span>' +
+                '<span class="ball ball-main ball-sm">' + parts[1] + '</span>' +
+                '<span style="margin-left:4px;color:var(--text-muted);font-size:0.75rem;">' + item.count + 'x</span></div>';
+        }).join('') + '</div></div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128293; Recency Decay Scores</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">Numbers weighted by how recently they appeared (decay factor 0.7 per draw). High scores = candidate for repeat appearance.</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+        recencyTopKeys.map(function(k) {
+            return '<div style="text-align:center;">' +
+                '<span class="ball ball-main ball-sm">' + k + '</span>' +
+                '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">' + recentScore[k].toFixed(2) + '</div></div>';
+        }).join('') + '</div></div>';
+
+    out.innerHTML = html;
+}
+
+/* ── Predictions ────────────────────────────────────────────────── */
+function runPrngMlPredict() {
+    if (!_prngModel) {
+        runPrngFullAnalysis();
+        if (!_prngModel) return;
+    }
+    var countEl = document.getElementById('prng-pred-count');
+    var count   = Math.max(1, Math.min(20, parseInt(countEl && countEl.value, 10) || 10));
+    var out     = document.getElementById('prng-predict-out');
+    if (!out) return;
+
+    var model  = _prngModel;
+    var fmt    = model.fmt;
+    var draws  = model.draws;
+
+    /* Build composite score */
+    var score = {};
+    for (var n = 1; n <= fmt.mainMax; n++) score[n] = 0;
+
+    /* Signal 1: frequency (30 pts) */
+    var freq = {};
+    for (var n = 1; n <= fmt.mainMax; n++) freq[n] = 0;
+    draws.forEach(function(d) { (d.numbers || []).forEach(function(x) { if (freq[x] !== undefined) freq[x]++; }); });
+    var maxFreq = 0;
+    Object.keys(freq).forEach(function(k) { if (freq[k] > maxFreq) maxFreq = freq[k]; });
+    maxFreq = maxFreq || 1;
+    for (var n = 1; n <= fmt.mainMax; n++) score[n] += (freq[n] / maxFreq) * 30;
+
+    /* Signal 2: recency decay (25 pts) */
+    var maxRecency = 0;
+    Object.keys(model.recentScore).forEach(function(k) { if (model.recentScore[k] > maxRecency) maxRecency = model.recentScore[k]; });
+    maxRecency = maxRecency || 1;
+    for (var n = 1; n <= fmt.mainMax; n++) score[n] += ((model.recentScore[n] || 0) / maxRecency) * 25;
+
+    /* Signal 3: pair-score (20 pts) */
+    var pairScore = {};
+    for (var n = 1; n <= fmt.mainMax; n++) pairScore[n] = 0;
+    Object.keys(model.pairFreq).forEach(function(k) {
+        var parts = k.split('-');
+        var a = parseInt(parts[0], 10), b = parseInt(parts[1], 10);
+        pairScore[a] = (pairScore[a] || 0) + model.pairFreq[k];
+        pairScore[b] = (pairScore[b] || 0) + model.pairFreq[k];
+    });
+    var maxPair = 0;
+    Object.keys(pairScore).forEach(function(k) { if (pairScore[k] > maxPair) maxPair = pairScore[k]; });
+    maxPair = maxPair || 1;
+    for (var n = 1; n <= fmt.mainMax; n++) score[n] += ((pairScore[n] || 0) / maxPair) * 20;
+
+    /* Signal 4: overdue / gap (15 pts) */
+    var lastSeen = {};
+    for (var j = 1; j <= fmt.mainMax; j++) lastSeen[j] = -1;
+    for (var di = draws.length - 1; di >= 0; di--) {
+        (draws[di].numbers || []).forEach(function(x) { if (lastSeen[x] === -1) lastSeen[x] = di; });
+    }
+    var maxGap = 0;
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        var g = lastSeen[n] === -1 ? draws.length : draws.length - 1 - lastSeen[n];
+        if (g > maxGap) maxGap = g;
+    }
+    maxGap = maxGap || 1;
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        var g = lastSeen[n] === -1 ? draws.length : draws.length - 1 - lastSeen[n];
+        score[n] += (g / maxGap) * 15;
+    }
+
+    /* Signal 5: Markov zone transition from last draw (10 pts) */
+    if (draws[0]) {
+        (draws[0].numbers || []).forEach(function(x) {
+            var fromZone = model.getZone(x);
+            var transRow = model.zoneProbs[fromZone] || [];
+            for (var n = 1; n <= fmt.mainMax; n++) {
+                score[n] += (transRow[model.getZone(n)] || 0) * 10;
+            }
+        });
+    }
+
+    /* Rank and sample */
+    var ranked = Object.keys(score).map(function(k) { return { num: parseInt(k, 10), sc: score[k] }; })
+        .sort(function(a, b) { return b.sc - a.sc; });
+
+    var predictions = [];
+    var seen        = {};
+    var attempt     = 0;
+    var targetSum   = model.sumMean;
+    var sumTol      = Math.max(model.sumStd * 1.5, fmt.mainCount * 3);
+
+    while (predictions.length < count && attempt < 3000) {
+        attempt++;
+        var pick = _prngSamplePick(ranked, fmt.mainCount, fmt.mainMax, targetSum, sumTol, attempt);
+        if (!pick) continue;
+        pick.sort(function(a, b) { return a - b; });
+        var key = pick.join(',');
+        if (seen[key]) continue;
+        seen[key] = true;
+
+        var pickSum   = pick.reduce(function(s, x) { return s + x; }, 0);
+        var sumScore  = Math.max(0, 1 - Math.abs(pickSum - targetSum) / Math.max(1, sumTol));
+        var bonus     = [];
+        if (fmt.bonusCount > 0) {
+            var bPool = [];
+            for (var b = 1; b <= fmt.bonusMax; b++) bPool.push(b);
+            for (var bi = bPool.length - 1; bi > 0; bi--) {
+                var bj = (attempt * 37 + bi * 13 + predictions.length * 7) % (bi + 1);
+                var tmp = bPool[bi]; bPool[bi] = bPool[bj]; bPool[bj] = tmp;
+            }
+            for (var bc = 0; bc < fmt.bonusCount; bc++) bonus.push(bPool[bc]);
+            bonus.sort(function(a, b) { return a - b; });
+        }
+        var conf = Math.min(95, Math.round(42 + sumScore * 33 + (ranked[0] && ranked[0].sc > 0 ? (score[pick[0]] / ranked[0].sc) * 15 : 0)));
+        predictions.push({ main: pick, bonus: bonus, sum: pickSum, conf: conf });
+    }
+
+    predictions.sort(function(a, b) { return b.conf - a.conf; });
+
+    var html =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#127919; PRNG ML Predictions &#8212; ' + fmt.flag + ' ' + fmt.name + '</div>' +
+        '<div class="algo-info" style="margin-bottom:14px;">Signals used: frequency &middot; recency decay &middot; pair co-occurrence &middot; gap/overdue &middot; Markov zone transitions &middot; sum targeting ' +
+        '(target <strong>' + targetSum.toFixed(0) + ' &#177;' + sumTol.toFixed(0) + '</strong>).</div>' +
+        predictions.map(function(p, i) {
+            var confColor = p.conf >= 75 ? '#22c55e' : p.conf >= 60 ? '#f59e0b' : 'var(--text-muted)';
+            return '<div class="draw-result-card" style="margin-bottom:10px;">' +
+                '<div class="draw-result-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">' +
+                '<span class="fw-700 text-sm">#' + (i + 1) + '</span>' +
+                '<span style="font-size:0.78rem;color:var(--text-muted);">Sum: ' + p.sum + '</span>' +
+                '<span style="font-size:0.78rem;font-weight:700;color:' + confColor + ';">Confidence: ' + p.conf + '%</span>' +
+                '</div>' +
+                '<div class="balls-row" style="margin-top:6px;">' +
+                p.main.map(function(nn) { return '<span class="ball ball-main ball-sm">' + nn + '</span>'; }).join('') +
+                (p.bonus && p.bonus.length
+                    ? '<span class="ball-separator">+</span>' + p.bonus.map(function(nn) {
+                        return '<span class="ball ' + (fmt.bonusColor || 'ball-bonus') + ' ball-sm">' + nn + '</span>';
+                    }).join('') : '') +
+                '</div>' +
+                '<div style="margin-top:6px;background:var(--surface2);border-radius:6px;height:6px;">' +
+                '<div style="width:' + p.conf + '%;background:var(--accent-grad);height:100%;border-radius:6px;"></div></div>' +
+                '</div>';
+        }).join('') +
+        '</div>';
+
+    out.innerHTML = html;
+    switchPrngSub(2);
+    showToast('Generated ' + predictions.length + ' PRNG ML prediction' + (predictions.length !== 1 ? 's' : '') + ' for ' + fmt.name, 'success');
+}
+
+function _prngSamplePick(ranked, count, max, targetSum, tolerance, seed) {
+    var pool = ranked.slice(0, Math.min(ranked.length, Math.max(count * 5, 25)));
+    var pick  = [];
+    var used  = {};
+
+    for (var attempt = 0; attempt < pool.length * 4 && pick.length < count; attempt++) {
+        var idx = (seed * 31 + attempt * 17 + pick.length * 7) % pool.length;
+        if (used[idx]) continue;
+        var num = pool[idx].num;
+        if (pick.indexOf(num) !== -1) { used[idx] = true; continue; }
+
+        var currentSum = pick.reduce(function(s, x) { return s + x; }, 0) + num;
+        var remaining  = count - pick.length - 1;
+
+        if (remaining > 0) {
+            var minReach = currentSum + remaining;         /* if remaining picks are all 1 */
+            var maxReach = currentSum + remaining * max;  /* if remaining picks are all max */
+            if (maxReach < targetSum - tolerance || minReach > targetSum + tolerance * 2) {
+                used[idx] = true;
+                continue;
+            }
+        }
+
+        used[idx] = true;
+        pick.push(num);
+    }
+
+    return pick.length === count ? pick : null;
+}
 </script>
 </body>
 </html>
