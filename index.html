@@ -12690,6 +12690,140 @@ function runPrngMlPredict() {
 
     predictions.sort(function(a, b) { return b.conf - a.conf; });
 
+    /* ── High-Probability Subsets ──────────────────────────────────
+       Build groups of 3–6 numbers (up to mainCount-1) ranked by a
+       combined score:  50% individual rank  +  35% pair co-occurrence
+       +  15% triplet co-occurrence from recent draws.
+    ──────────────────────────────────────────────────────────────── */
+    var subsetHtml = '';
+    var subMin = 3, subMax = Math.min(6, fmt.mainCount - 1);
+    if (fmt.mainCount >= 4 && draws.length >= 5) {
+        /* Candidate pool: top-K ranked numbers.
+           At least mainCount+3 or 10, but never more than 15 (performance cap). */
+        var minCandidates = Math.max(fmt.mainCount + 3, 10);
+        var subK = Math.min(ranked.length, minCandidates, 15);
+        var topK = ranked.slice(0, subK).map(function(r) { return r.num; });
+
+        /* Normalisation bases */
+        var topSc = (ranked[0] && ranked[0].sc > 0) ? ranked[0].sc : 1;
+        var maxPairVal = 1;
+        Object.keys(model.pairFreq).forEach(function(k) {
+            if (model.pairFreq[k] > maxPairVal) maxPairVal = model.pairFreq[k];
+        });
+
+        /* Triplet co-occurrence from the most-recent 50 draws */
+        var tripletFreq = {};
+        var recentForTriplet = draws.slice(0, Math.min(draws.length, 50));
+        recentForTriplet.forEach(function(d) {
+            var nums = d.numbers || [];
+            for (var ti = 0; ti < nums.length; ti++) {
+                for (var tj = ti + 1; tj < nums.length; tj++) {
+                    for (var tk = tj + 1; tk < nums.length; tk++) {
+                        var tkey = [nums[ti], nums[tj], nums[tk]]
+                            .sort(function(a, b) { return a - b; }).join('-');
+                        tripletFreq[tkey] = (tripletFreq[tkey] || 0) + 1;
+                    }
+                }
+            }
+        });
+        var maxTripVal = 1;
+        Object.keys(tripletFreq).forEach(function(k) {
+            if (tripletFreq[k] > maxTripVal) maxTripVal = tripletFreq[k];
+        });
+
+        /* Score a subset of numbers */
+        function _subScore(subset) {
+            /* individual rank contribution */
+            var indiv = 0;
+            for (var si = 0; si < subset.length; si++) indiv += (score[subset[si]] || 0);
+            indiv = (indiv / subset.length) / (topSc || 1);
+
+            /* pair co-occurrence contribution */
+            var pairSum = 0, pairCnt = 0;
+            for (var si = 0; si < subset.length; si++) {
+                for (var sj = si + 1; sj < subset.length; sj++) {
+                    var pk = Math.min(subset[si], subset[sj]) + '-' + Math.max(subset[si], subset[sj]);
+                    pairSum += (model.pairFreq[pk] || 0);
+                    pairCnt++;
+                }
+            }
+            var pairNorm = pairCnt > 0 ? (pairSum / pairCnt) / maxPairVal : 0;
+
+            /* triplet co-occurrence contribution */
+            var tripSum = 0, tripCnt = 0;
+            for (var si = 0; si < subset.length; si++) {
+                for (var sj = si + 1; sj < subset.length; sj++) {
+                    for (var sk = sj + 1; sk < subset.length; sk++) {
+                        var tk = [subset[si], subset[sj], subset[sk]]
+                            .sort(function(a, b) { return a - b; }).join('-');
+                        tripSum += (tripletFreq[tk] || 0);
+                        tripCnt++;
+                    }
+                }
+            }
+            var tripNorm = tripCnt > 0 ? (tripSum / tripCnt) / maxTripVal : 0;
+
+            return indiv * 0.50 + pairNorm * 0.35 + tripNorm * 0.15;
+        }
+
+        /* Generate all combinations of size sz from arr */
+        function _genCombos(arr, sz) {
+            var result = [];
+            (function pick(start, cur) {
+                if (cur.length === sz) { result.push(cur.slice()); return; }
+                var remaining = sz - cur.length;
+                for (var ci = start; ci <= arr.length - remaining; ci++) {
+                    cur.push(arr[ci]);
+                    pick(ci + 1, cur);
+                    cur.pop();
+                }
+            })(0, []);
+            return result;
+        }
+
+        var subsetSizes = [];
+        for (var sz = subMin; sz <= subMax; sz++) subsetSizes.push(sz);
+
+        var subsetParts = subsetSizes.map(function(sz) {
+            var combos  = _genCombos(topK, sz);
+            var scored  = combos.map(function(c) { return { nums: c, sc: _subScore(c) }; })
+                .sort(function(a, b) { return b.sc - a.sc; }).slice(0, 5);
+            if (!scored.length) return '';
+            var best = scored[0].sc > 0 ? scored[0].sc : 1;
+
+            return '<div style="margin-bottom:18px;">' +
+                '<div style="font-size:0.85rem;font-weight:800;color:var(--purple);margin-bottom:8px;">' +
+                '&#127922; Top ' + sz + '-Number Groups</div>' +
+                scored.map(function(item, rank) {
+                    var pct = best > 0 ? Math.round((item.sc / best) * 100) : 0;
+                    var barColor = pct >= 90 ? '#22c55e' : pct >= 70 ? '#f59e0b' : 'var(--accent-grad)';
+                    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">' +
+                        '<span style="font-size:0.75rem;color:var(--text-muted);min-width:22px;">#' + (rank + 1) + '</span>' +
+                        '<div style="display:flex;gap:4px;flex-wrap:wrap;min-width:0;">' +
+                        item.nums.map(function(n) {
+                            return '<span class="ball ball-main ball-sm">' + n + '</span>';
+                        }).join('') + '</div>' +
+                        '<div style="flex:1;background:var(--border);border-radius:100px;height:7px;min-width:40px;">' +
+                        '<div style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:100px;transition:width 0.4s;"></div></div>' +
+                        '<span style="font-size:0.75rem;font-weight:700;min-width:34px;text-align:right;' +
+                        (pct >= 90 ? 'color:#22c55e;' : pct >= 70 ? 'color:#f59e0b;' : 'color:var(--text-muted);') + '">' +
+                        pct + '%</span></div>';
+                }).join('') + '</div>';
+        });
+
+        subsetHtml = '<div class="card" style="margin-top:14px;">' +
+            '<div class="pattern-section-title">&#127919; High-Probability Number Subsets</div>' +
+            '<div class="algo-info" style="margin-bottom:16px;">' +
+            'Groups of <strong>' + subMin + '&ndash;' + subMax + '</strong> numbers with the highest combined probability ' +
+            'from the top <strong>' + subK + '</strong> ranked candidates. ' +
+            'Score blends: <em>individual ranking</em> (how high each number scores across all five signals, 50%) &middot; ' +
+            '<em>pair co-occurrence</em> (how often each pair of numbers appeared together in historical draws, 35%) &middot; ' +
+            '<em>triplet co-occurrence</em> (how often every trio within the group appeared together in the last 50 draws, 15%). ' +
+            'Use these groups as anchor picks within your full ticket combinations.' +
+            '</div>' +
+            subsetParts.join('') + '</div>';
+    }
+
     var html =
         '<div class="card">' +
         '<div class="pattern-section-title">&#127919; PRNG ML Predictions &#8212; ' + fmt.flag + ' ' + fmt.name + '</div>' +
@@ -12714,7 +12848,8 @@ function runPrngMlPredict() {
                 '<div style="width:' + p.conf + '%;background:var(--accent-grad);height:100%;border-radius:6px;"></div></div>' +
                 '</div>';
         }).join('') +
-        '</div>';
+        '</div>' +
+        subsetHtml;
 
     out.innerHTML = html;
     switchPrngSub(2);
