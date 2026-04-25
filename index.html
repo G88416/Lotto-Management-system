@@ -12698,12 +12698,14 @@ function runPrngMlPredict() {
     var subsetHtml = '';
     var subMin = 3, subMax = Math.min(6, fmt.mainCount - 1);
     if (fmt.mainCount >= 4 && draws.length >= 5) {
-        /* Candidate pool: top-K ranked numbers (capped at 15 for speed) */
-        var subK = Math.min(ranked.length, Math.max(fmt.mainCount + 3, 10), 15);
+        /* Candidate pool: top-K ranked numbers.
+           At least mainCount+3 or 10, but never more than 15 (performance cap). */
+        var minCandidates = Math.max(fmt.mainCount + 3, 10);
+        var subK = Math.min(ranked.length, minCandidates, 15);
         var topK = ranked.slice(0, subK).map(function(r) { return r.num; });
 
         /* Normalisation bases */
-        var topSc = ranked[0] ? ranked[0].sc : 1;
+        var topSc = (ranked[0] && ranked[0].sc > 0) ? ranked[0].sc : 1;
         var maxPairVal = 1;
         Object.keys(model.pairFreq).forEach(function(k) {
             if (model.pairFreq[k] > maxPairVal) maxPairVal = model.pairFreq[k];
@@ -12786,7 +12788,8 @@ function runPrngMlPredict() {
             var combos  = _genCombos(topK, sz);
             var scored  = combos.map(function(c) { return { nums: c, sc: _subScore(c) }; })
                 .sort(function(a, b) { return b.sc - a.sc; }).slice(0, 5);
-            var best = scored[0] ? scored[0].sc : 1;
+            if (!scored.length) return '';
+            var best = scored[0].sc > 0 ? scored[0].sc : 1;
 
             return '<div style="margin-bottom:18px;">' +
                 '<div style="font-size:0.85rem;font-weight:800;color:var(--purple);margin-bottom:8px;">' +
@@ -12813,8 +12816,10 @@ function runPrngMlPredict() {
             '<div class="algo-info" style="margin-bottom:16px;">' +
             'Groups of <strong>' + subMin + '&ndash;' + subMax + '</strong> numbers with the highest combined probability ' +
             'from the top <strong>' + subK + '</strong> ranked candidates. ' +
-            'Score blends <em>individual ranking</em> (50%) &middot; <em>pair co-occurrence</em> (35%) &middot; ' +
-            '<em>triplet co-occurrence</em> (15%). Use these as anchor picks within your full ticket combinations.' +
+            'Score blends: <em>individual ranking</em> (how high each number scores across all five signals, 50%) &middot; ' +
+            '<em>pair co-occurrence</em> (how often each pair of numbers appeared together in historical draws, 35%) &middot; ' +
+            '<em>triplet co-occurrence</em> (how often every trio within the group appeared together in the last 50 draws, 15%). ' +
+            'Use these groups as anchor picks within your full ticket combinations.' +
             '</div>' +
             subsetParts.join('') + '</div>';
     }
