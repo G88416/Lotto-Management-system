@@ -2,8 +2,31 @@
 <html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Bophelong Lotto Management System</title>
+
+    <!-- PWA / Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- iOS / Safari PWA meta tags -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bophelong Lotto">
+
+    <!-- Theme colour for browser chrome -->
+    <meta name="theme-color" content="#8b5cf6" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+
+    <!-- Apple touch icons (iOS home-screen icon at various sizes) -->
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192.png">
+
+    <!-- Standard favicons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
@@ -12888,6 +12911,17 @@ function _prngSamplePick(ranked, count, max, targetSum, tolerance, seed) {
 
     return pick.length === count ? pick : null;
 }
+</script>
+
+<script>
+    // Register the PWA service worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./service-worker.js')
+                .then(() => console.log('[SW] Service worker registered'))
+                .catch((err) => console.warn('[SW] Registration failed:', err));
+        });
+    }
 </script>
 </body>
 </html>
