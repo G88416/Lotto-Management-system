@@ -1,0 +1,84 @@
+{
+  "name": "bophelong-lotto",
+  "version": "1.0.0",
+  "description": "Bophelong Lotto Management System — macOS desktop app",
+  "main": "main.js",
+  "author": "G88416",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --mac",
+    "dist:dmg": "electron-builder --mac dmg",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "40.8.0",
+    "electron-builder": "^25.1.8",
+    "sharp": "^0.34.5"
+  },
+  "build": {
+    "appId": "com.g88416.bophelong-lotto",
+    "productName": "Bophelong Lotto",
+    "copyright": "Copyright © 2024 G88416",
+    "files": [
+      "index.html",
+      "main.js",
+      "manifest.json",
+      "service-worker.js",
+      "icons/**/*",
+      "firebase-config.js"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.finance",
+      "icon": "icons/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "darkModeSupport": true
+    },
+    "dmg": {
+      "title": "Bophelong Lotto ${version}",
+      "backgroundColor": "#0f172a",
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    },
+    "win": {
+      "icon": "icons/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "icon": "icons/icon-512.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    }
+  }
+}
