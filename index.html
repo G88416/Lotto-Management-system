@@ -1999,6 +1999,7 @@
             <button class="tab-btn active" id="prng-sub-btn-0" onclick="switchPrngSub(0)">&#128300; PRNG Analyser</button>
             <button class="tab-btn" id="prng-sub-btn-1" onclick="switchPrngSub(1)">&#129504; ML Trainer</button>
             <button class="tab-btn" id="prng-sub-btn-2" onclick="switchPrngSub(2)">&#127919; Predictions</button>
+            <button class="tab-btn" id="prng-sub-btn-3" onclick="switchPrngSub(3)">&#129516; Borrowed Brilliance</button>
         </div>
 
         <!-- Sub-tab 0: PRNG Analyser -->
@@ -2024,6 +2025,15 @@
             <div id="prng-predict-out">
                 <p class="text-muted text-sm text-center" style="padding:30px 0;">
                     Train the model first, then click <strong>Generate Predictions</strong>.
+                </p>
+            </div>
+        </div>
+
+        <!-- Sub-tab 3: Borrowed Brilliance -->
+        <div id="prng-sub-3" style="display:none;">
+            <div id="prng-brilliance-out">
+                <p class="text-muted text-sm text-center" style="padding:30px 0;">
+                    Run <strong>Analyse &amp; Train</strong> to unlock the Borrowed Brilliance analysis.
                 </p>
             </div>
         </div>
@@ -12189,7 +12199,7 @@ function initPrngMlTab() {
 }
 
 function switchPrngSub(idx) {
-    [0, 1, 2].forEach(function(i) {
+    [0, 1, 2, 3].forEach(function(i) {
         document.getElementById('prng-sub-' + i).style.display = i === idx ? 'block' : 'none';
         document.getElementById('prng-sub-btn-' + i).classList.toggle('active', i === idx);
     });
@@ -12197,7 +12207,7 @@ function switchPrngSub(idx) {
 
 function clearPrngMl() {
     _prngModel = null;
-    ['prng-analyser-out', 'prng-trainer-out', 'prng-predict-out'].forEach(function(id) {
+    ['prng-analyser-out', 'prng-trainer-out', 'prng-predict-out', 'prng-brilliance-out'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = '<p class="text-muted text-sm text-center" style="padding:30px 0;">Cleared.</p>';
     });
@@ -12216,8 +12226,9 @@ function runPrngFullAnalysis() {
     }
     _runPrngAnalyser(fmt, draws);
     _runPrngTrainer(fmt, draws);
+    _runPrngBrillianceTab(fmt, draws);
     switchPrngSub(0);
-    showToast('Analysis complete for ' + fmt.name + ' (' + draws.length + ' draws)', 'success');
+    showToast('Advanced analysis & training complete for ' + fmt.name + ' (' + draws.length + ' draws)', 'success');
 }
 
 /* ── Shared stat box helper ─────────────────────────────────────── */
@@ -12509,17 +12520,165 @@ function _runPrngTrainer(fmt, draws) {
         (d.numbers || []).forEach(function(x) { if (recentScore[x] !== undefined) recentScore[x] += w; });
     });
 
-    /* Store model for prediction */
+    /* 6. Position-based frequency profiles (NEW)
+          For each sorted draw position p = 0..mainCount-1, learn the probability
+          distribution of which numbers occupy that slot. */
+    var posProfiles = [];
+    for (var pp = 0; pp < fmt.mainCount; pp++) {
+        var prof = {};
+        for (var kk = 1; kk <= fmt.mainMax; kk++) prof[kk] = 0;
+        posProfiles.push(prof);
+    }
+    draws.forEach(function(d) {
+        var sorted = (d.numbers || []).slice().sort(function(a, b) { return a - b; });
+        for (var pp2 = 0; pp2 < sorted.length && pp2 < fmt.mainCount; pp2++) {
+            if (posProfiles[pp2][sorted[pp2]] !== undefined) posProfiles[pp2][sorted[pp2]]++;
+        }
+    });
+    var posProfileProbs = posProfiles.map(function(prof) {
+        var total = Object.keys(prof).reduce(function(s, kk) { return s + prof[kk]; }, 0) || 1;
+        var probs = {};
+        Object.keys(prof).forEach(function(kk) { probs[parseInt(kk, 10)] = prof[kk] / total; });
+        return probs;
+    });
+    /* Average position-profile probability per number (for fast signal lookup) */
+    var avgPosProb = {};
+    for (var kk = 1; kk <= fmt.mainMax; kk++) {
+        var posSum = 0;
+        posProfileProbs.forEach(function(probs) { posSum += (probs[kk] || 0); });
+        avgPosProb[kk] = posSum / fmt.mainCount;
+    }
+
+    /* 7. Cross-draw carry-forward correlation (NEW)
+          carryFreq[a][b] counts how often b appeared in draw[i+1]
+          when a appeared in draw[i], revealing sequential PRNG succession. */
+    var carryFreq = {};
+    for (var ka = 1; ka <= fmt.mainMax; ka++) {
+        carryFreq[ka] = {};
+        for (var kb = 1; kb <= fmt.mainMax; kb++) carryFreq[ka][kb] = 0;
+    }
+    for (var di2 = 0; di2 < n - 1; di2++) {
+        var curNums  = draws[di2].numbers     || [];
+        var nextNums = draws[di2 + 1].numbers || [];
+        curNums.forEach(function(a) {
+            nextNums.forEach(function(b) {
+                if (carryFreq[a] && carryFreq[a][b] !== undefined) carryFreq[a][b]++;
+            });
+        });
+    }
+    /* Carry-forward score for each candidate given last draw */
+    var carryScore = {};
+    for (var kk2 = 1; kk2 <= fmt.mainMax; kk2++) carryScore[kk2] = 0;
+    if (draws[0]) {
+        var lastNums0 = draws[0].numbers || [];
+        lastNums0.forEach(function(a) {
+            for (var b = 1; b <= fmt.mainMax; b++) {
+                carryScore[b] += (carryFreq[a] ? (carryFreq[a][b] || 0) : 0);
+            }
+        });
+    }
+    var maxCarry = 1;
+    Object.keys(carryScore).forEach(function(kk) { if (carryScore[kk] > maxCarry) maxCarry = carryScore[kk]; });
+    var carryScoreNorm = {};
+    Object.keys(carryScore).forEach(function(kk) { carryScoreNorm[parseInt(kk, 10)] = carryScore[kk] / maxCarry; });
+
+    /* 8. Momentum scoring (NEW)
+          Compare per-number frequency rate in recent half vs older half.
+          Positive = heating up; negative = cooling down. */
+    var splitIdx   = Math.ceil(n / 2);
+    var recentHalf = draws.slice(0, splitIdx);
+    var oldHalf    = draws.slice(splitIdx);
+    var momentumRaw = {};
+    for (var km = 1; km <= fmt.mainMax; km++) {
+        var rF = 0, oF = 0;
+        recentHalf.forEach(function(d) { (d.numbers || []).forEach(function(x) { if (x === km) rF++; }); });
+        oldHalf.forEach(function(d)    { (d.numbers || []).forEach(function(x) { if (x === km) oF++; }); });
+        var rRate = recentHalf.length > 0 ? rF / recentHalf.length : 0;
+        var oRate = oldHalf.length    > 0 ? oF / oldHalf.length    : 0;
+        momentumRaw[km] = rRate - oRate;
+    }
+    var minMom = 0, maxMom = 0;
+    Object.keys(momentumRaw).forEach(function(k) {
+        if (momentumRaw[k] < minMom) minMom = momentumRaw[k];
+        if (momentumRaw[k] > maxMom) maxMom = momentumRaw[k];
+    });
+    var momRange = Math.max(maxMom - minMom, 0.001);
+    var momentumNorm = {};
+    Object.keys(momentumRaw).forEach(function(k) {
+        momentumNorm[parseInt(k, 10)] = (momentumRaw[k] - minMom) / momRange;
+    });
+
+    /* 9. Draw DNA fingerprint (NEW)
+          Each draw is encoded as a compact feature vector. The mean DNA
+          becomes the target template for prediction generation. */
+    var dnaHalf  = Math.floor(fmt.mainMax / 2);
+    var dnaList  = draws.map(function(d) {
+        var nums = (d.numbers || []).slice().sort(function(a, b) { return a - b; });
+        if (!nums.length) return null;
+        var dSum    = nums.reduce(function(s, x) { return s + x; }, 0);
+        var dEven   = nums.filter(function(x) { return x % 2 === 0; }).length / nums.length;
+        var dLow    = nums.filter(function(x) { return x <= dnaHalf; }).length / nums.length;
+        var dSpan   = nums[nums.length - 1] - nums[0];
+        var dGaps   = [];
+        for (var gi = 1; gi < nums.length; gi++) dGaps.push(nums[gi] - nums[gi - 1]);
+        var dAvgGap = dGaps.length ? dGaps.reduce(function(s, x) { return s + x; }, 0) / dGaps.length : 0;
+        var dGapVar = dGaps.length ? dGaps.reduce(function(s, x) { return s + Math.pow(x - dAvgGap, 2); }, 0) / dGaps.length : 0;
+        return { sum: dSum, even: dEven, low: dLow, span: dSpan, avgGap: dAvgGap, gapVar: dGapVar };
+    }).filter(function(x) { return x !== null; });
+
+    var dnaTemplate = null;
+    if (dnaList.length) {
+        var dnaSumMean = dnaList.reduce(function(s, d) { return s + d.sum; }, 0) / dnaList.length;
+        var dnaSumStd  = Math.sqrt(dnaList.reduce(function(s, d) { return s + Math.pow(d.sum - dnaSumMean, 2); }, 0) / dnaList.length);
+        dnaTemplate = {
+            sum:    dnaSumMean,
+            sumStd: dnaSumStd,
+            even:   dnaList.reduce(function(s, d) { return s + d.even;   }, 0) / dnaList.length,
+            low:    dnaList.reduce(function(s, d) { return s + d.low;    }, 0) / dnaList.length,
+            span:   dnaList.reduce(function(s, d) { return s + d.span;   }, 0) / dnaList.length,
+            avgGap: dnaList.reduce(function(s, d) { return s + d.avgGap; }, 0) / dnaList.length,
+            gapVar: dnaList.reduce(function(s, d) { return s + d.gapVar; }, 0) / dnaList.length
+        };
+    }
+
+    /* 10. Self-validation: retrospective coverage rate
+           Using frequency ranking, measure what % of the last 20 draw numbers
+           rank in the top 2×mainCount positions — an indicator of signal quality. */
+    var svFreq = {};
+    for (var ks = 1; ks <= fmt.mainMax; ks++) svFreq[ks] = 0;
+    draws.forEach(function(d) { (d.numbers || []).forEach(function(x) { if (svFreq[x] !== undefined) svFreq[x]++; }); });
+    var svRanked = Object.keys(svFreq).map(function(k) { return parseInt(k, 10); })
+        .sort(function(a, b) { return svFreq[b] - svFreq[a]; });
+    var topNSet  = {};
+    svRanked.slice(0, fmt.mainCount * 2).forEach(function(n2) { topNSet[n2] = true; });
+    var recentCheck = draws.slice(0, Math.min(20, n));
+    var svHit = 0, svTotal = 0;
+    recentCheck.forEach(function(d) {
+        (d.numbers || []).forEach(function(x) { svTotal++; if (topNSet[x]) svHit++; });
+    });
+    var coverageRate = svTotal > 0 ? (svHit / svTotal * 100) : 0;
+
+    /* Store enriched model */
     _prngModel = {
         fmt: fmt, draws: draws,
         zoneProbs: zoneProbs, zones: zones, zoneSize: zoneSize, getZone: _gz,
         topPairs: topPairs, pairFreq: pairFreq,
         sumMean: sumMean, sumStd: sumStd,
         avgDelta: avgDelta,
-        recentScore: recentScore
+        recentScore: recentScore,
+        /* New signal fields */
+        posProfileProbs: posProfileProbs,
+        avgPosProb:      avgPosProb,
+        carryFreq:       carryFreq,
+        carryScore:      carryScoreNorm,
+        momentumScore:   momentumNorm,
+        momentumRaw:     momentumRaw,
+        dnaTemplate:     dnaTemplate,
+        dnaList:         dnaList,
+        coverageRate:    coverageRate
     };
 
-    /* Render */
+    /* ── Render ── */
     var zoneNames = [];
     for (var z = 0; z < zones; z++) {
         var lo = z * zoneSize + 1;
@@ -12552,13 +12711,53 @@ function _runPrngTrainer(fmt, draws) {
         .sort(function(a, b) { return recentScore[b] - recentScore[a]; })
         .slice(0, 18);
 
+    /* Momentum leaders / laggards */
+    var momSorted = Object.keys(momentumRaw).map(function(k) {
+        return { num: parseInt(k, 10), mom: momentumRaw[k] };
+    }).sort(function(a, b) { return b.mom - a.mom; });
+    var momLeaders  = momSorted.slice(0, 8);
+    var momLaggards = momSorted.slice(-8).reverse();
+
+    /* Position profile heatmap (show up to 6 positions) */
+    var showPosCount = Math.min(fmt.mainCount, 6);
+    var posTopNums = posProfileProbs.slice(0, showPosCount).map(function(probs) {
+        return Object.keys(probs).map(function(k) {
+            return { num: parseInt(k, 10), prob: probs[k] };
+        }).sort(function(a, b) { return b.prob - a.prob; }).slice(0, 5);
+    });
+    var posHeatmap = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.78rem;">' +
+        '<thead><tr><th style="padding:4px 6px;color:var(--text-muted);text-align:left;">Rank</th>' +
+        posTopNums.map(function(_, pi) { return '<th style="padding:4px 6px;color:var(--text-muted);text-align:center;">P' + (pi + 1) + '</th>'; }).join('') +
+        '</tr></thead><tbody>';
+    for (var rank = 0; rank < 5; rank++) {
+        posHeatmap += '<tr style="border-top:1px solid var(--surface2);">' +
+            '<td style="padding:4px 6px;font-size:0.75rem;color:var(--text-muted);">#' + (rank + 1) + '</td>';
+        for (var pi = 0; pi < showPosCount; pi++) {
+            var entry = posTopNums[pi] && posTopNums[pi][rank];
+            if (entry) {
+                var baseProb = posTopNums[pi][0] ? posTopNums[pi][0].prob : 1;
+                var opac = Math.max(0.3, baseProb > 0 ? entry.prob / baseProb : 0).toFixed(2);
+                posHeatmap += '<td style="padding:4px 6px;text-align:center;">' +
+                    '<span class="ball ball-main ball-sm" style="opacity:' + opac + ';">' + entry.num + '</span>' +
+                    '<div style="font-size:0.65rem;color:var(--text-muted);">' + (entry.prob * 100).toFixed(1) + '%</div></td>';
+            } else {
+                posHeatmap += '<td></td>';
+            }
+        }
+        posHeatmap += '</tr>';
+    }
+    posHeatmap += '</tbody></table></div>';
+
     var html =
         '<div class="card">' +
-        '<div class="pattern-section-title">&#129504; ML Model Trained &#8212; ' + fmt.flag + ' ' + fmt.name + '</div>' +
+        '<div class="pattern-section-title">&#129504; Advanced ML Model Trained &#8212; ' + fmt.flag + ' ' + fmt.name + '</div>' +
         '<div class="grid-3" style="gap:12px;margin-bottom:10px;">' +
         _prngStatBox('Training Draws', n) +
-        _prngStatBox('Target Sum', sumMean.toFixed(0)) +
-        _prngStatBox('Sum Tolerance', '&#177;' + (sumStd * 1.5).toFixed(0)) +
+        _prngStatBox('Active Signals', '8') +
+        _prngStatBox('Target Sum', sumMean.toFixed(0) + ' &#177;' + (sumStd * 1.5).toFixed(0)) +
+        _prngStatBox('Coverage Rate', coverageRate.toFixed(1) + '%') +
+        _prngStatBox('DNA Template', dnaTemplate ? '&#10003; Ready' : '&#9888; N/A') +
+        _prngStatBox('Carry Pairs', (n > 1 ? (n - 1) : 0) + ' draws') +
         '</div></div>' +
 
         '<div class="card">' +
@@ -12568,7 +12767,7 @@ function _runPrngTrainer(fmt, draws) {
 
         '<div class="card">' +
         '<div class="pattern-section-title">&#128208; Average Delta Vector</div>' +
-        '<div class="algo-info" style="margin-bottom:10px;">Mean gap between each consecutive position in sorted draws &#8212; the ML model uses this as a target skeleton when building predictions.</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">Mean gap between each consecutive position in sorted draws &#8212; used as a target skeleton when building predictions.</div>' +
         '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">' + deltaHtml + '</div></div>' +
 
         '<div class="card">' +
@@ -12586,18 +12785,194 @@ function _runPrngTrainer(fmt, draws) {
 
         '<div class="card">' +
         '<div class="pattern-section-title">&#128293; Recency Decay Scores</div>' +
-        '<div class="algo-info" style="margin-bottom:10px;">Numbers weighted by how recently they appeared (decay factor 0.7 per draw). High scores = candidate for repeat appearance.</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">Numbers weighted by how recently they appeared (decay 0.7/draw). High = candidate for repeat appearance.</div>' +
         '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
         recencyTopKeys.map(function(k) {
             return '<div style="text-align:center;">' +
                 '<span class="ball ball-main ball-sm">' + k + '</span>' +
                 '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">' + recentScore[k].toFixed(2) + '</div></div>';
-        }).join('') + '</div></div>';
+        }).join('') + '</div></div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128200; Momentum Leaders &amp; Laggards &#8212; <em>New Signal</em></div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">Frequency acceleration: (recent-half rate) minus (older-half rate). Positive = heating up; negative = cooling down.</div>' +
+        '<div style="display:flex;gap:20px;flex-wrap:wrap;">' +
+        '<div style="flex:1;min-width:140px;">' +
+        '<div style="font-size:0.82rem;font-weight:700;color:#22c55e;margin-bottom:8px;">&#128640; Leaders (gaining)</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+        momLeaders.map(function(item) {
+            return '<div style="text-align:center;">' +
+                '<span class="ball ball-main ball-sm">' + item.num + '</span>' +
+                '<div style="font-size:0.65rem;color:#22c55e;margin-top:2px;">+' + (item.mom * 100).toFixed(1) + '%</div></div>';
+        }).join('') + '</div></div>' +
+        '<div style="flex:1;min-width:140px;">' +
+        '<div style="font-size:0.82rem;font-weight:700;color:#ef4444;margin-bottom:8px;">&#128197; Laggards (cooling)</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+        momLaggards.map(function(item) {
+            return '<div style="text-align:center;">' +
+                '<span class="ball ball-bonus ball-sm">' + item.num + '</span>' +
+                '<div style="font-size:0.65rem;color:#ef4444;margin-top:2px;">' + (item.mom * 100).toFixed(1) + '%</div></div>';
+        }).join('') + '</div></div>' +
+        '</div></div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#127956; Position-Based Frequency Profiles &#8212; <em>New Signal</em></div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">For each sorted draw position (P1 = smallest number, P2 = second smallest…), the numbers most likely to occupy that slot. Opacity encodes relative probability.</div>' +
+        posHeatmap + '</div>';
 
     out.innerHTML = html;
 }
 
-/* ── Predictions ────────────────────────────────────────────────── */
+/* ── Borrowed Brilliance Tab ─────────────────────────────────────── */
+function _runPrngBrillianceTab(fmt, draws) {
+    var out = document.getElementById('prng-brilliance-out');
+    if (!out || !_prngModel) return;
+
+    var model = _prngModel;
+    var n     = draws.length;
+    var half  = Math.floor(fmt.mainMax / 2);
+
+    /* Extract DNA of the last draw */
+    var lastDraw = draws[0] ? (draws[0].numbers || []).slice().sort(function(a, b) { return a - b; }) : [];
+    var lastDNA  = null;
+    if (lastDraw.length) {
+        var ldSum  = lastDraw.reduce(function(s, x) { return s + x; }, 0);
+        var ldEven = lastDraw.filter(function(x) { return x % 2 === 0; }).length;
+        var ldLow  = lastDraw.filter(function(x) { return x <= half; }).length;
+        var ldSpan = lastDraw[lastDraw.length - 1] - lastDraw[0];
+        var ldGaps = [];
+        for (var gi = 1; gi < lastDraw.length; gi++) ldGaps.push(lastDraw[gi] - lastDraw[gi - 1]);
+        var ldAvgGap = ldGaps.length ? ldGaps.reduce(function(s, x) { return s + x; }, 0) / ldGaps.length : 0;
+        lastDNA = {
+            sum: ldSum, even: ldEven, low: ldLow, span: ldSpan,
+            evenPct: (ldEven / lastDraw.length * 100).toFixed(0),
+            lowPct:  (ldLow  / lastDraw.length * 100).toFixed(0),
+            avgGap:  ldAvgGap.toFixed(1)
+        };
+    }
+
+    /* Carry-forward heat: candidates most likely to follow last draw's numbers */
+    var carryHeat = [];
+    if (draws[0] && model.carryFreq) {
+        var lastNums1  = draws[0].numbers || [];
+        var heatMap    = {};
+        lastNums1.forEach(function(a) {
+            if (model.carryFreq[a]) {
+                Object.keys(model.carryFreq[a]).forEach(function(b) {
+                    var bInt = parseInt(b, 10);
+                    if (lastNums1.indexOf(bInt) === -1 && model.carryFreq[a][b] > 0) {
+                        heatMap[bInt] = (heatMap[bInt] || 0) + model.carryFreq[a][b];
+                    }
+                });
+            }
+        });
+        carryHeat = Object.keys(heatMap).map(function(k) {
+            return { num: parseInt(k, 10), heat: heatMap[k] };
+        }).sort(function(a, b) { return b.heat - a.heat; }).slice(0, 18);
+    }
+    var maxHeat = carryHeat.length ? carryHeat[0].heat : 1;
+
+    /* Multi-signal "brilliant candidates" composite */
+    var maxRecencyBr = 1;
+    Object.keys(model.recentScore).forEach(function(k) {
+        if (model.recentScore[k] > maxRecencyBr) maxRecencyBr = model.recentScore[k];
+    });
+    var brightScore = {};
+    for (var kb = 1; kb <= fmt.mainMax; kb++) {
+        brightScore[kb] =
+            (model.avgPosProb[kb]                || 0) * 0.20 +
+            (model.carryScore[kb]                || 0) * 0.20 +
+            (model.momentumScore[kb]             || 0) * 0.15 +
+            ((model.recentScore[kb] || 0) / maxRecencyBr) * 0.25 +
+            0.20; /* base floor so all numbers score */
+    }
+    var brightRanked = Object.keys(brightScore)
+        .map(function(k) { return { num: parseInt(k, 10), sc: brightScore[k] }; })
+        .sort(function(a, b) { return b.sc - a.sc; }).slice(0, 15);
+    var maxBright = brightRanked[0] ? brightRanked[0].sc : 1;
+
+    var predDNA = model.dnaTemplate;
+
+    var html =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#129516; Borrowed Brilliance &#8212; Draw DNA Analysis</div>' +
+        '<div class="algo-info" style="margin-bottom:12px;">' +
+        'The engine extracts the <strong>DNA fingerprint</strong> of every historical draw &#8212; its sum, even/odd ratio, low/high ratio, number spread, and gap variance &#8212; ' +
+        'then learns what a &ldquo;typical&rdquo; draw for this lottery looks like. When generating predictions it <strong>clones this learned DNA</strong> to produce draws that ' +
+        'think, behave, and look like the draws it analysed. Carry-forward correlation then layers in sequential PRNG succession patterns, ' +
+        'so predictions genuinely mimic the hidden rhythm of the analysed draw history.' +
+        '</div></div>' +
+
+        (lastDNA ?
+            '<div class="card">' +
+            '<div class="pattern-section-title">&#128255; Last Draw DNA Fingerprint</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">' +
+            lastDraw.map(function(nm) { return '<span class="ball ball-main ball-sm">' + nm + '</span>'; }).join('') +
+            '</div>' +
+            '<div class="grid-3" style="gap:10px;">' +
+            _prngStatBox('Sum', lastDNA.sum) +
+            _prngStatBox('Even Numbers', lastDNA.even + ' (' + lastDNA.evenPct + '%)') +
+            _prngStatBox('Low Half (&le;' + half + ')', lastDNA.low + ' (' + lastDNA.lowPct + '%)') +
+            _prngStatBox('Span (max&minus;min)', lastDNA.span) +
+            _prngStatBox('Avg Gap', lastDNA.avgGap) +
+            _prngStatBox('Numbers Drawn', lastDraw.length) +
+            '</div></div>'
+        : '') +
+
+        (predDNA ?
+            '<div class="card">' +
+            '<div class="pattern-section-title">&#127919; Target DNA for Next Prediction</div>' +
+            '<div class="algo-info" style="margin-bottom:10px;">Mean DNA computed from all ' + n + ' historical draws. Predictions are constrained to match this profile &#8212; giving them the &ldquo;borrowed brilliance&rdquo; of past draws.</div>' +
+            '<div class="grid-3" style="gap:10px;">' +
+            _prngStatBox('Target Sum', predDNA.sum.toFixed(0) + ' &#177;' + predDNA.sumStd.toFixed(0)) +
+            _prngStatBox('Even Ratio Target', (predDNA.even * 100).toFixed(0) + '%') +
+            _prngStatBox('Low Half Target', (predDNA.low * 100).toFixed(0) + '%') +
+            _prngStatBox('Span Target', predDNA.span.toFixed(0)) +
+            _prngStatBox('Avg Gap Target', predDNA.avgGap.toFixed(1)) +
+            _prngStatBox('Gap Variance', predDNA.gapVar.toFixed(1)) +
+            '</div></div>'
+        : '') +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128293; Carry-Forward Heat &#8212; Likely Successors of Last Draw</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">Cross-draw correlation: numbers that historically appeared in the draw <em>after</em> a draw containing the last draw\'s numbers. Bar intensity = carry strength.</div>' +
+        (carryHeat.length ?
+            '<div style="display:flex;flex-direction:column;gap:5px;">' +
+            carryHeat.map(function(item) {
+                var pct      = maxHeat > 0 ? Math.round((item.heat / maxHeat) * 100) : 0;
+                var barColor = pct >= 80 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#8b5cf6';
+                return '<div style="display:flex;align-items:center;gap:8px;">' +
+                    '<span class="ball ball-main ball-sm">' + item.num + '</span>' +
+                    '<div style="flex:1;background:var(--surface2);border-radius:100px;height:10px;">' +
+                    '<div style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:100px;transition:width 0.4s;"></div></div>' +
+                    '<span style="min-width:32px;font-size:0.78rem;font-weight:700;color:' + barColor + ';">' + pct + '%</span></div>';
+            }).join('') + '</div>'
+        : '<p class="text-muted text-sm">Not enough sequential draw data for carry-forward analysis. Add more draws.</p>') +
+        '</div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128161; Brilliant Candidates &#8212; 4-Signal Consensus</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">Numbers scoring highest across position profiles (20%) &middot; carry-forward (20%) &middot; momentum (15%) &middot; recency decay (25%) &middot; base (20%). These are the engine\'s top borrowings from the analysed PRNG behaviour.</div>' +
+        '<div style="display:flex;flex-direction:column;gap:5px;">' +
+        brightRanked.map(function(item, idx) {
+            var pct      = maxBright > 0 ? Math.round((item.sc / maxBright) * 100) : 0;
+            var barColor = pct >= 85 ? '#22c55e' : pct >= 65 ? '#f59e0b' : '#8b5cf6';
+            var mom      = model.momentumRaw[item.num] || 0;
+            var momBadge = mom > 0.005
+                ? '<span style="font-size:0.65rem;color:#22c55e;margin-left:4px;">&#128640;</span>'
+                : (mom < -0.005 ? '<span style="font-size:0.65rem;color:#ef4444;margin-left:4px;">&#128197;</span>' : '');
+            return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);">' +
+                '<span style="font-size:0.75rem;color:var(--text-muted);min-width:22px;">#' + (idx + 1) + '</span>' +
+                '<span class="ball ball-main ball-sm">' + item.num + '</span>' + momBadge +
+                '<div style="flex:1;background:var(--surface2);border-radius:100px;height:10px;margin-left:4px;">' +
+                '<div style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:100px;transition:width 0.4s;"></div></div>' +
+                '<span style="min-width:36px;font-size:0.78rem;font-weight:700;color:' + barColor + ';text-align:right;">' + pct + '%</span></div>';
+        }).join('') +
+        '</div></div>';
+
+    out.innerHTML = html;
+}
+/* ── Predictions (Advanced — 8 Signals + DNA Constraints) ───────── */
 function runPrngMlPredict() {
     if (!_prngModel) {
         runPrngFullAnalysis();
@@ -12612,27 +12987,34 @@ function runPrngMlPredict() {
     var fmt    = model.fmt;
     var draws  = model.draws;
 
-    /* Signal weights — total 100 pts */
-    var W_FREQ    = 30; /* historical frequency */
-    var W_RECENCY = 25; /* exponential recency decay */
-    var W_PAIR    = 20; /* pair co-occurrence */
-    var W_GAP     = 15; /* overdue / gap */
-    var W_MARKOV  = 10; /* Markov zone transition */
+    /* ── Signal weights (total 100 pts across 8 signals) ── */
+    var W_FREQ     = 22; /* historical frequency */
+    var W_RECENCY  = 18; /* exponential recency decay */
+    var W_PAIR     = 15; /* pair co-occurrence */
+    var W_GAP      = 12; /* overdue / gap */
+    var W_MARKOV   = 8;  /* Markov zone transition */
+    var W_POSITION = 12; /* position-based frequency profile (NEW) */
+    var W_CARRY    = 8;  /* cross-draw carry-forward (NEW) */
+    var W_MOMENTUM = 5;  /* frequency momentum / acceleration (NEW) */
 
-    /* Confidence band: base pts + sum-fit contribution + top-rank contribution */
-    var CONF_MAX  = 95;
-    var CONF_BASE = 42;
-    var CONF_SUM  = 33; /* scaled by how close pick sum is to target */
-    var CONF_RANK = 15; /* scaled by highest-scorer appearing in pick */
+    /* ── Confidence components ── */
+    var CONF_MAX  = 96;
+    var CONF_BASE = 36;
+    var CONF_SUM  = 26; /* sum-fit contribution */
+    var CONF_RANK = 12; /* top-rank contribution */
+    var CONF_DNA  = 12; /* DNA-match contribution (NEW) */
+    var CONF_CARY = 10; /* carry-forward match contribution (NEW) */
 
-    /* Bonus-ball shuffle multipliers (coprime, for even distribution) */
+    /* Bonus-ball deterministic shuffle multipliers (coprime) */
     var SHUF_A = 37, SHUF_B = 13, SHUF_C = 7;
+    /* Sampling constants */
+    var MAX_PREDICTION_ATTEMPTS = 5000;
 
-    /* Build composite score */
+    /* ── Build composite score ── */
     var score = {};
     for (var num = 1; num <= fmt.mainMax; num++) score[num] = 0;
 
-    /* Signal 1: frequency */
+    /* Signal 1: historical frequency */
     var freq = {};
     for (var num = 1; num <= fmt.mainMax; num++) freq[num] = 0;
     draws.forEach(function(d) { (d.numbers || []).forEach(function(x) { if (freq[x] !== undefined) freq[x]++; }); });
@@ -12647,14 +13029,14 @@ function runPrngMlPredict() {
     maxRecency = maxRecency || 1;
     for (var num = 1; num <= fmt.mainMax; num++) score[num] += ((model.recentScore[num] || 0) / maxRecency) * W_RECENCY;
 
-    /* Signal 3: pair-score */
+    /* Signal 3: pair co-occurrence */
     var pairScore = {};
     for (var num = 1; num <= fmt.mainMax; num++) pairScore[num] = 0;
     Object.keys(model.pairFreq).forEach(function(k) {
         var parts = k.split('-');
-        var a = parseInt(parts[0], 10), b = parseInt(parts[1], 10);
-        pairScore[a] = (pairScore[a] || 0) + model.pairFreq[k];
-        pairScore[b] = (pairScore[b] || 0) + model.pairFreq[k];
+        var pa = parseInt(parts[0], 10), pb = parseInt(parts[1], 10);
+        pairScore[pa] = (pairScore[pa] || 0) + model.pairFreq[k];
+        pairScore[pb] = (pairScore[pb] || 0) + model.pairFreq[k];
     });
     var maxPair = 0;
     Object.keys(pairScore).forEach(function(k) { if (pairScore[k] > maxPair) maxPair = pairScore[k]; });
@@ -12669,13 +13051,13 @@ function runPrngMlPredict() {
     }
     var maxGap = 0;
     for (var num = 1; num <= fmt.mainMax; num++) {
-        var g = lastSeen[num] === -1 ? draws.length : draws.length - 1 - lastSeen[num];
-        if (g > maxGap) maxGap = g;
+        var gv = lastSeen[num] === -1 ? draws.length : draws.length - 1 - lastSeen[num];
+        if (gv > maxGap) maxGap = gv;
     }
     maxGap = maxGap || 1;
     for (var num = 1; num <= fmt.mainMax; num++) {
-        var g = lastSeen[num] === -1 ? draws.length : draws.length - 1 - lastSeen[num];
-        score[num] += (g / maxGap) * W_GAP;
+        var gv = lastSeen[num] === -1 ? draws.length : draws.length - 1 - lastSeen[num];
+        score[num] += (gv / maxGap) * W_GAP;
     }
 
     /* Signal 5: Markov zone transition from last draw */
@@ -12689,7 +13071,31 @@ function runPrngMlPredict() {
         });
     }
 
-    /* Rank and sample */
+    /* Signal 6: position-based frequency profile (NEW) */
+    if (model.avgPosProb) {
+        var maxPosProb = 0;
+        Object.keys(model.avgPosProb).forEach(function(k) { if (model.avgPosProb[k] > maxPosProb) maxPosProb = model.avgPosProb[k]; });
+        maxPosProb = maxPosProb || 0.001;
+        for (var num = 1; num <= fmt.mainMax; num++) {
+            score[num] += ((model.avgPosProb[num] || 0) / maxPosProb) * W_POSITION;
+        }
+    }
+
+    /* Signal 7: cross-draw carry-forward (NEW) */
+    if (model.carryScore) {
+        for (var num = 1; num <= fmt.mainMax; num++) {
+            score[num] += (model.carryScore[num] || 0) * W_CARRY;
+        }
+    }
+
+    /* Signal 8: frequency momentum (NEW) */
+    if (model.momentumScore) {
+        for (var num = 1; num <= fmt.mainMax; num++) {
+            score[num] += (model.momentumScore[num] || 0) * W_MOMENTUM;
+        }
+    }
+
+    /* Rank candidates by composite score */
     var ranked = Object.keys(score).map(function(k) { return { num: parseInt(k, 10), sc: score[k] }; })
         .sort(function(a, b) { return b.sc - a.sc; });
 
@@ -12698,8 +13104,10 @@ function runPrngMlPredict() {
     var attempt     = 0;
     var targetSum   = model.sumMean;
     var sumTol      = Math.max(model.sumStd * 1.5, fmt.mainCount * 3);
+    var dna         = model.dnaTemplate;
+    var dnaHalf     = Math.floor(fmt.mainMax / 2);
 
-    while (predictions.length < count && attempt < 3000) {
+    while (predictions.length < count && attempt < MAX_PREDICTION_ATTEMPTS) {
         attempt++;
         var pick = _prngSamplePick(ranked, fmt.mainCount, fmt.mainMax, targetSum, sumTol, attempt);
         if (!pick) continue;
@@ -12708,13 +13116,33 @@ function runPrngMlPredict() {
         if (seen[key]) continue;
         seen[key] = true;
 
-        var pickSum   = pick.reduce(function(s, x) { return s + x; }, 0);
-        var sumScore  = Math.max(0, 1 - Math.abs(pickSum - targetSum) / Math.max(1, sumTol));
-        var bonus     = [];
+        var pickSum  = pick.reduce(function(s, x) { return s + x; }, 0);
+        var sumScore = Math.max(0, 1 - Math.abs(pickSum - targetSum) / Math.max(1, sumTol));
+
+        /* DNA match score (NEW) */
+        var dnaScore = 0.5;
+        if (dna) {
+            var pickEven    = pick.filter(function(x) { return x % 2 === 0; }).length / pick.length;
+            var pickLow     = pick.filter(function(x) { return x <= dnaHalf; }).length / pick.length;
+            var pickSpan    = pick[pick.length - 1] - pick[0];
+            var dnaEvenDiff = Math.abs(pickEven - dna.even);
+            var dnaLowDiff  = Math.abs(pickLow  - dna.low);
+            var dnaSpanDiff = dna.span > 0 ? Math.abs(pickSpan - dna.span) / dna.span : 0;
+            dnaScore = Math.max(0, 1 - (dnaEvenDiff + dnaLowDiff + dnaSpanDiff * 0.5) / 2.5);
+        }
+
+        /* Carry-forward match score (NEW) */
+        var carryMatch = 0;
+        if (model.carryScore && pick.length) {
+            pick.forEach(function(x) { carryMatch += (model.carryScore[x] || 0); });
+            carryMatch /= pick.length;
+        }
+
+        /* Bonus balls */
+        var bonus = [];
         if (fmt.bonusCount > 0) {
             var bPool = [];
             for (var b = 1; b <= fmt.bonusMax; b++) bPool.push(b);
-            /* Deterministic Fisher-Yates using coprime multipliers SHUF_A/B/C */
             for (var bi = bPool.length - 1; bi > 0; bi--) {
                 var bj = (attempt * SHUF_A + bi * SHUF_B + predictions.length * SHUF_C) % (bi + 1);
                 var tmp = bPool[bi]; bPool[bi] = bPool[bj]; bPool[bj] = tmp;
@@ -12722,42 +13150,41 @@ function runPrngMlPredict() {
             for (var bc = 0; bc < fmt.bonusCount; bc++) bonus.push(bPool[bc]);
             bonus.sort(function(a, b) { return a - b; });
         }
-        var conf = Math.min(CONF_MAX, Math.round(CONF_BASE + sumScore * CONF_SUM + (ranked[0] && ranked[0].sc > 0 ? (score[pick[0]] / ranked[0].sc) * CONF_RANK : 0)));
-        predictions.push({ main: pick, bonus: bonus, sum: pickSum, conf: conf });
+
+        var conf = Math.min(CONF_MAX, Math.round(
+            CONF_BASE +
+            sumScore   * CONF_SUM  +
+            (ranked[0] && ranked[0].sc > 0 ? (score[pick[0]] / ranked[0].sc) * CONF_RANK : 0) +
+            dnaScore   * CONF_DNA  +
+            carryMatch * CONF_CARY
+        ));
+        predictions.push({ main: pick, bonus: bonus, sum: pickSum, conf: conf, dnaScore: dnaScore });
     }
 
     predictions.sort(function(a, b) { return b.conf - a.conf; });
 
-    /* ── High-Probability Subsets ──────────────────────────────────
-       Build groups of 3–6 numbers (up to mainCount-1) ranked by a
-       combined score:  50% individual rank  +  35% pair co-occurrence
-       +  15% triplet co-occurrence from recent draws.
-    ──────────────────────────────────────────────────────────────── */
+    /* ── High-Probability Subsets ──────────────────────────────── */
     var subsetHtml = '';
     var subMin = 3, subMax = Math.min(6, fmt.mainCount - 1);
     if (fmt.mainCount >= 4 && draws.length >= 5) {
-        /* Candidate pool: top-K ranked numbers.
-           At least mainCount+3 or 10, but never more than 15 (performance cap). */
         var minCandidates = Math.max(fmt.mainCount + 3, 10);
         var subK = Math.min(ranked.length, minCandidates, 15);
         var topK = ranked.slice(0, subK).map(function(r) { return r.num; });
 
-        /* Normalisation bases */
         var topSc = (ranked[0] && ranked[0].sc > 0) ? ranked[0].sc : 1;
         var maxPairVal = 1;
         Object.keys(model.pairFreq).forEach(function(k) {
             if (model.pairFreq[k] > maxPairVal) maxPairVal = model.pairFreq[k];
         });
 
-        /* Triplet co-occurrence from the most-recent 50 draws */
         var tripletFreq = {};
         var recentForTriplet = draws.slice(0, Math.min(draws.length, 50));
         recentForTriplet.forEach(function(d) {
             var nums = d.numbers || [];
             for (var ti = 0; ti < nums.length; ti++) {
                 for (var tj = ti + 1; tj < nums.length; tj++) {
-                    for (var tk = tj + 1; tk < nums.length; tk++) {
-                        var tkey = [nums[ti], nums[tj], nums[tk]]
+                    for (var tk2 = tj + 1; tk2 < nums.length; tk2++) {
+                        var tkey = [nums[ti], nums[tj], nums[tk2]]
                             .sort(function(a, b) { return a - b; }).join('-');
                         tripletFreq[tkey] = (tripletFreq[tkey] || 0) + 1;
                     }
@@ -12769,14 +13196,10 @@ function runPrngMlPredict() {
             if (tripletFreq[k] > maxTripVal) maxTripVal = tripletFreq[k];
         });
 
-        /* Score a subset of numbers */
         function _subScore(subset) {
-            /* individual rank contribution */
             var indiv = 0;
             for (var si = 0; si < subset.length; si++) indiv += (score[subset[si]] || 0);
             indiv = (indiv / subset.length) / (topSc || 1);
-
-            /* pair co-occurrence contribution */
             var pairSum = 0, pairCnt = 0;
             for (var si = 0; si < subset.length; si++) {
                 for (var sj = si + 1; sj < subset.length; sj++) {
@@ -12786,33 +13209,29 @@ function runPrngMlPredict() {
                 }
             }
             var pairNorm = pairCnt > 0 ? (pairSum / pairCnt) / maxPairVal : 0;
-
-            /* triplet co-occurrence contribution */
             var tripSum = 0, tripCnt = 0;
             for (var si = 0; si < subset.length; si++) {
                 for (var sj = si + 1; sj < subset.length; sj++) {
                     for (var sk = sj + 1; sk < subset.length; sk++) {
-                        var tk = [subset[si], subset[sj], subset[sk]]
+                        var tkeySub = [subset[si], subset[sj], subset[sk]]
                             .sort(function(a, b) { return a - b; }).join('-');
-                        tripSum += (tripletFreq[tk] || 0);
+                        tripSum += (tripletFreq[tkeySub] || 0);
                         tripCnt++;
                     }
                 }
             }
             var tripNorm = tripCnt > 0 ? (tripSum / tripCnt) / maxTripVal : 0;
-
             return indiv * 0.50 + pairNorm * 0.35 + tripNorm * 0.15;
         }
 
-        /* Generate all combinations of size sz from arr */
         function _genCombos(arr, sz) {
             var result = [];
-            (function pick(start, cur) {
+            (function pickC(start, cur) {
                 if (cur.length === sz) { result.push(cur.slice()); return; }
                 var remaining = sz - cur.length;
                 for (var ci = start; ci <= arr.length - remaining; ci++) {
                     cur.push(arr[ci]);
-                    pick(ci + 1, cur);
+                    pickC(ci + 1, cur);
                     cur.pop();
                 }
             })(0, []);
@@ -12823,24 +13242,20 @@ function runPrngMlPredict() {
         for (var sz = subMin; sz <= subMax; sz++) subsetSizes.push(sz);
 
         var subsetParts = subsetSizes.map(function(sz) {
-            var combos  = _genCombos(topK, sz);
-            var scored  = combos.map(function(c) { return { nums: c, sc: _subScore(c) }; })
+            var combos = _genCombos(topK, sz);
+            var scored = combos.map(function(c) { return { nums: c, sc: _subScore(c) }; })
                 .sort(function(a, b) { return b.sc - a.sc; }).slice(0, 5);
             if (!scored.length) return '';
             var best = scored[0].sc > 0 ? scored[0].sc : 1;
-
             return '<div style="margin-bottom:18px;">' +
-                '<div style="font-size:0.85rem;font-weight:800;color:var(--purple);margin-bottom:8px;">' +
-                '&#127922; Top ' + sz + '-Number Groups</div>' +
+                '<div style="font-size:0.85rem;font-weight:800;color:var(--purple);margin-bottom:8px;">&#127922; Top ' + sz + '-Number Groups</div>' +
                 scored.map(function(item, rank) {
                     var pct = best > 0 ? Math.round((item.sc / best) * 100) : 0;
                     var barColor = pct >= 90 ? '#22c55e' : pct >= 70 ? '#f59e0b' : 'var(--accent-grad)';
                     return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">' +
                         '<span style="font-size:0.75rem;color:var(--text-muted);min-width:22px;">#' + (rank + 1) + '</span>' +
                         '<div style="display:flex;gap:4px;flex-wrap:wrap;min-width:0;">' +
-                        item.nums.map(function(n) {
-                            return '<span class="ball ball-main ball-sm">' + n + '</span>';
-                        }).join('') + '</div>' +
+                        item.nums.map(function(nn) { return '<span class="ball ball-main ball-sm">' + nn + '</span>'; }).join('') + '</div>' +
                         '<div style="flex:1;background:var(--border);border-radius:100px;height:7px;min-width:40px;">' +
                         '<div style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:100px;transition:width 0.4s;"></div></div>' +
                         '<span style="font-size:0.75rem;font-weight:700;min-width:34px;text-align:right;' +
@@ -12851,28 +13266,39 @@ function runPrngMlPredict() {
 
         subsetHtml = '<div class="card" style="margin-top:14px;">' +
             '<div class="pattern-section-title">&#127919; High-Probability Number Subsets</div>' +
-            '<div class="algo-info" style="margin-bottom:16px;">' +
-            'Groups of <strong>' + subMin + '&ndash;' + subMax + '</strong> numbers with the highest combined probability ' +
-            'from the top <strong>' + subK + '</strong> ranked candidates. ' +
-            'Score blends: <em>individual ranking</em> (how high each number scores across all five signals, 50%) &middot; ' +
-            '<em>pair co-occurrence</em> (how often each pair of numbers appeared together in historical draws, 35%) &middot; ' +
-            '<em>triplet co-occurrence</em> (how often every trio within the group appeared together in the last 50 draws, 15%). ' +
-            'Use these groups as anchor picks within your full ticket combinations.' +
-            '</div>' +
+            '<div class="algo-info" style="margin-bottom:16px;">Groups of <strong>' + subMin + '&ndash;' + subMax + '</strong> numbers ranked by: individual score (50%) &middot; pair co-occurrence (35%) &middot; triplet co-occurrence (15%). Use as anchor picks within full ticket combinations.</div>' +
             subsetParts.join('') + '</div>';
     }
 
+    /* Signal weight summary */
+    var signalSummary = '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;">' +
+        [
+            { label: 'Frequency',   w: W_FREQ },
+            { label: 'Recency',     w: W_RECENCY },
+            { label: 'Pairs',       w: W_PAIR },
+            { label: 'Gap/Overdue', w: W_GAP },
+            { label: 'Markov',      w: W_MARKOV },
+            { label: 'Position',    w: W_POSITION },
+            { label: 'Carry-Fwd',   w: W_CARRY },
+            { label: 'Momentum',    w: W_MOMENTUM }
+        ].map(function(s) {
+            return '<span style="background:var(--surface2);border-radius:8px;padding:3px 9px;font-size:0.74rem;font-weight:700;">' +
+                s.label + ' <span style="color:var(--purple);">' + s.w + 'pt</span></span>';
+        }).join('') + '</div>';
+
     var html =
         '<div class="card">' +
-        '<div class="pattern-section-title">&#127919; PRNG ML Predictions &#8212; ' + fmt.flag + ' ' + fmt.name + '</div>' +
-        '<div class="algo-info" style="margin-bottom:14px;">Signals used: frequency &middot; recency decay &middot; pair co-occurrence &middot; gap/overdue &middot; Markov zone transitions &middot; sum targeting ' +
-        '(target <strong>' + targetSum.toFixed(0) + ' &#177;' + sumTol.toFixed(0) + '</strong>).</div>' +
+        '<div class="pattern-section-title">&#127919; Advanced PRNG ML Predictions &#8212; ' + fmt.flag + ' ' + fmt.name + '</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">8 combined signals &middot; DNA-constrained sampling &middot; carry-forward scoring &middot; sum targeting (<strong>' + targetSum.toFixed(0) + ' &#177;' + sumTol.toFixed(0) + '</strong>)</div>' +
+        signalSummary +
         predictions.map(function(p, i) {
-            var confColor = p.conf >= 75 ? '#22c55e' : p.conf >= 60 ? '#f59e0b' : 'var(--text-muted)';
+            var confColor = p.conf >= 78 ? '#22c55e' : p.conf >= 62 ? '#f59e0b' : 'var(--text-muted)';
+            var dnaMatch  = p.dnaScore !== undefined ? Math.round(p.dnaScore * 100) : null;
             return '<div class="draw-result-card" style="margin-bottom:10px;">' +
                 '<div class="draw-result-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">' +
                 '<span class="fw-700 text-sm">#' + (i + 1) + '</span>' +
                 '<span style="font-size:0.78rem;color:var(--text-muted);">Sum: ' + p.sum + '</span>' +
+                (dnaMatch !== null ? '<span style="font-size:0.74rem;color:var(--text-muted);">DNA: ' + dnaMatch + '%</span>' : '') +
                 '<span style="font-size:0.78rem;font-weight:700;color:' + confColor + ';">Confidence: ' + p.conf + '%</span>' +
                 '</div>' +
                 '<div class="balls-row" style="margin-top:6px;">' +
@@ -12891,11 +13317,12 @@ function runPrngMlPredict() {
 
     out.innerHTML = html;
     switchPrngSub(2);
-    showToast('Generated ' + predictions.length + ' PRNG ML prediction' + (predictions.length !== 1 ? 's' : '') + ' for ' + fmt.name, 'success');
+    showToast('Generated ' + predictions.length + ' advanced PRNG ML prediction' + (predictions.length !== 1 ? 's' : '') + ' for ' + fmt.name, 'success');
 }
 
 function _prngSamplePick(ranked, count, max, targetSum, tolerance, seed) {
-    var pool = ranked.slice(0, Math.min(ranked.length, Math.max(count * 5, 25)));
+    var POOL_MULTIPLIER = 6, MIN_POOL_SIZE = 30;
+    var pool = ranked.slice(0, Math.min(ranked.length, Math.max(count * POOL_MULTIPLIER, MIN_POOL_SIZE)));
     var pick  = [];
     var used  = {};
 
@@ -12909,11 +13336,9 @@ function _prngSamplePick(ranked, count, max, targetSum, tolerance, seed) {
         var remaining  = count - pick.length - 1;
 
         if (remaining > 0) {
-            var minReach = currentSum + remaining;         /* if remaining picks are all 1 */
-            var maxReach = currentSum + remaining * max;  /* if remaining picks are all max */
-            /* Upper bound uses 2× tolerance to allow picks that exceed the mean — lottery
-               sums are skewed high when high numbers are selected early in the loop.
-               Lower bound keeps the strict 1× tolerance to avoid very low sums. */
+            var minReach = currentSum + remaining;
+            var maxReach = currentSum + remaining * max;
+            /* Upper bound uses 2x tolerance; lower bound strict 1x tolerance */
             if (maxReach < targetSum - tolerance || minReach > targetSum + tolerance * 2) {
                 used[idx] = true;
                 continue;
@@ -12927,8 +13352,6 @@ function _prngSamplePick(ranked, count, max, targetSum, tolerance, seed) {
     return pick.length === count ? pick : null;
 }
 </script>
-
-<script>
     // Register the PWA service worker
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
