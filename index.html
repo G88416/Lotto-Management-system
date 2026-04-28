@@ -1128,14 +1128,14 @@
                 </div>
             </div>
             <div class="algo-info" style="margin-bottom:16px;">
-                Paste copied draw results below — the canvas auto-detects the lottery name, draw type, date, time and numbers, then renders them in the app's ball layout. After parsing, use <strong>Add to Lottery</strong> to import draws to Live Draws, or <strong>Save to Patterns</strong> to store draws in the Pattern Detector for smart analysis.<br>
-                <span style="color:var(--text-muted);">Expected format per draw:</span><br>
+                Paste copied draw results below — the canvas auto-detects the lottery name, draw type, date, time and numbers and previews them instantly. Multiple draws on the same date at different times are all detected automatically. Use <strong>Add to Lottery</strong> to import draws to Live Draws, or <strong>Save to Patterns</strong> to store draws for smart analysis.<br>
+                <span style="color:var(--text-muted);">Supported format (numbers may be space-separated or concatenated):</span><br>
                 <code style="font-size:0.82rem;">UK 49s Brunchtime 6/49 | 30 Mar 2026 at 12:48:00</code><br>
-                <code style="font-size:0.82rem;">2716412645305</code>
+                <code style="font-size:0.82rem;">27 16 41 26 45 30 5</code>
             </div>
             <div class="form-group" style="margin-bottom:12px;">
                 <label>Paste Results Here</label>
-                <textarea id="paste-canvas" class="paste-canvas-textarea" oninput="onPasteCanvasInput()" placeholder="UK 49s Brunchtime 6/49 | 30 Mar 2026 at 12:48:00&#10;2716412645305&#10;UK 49s Brunchtime 6/49&#10;&#10;UK 49s Brunchtime 6/49 | 29 Mar 2026 at 12:48:00&#10;3637223982324&#10;UK 49s Brunchtime 6/49"></textarea>
+                <textarea id="paste-canvas" class="paste-canvas-textarea" oninput="onPasteCanvasInput()" placeholder="UK 49s Brunchtime 6/49 | 28 Apr 2026 at 12:48:00&#10;27 16 41 26 45 30 5&#10;UK 49s Brunchtime 6/49&#10;&#10;UK 49s Teatime 6/49 | 28 Apr 2026 at 17:49:00&#10;03 15 24 36 41 48 07&#10;UK 49s Teatime 6/49"></textarea>
             </div>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="parsePasteCanvas()">&#128269; Parse &amp; Preview</button>
@@ -1827,14 +1827,14 @@
                 </div>
             </div>
             <div class="algo-info" style="margin-bottom:16px;">
-                Paste copied draw results below &mdash; the canvas auto-detects the lottery name, draw type, date, time and numbers, then renders them in the app&rsquo;s ball layout. After parsing, use <strong>Save to Digit Pattern</strong> to store draws in the selected lottery format so they feed into the Digit-Root Pattern analysis.<br>
-                <span style="color:var(--text-muted);">Expected format per draw:</span><br>
+                Paste copied draw results below &mdash; the canvas auto-detects the lottery name, draw type, date, time and numbers and previews them instantly. Multiple draws on the same date at different times are all detected automatically. After parsing, use <strong>Save to Digit Pattern</strong> to store draws so they feed into the Digit-Root Pattern analysis.<br>
+                <span style="color:var(--text-muted);">Supported format (numbers may be space-separated or concatenated):</span><br>
                 <code style="font-size:0.82rem;">UK 49s Brunchtime 6/49 | 30 Mar 2026 at 12:48:00</code><br>
-                <code style="font-size:0.82rem;">2716412645305</code>
+                <code style="font-size:0.82rem;">27 16 41 26 45 30 5</code>
             </div>
             <div class="form-group" style="margin-bottom:12px;">
                 <label>Paste Results Here</label>
-                <textarea id="dp-paste-canvas" class="paste-canvas-textarea" oninput="onDpPasteCanvasInput()" placeholder="UK 49s Brunchtime 6/49 | 30 Mar 2026 at 12:48:00&#10;2716412645305&#10;UK 49s Brunchtime 6/49&#10;&#10;UK 49s Brunchtime 6/49 | 29 Mar 2026 at 12:48:00&#10;3637223982324&#10;UK 49s Brunchtime 6/49"></textarea>
+                <textarea id="dp-paste-canvas" class="paste-canvas-textarea" oninput="onDpPasteCanvasInput()" placeholder="UK 49s Brunchtime 6/49 | 28 Apr 2026 at 12:48:00&#10;27 16 41 26 45 30 5&#10;UK 49s Brunchtime 6/49&#10;&#10;UK 49s Teatime 6/49 | 28 Apr 2026 at 17:49:00&#10;03 15 24 36 41 48 07&#10;UK 49s Teatime 6/49"></textarea>
             </div>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="parseDpPasteCanvas()">&#128269; Parse &amp; Preview</button>
@@ -5187,26 +5187,27 @@ function importPastedDraws() {
 
     var imported = 0;
     _pasteCanvasParsed.forEach(function(d) {
-        expandPastedDrawToAllFormats(d).forEach(function(ed) {
-            var exists = state.recentDraws.some(function(r) {
-                return r.formatId === ed.formatId && r.date === ed.date && r.drawTime === ed.drawTime;
-            });
-            if (exists) return;
-            var newDraw = {
-                id: (typeof crypto !== 'undefined' && crypto.randomUUID)
-                    ? crypto.randomUUID()
-                    : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36),
-                formatId: ed.formatId,
-                date:     ed.date,
-                drawTime: ed.drawTime,
-                numbers:  ed.numbers,
-                bonus:    ed.bonus,
-                addedAt:  new Date().toISOString()
-            };
-            state.recentDraws.unshift(newDraw);
-            fbAddDraw(newDraw);
-            imported++;
+        /* Only add the detected-format draw with its actual parsed numbers — do NOT expand
+           to every lottery format, which would add fabricated draws to unrelated formats. */
+        var exists = state.recentDraws.some(function(r) {
+            return r.formatId === d.formatId && r.date === d.date &&
+                   (r.drawTime || '') === (d.drawTime || '');
         });
+        if (exists) return;
+        var newDraw = {
+            id: (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36),
+            formatId: d.formatId,
+            date:     d.date,
+            drawTime: d.drawTime || '',
+            numbers:  d.numbers,
+            bonus:    d.bonus,
+            addedAt:  new Date().toISOString()
+        };
+        state.recentDraws.unshift(newDraw);
+        fbAddDraw(newDraw);
+        imported++;
     });
 
     if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
@@ -5237,6 +5238,7 @@ function clearPasteCanvas() {
 }
 
 /* Called on textarea input to update status dot */
+var _pasteCanvasDebounceTimer = null;
 function onPasteCanvasInput() {
     var txt = document.getElementById('paste-canvas').value.trim();
     var dot = document.getElementById('paste-status-dot');
@@ -5246,8 +5248,14 @@ function onPasteCanvasInput() {
     var badge   = document.getElementById('paste-parsed-count-badge');
     if (txt.length > 0) {
         if (dot) { dot.className = 'paste-status-dot parsed'; }
-        if (lbl) lbl.textContent = 'Text entered — click Parse';
+        if (lbl) lbl.textContent = 'Detecting…';
+        /* Auto-parse with a short debounce so rapid keystrokes don't re-parse on every character */
+        if (_pasteCanvasDebounceTimer) clearTimeout(_pasteCanvasDebounceTimer);
+        _pasteCanvasDebounceTimer = setTimeout(function() {
+            parsePasteCanvas();
+        }, 350);
     } else {
+        if (_pasteCanvasDebounceTimer) clearTimeout(_pasteCanvasDebounceTimer);
         if (dot) { dot.className = 'paste-status-dot'; }
         if (lbl) lbl.textContent = 'Ready';
         if (saveBtn) saveBtn.style.display = 'none';
@@ -5276,7 +5284,7 @@ function updatePasteWorkspaceStatus() {
         var txt = document.getElementById('paste-canvas') ? document.getElementById('paste-canvas').value.trim() : '';
         if (txt.length > 0) {
             if (dot) { dot.className = 'paste-status-dot parsed'; }
-            if (lbl) lbl.textContent = 'Text entered — click Parse';
+            if (lbl) lbl.textContent = 'Detecting…';
         } else {
             if (dot) { dot.className = 'paste-status-dot'; }
             if (lbl) lbl.textContent = 'Ready';
@@ -5292,26 +5300,26 @@ function saveParsedToPatterns() {
     if (!_pasteCanvasParsed.length) { showToast('Parse some draws first', 'error'); return; }
     var added = 0;
     _pasteCanvasParsed.forEach(function(d) {
-        expandPastedDrawToAllFormats(d).forEach(function(ed) {
-            var exists = state.savedPatternDraws.some(function(r) {
-                return r.formatId === ed.formatId && r.date === ed.date && r.drawTime === ed.drawTime;
-            });
-            if (exists) return;
-            state.savedPatternDraws.unshift({
-                id:       (typeof crypto !== 'undefined' && crypto.randomUUID)
-                            ? crypto.randomUUID()
-                            : String(Date.now()) + '-' + Math.random().toString(36).substring(2, 11) + '-' + Math.random().toString(36).substring(2, 11),
-                formatId: ed.formatId,
-                fmt:      ed.fmt,
-                rawName:  ed.rawName,
-                date:     ed.date,
-                drawTime: ed.drawTime,
-                numbers:  ed.numbers,
-                bonus:    ed.bonus,
-                savedAt:  new Date().toISOString()
-            });
-            added++;
+        /* Save only the detected-format draw with its actual parsed numbers */
+        var exists = state.savedPatternDraws.some(function(r) {
+            return r.formatId === d.formatId && r.date === d.date &&
+                   (r.drawTime || '') === (d.drawTime || '');
         });
+        if (exists) return;
+        state.savedPatternDraws.unshift({
+            id:       (typeof crypto !== 'undefined' && crypto.randomUUID)
+                        ? crypto.randomUUID()
+                        : String(Date.now()) + '-' + Math.random().toString(36).substring(2, 11) + '-' + Math.random().toString(36).substring(2, 11),
+            formatId: d.formatId,
+            fmt:      d.fmt,
+            rawName:  d.rawName,
+            date:     d.date,
+            drawTime: d.drawTime || '',
+            numbers:  d.numbers,
+            bonus:    d.bonus,
+            savedAt:  new Date().toISOString()
+        });
+        added++;
     });
     /* Cap at MAX_SAVED_PATTERN_DRAWS to stay within localStorage limits */
     if (state.savedPatternDraws.length > MAX_SAVED_PATTERN_DRAWS) state.savedPatternDraws = state.savedPatternDraws.slice(0, MAX_SAVED_PATTERN_DRAWS);
@@ -10018,47 +10026,48 @@ function saveDpPastedDraws() {
 
     var addedRecent = 0, addedSaved = 0;
     _dpPasteCanvasParsed.forEach(function(d) {
-        expandPastedDrawToAllFormats(d).forEach(function(ed) {
-            var drawId = (typeof crypto !== 'undefined' && crypto.randomUUID)
-                ? crypto.randomUUID()
-                : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36);
+        /* Save only the detected-format draw with its actual parsed numbers */
+        var drawId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : String(Date.now()) + '-' + Math.floor(Math.random() * 1e9).toString(36);
 
-            var existsRecent = state.recentDraws.some(function(r) {
-                return r.formatId === ed.formatId && r.date === ed.date && r.drawTime === ed.drawTime;
-            });
-            if (!existsRecent) {
-                var newDraw = {
-                    id:       drawId,
-                    formatId: ed.formatId,
-                    date:     ed.date,
-                    drawTime: ed.drawTime,
-                    numbers:  ed.numbers,
-                    bonus:    ed.bonus,
-                    addedAt:  new Date().toISOString()
-                };
-                state.recentDraws.unshift(newDraw);
-                fbAddDraw(newDraw);
-                addedRecent++;
-            }
-
-            var existsSaved = state.savedPatternDraws.some(function(r) {
-                return r.formatId === ed.formatId && r.date === ed.date && r.drawTime === ed.drawTime;
-            });
-            if (!existsSaved) {
-                state.savedPatternDraws.unshift({
-                    id:       drawId + '-spd',
-                    formatId: ed.formatId,
-                    fmt:      ed.fmt,
-                    rawName:  ed.rawName,
-                    date:     ed.date,
-                    drawTime: ed.drawTime,
-                    numbers:  ed.numbers,
-                    bonus:    ed.bonus,
-                    savedAt:  new Date().toISOString()
-                });
-                addedSaved++;
-            }
+        var existsRecent = state.recentDraws.some(function(r) {
+            return r.formatId === d.formatId && r.date === d.date &&
+                   (r.drawTime || '') === (d.drawTime || '');
         });
+        if (!existsRecent) {
+            var newDraw = {
+                id:       drawId,
+                formatId: d.formatId,
+                date:     d.date,
+                drawTime: d.drawTime || '',
+                numbers:  d.numbers,
+                bonus:    d.bonus,
+                addedAt:  new Date().toISOString()
+            };
+            state.recentDraws.unshift(newDraw);
+            fbAddDraw(newDraw);
+            addedRecent++;
+        }
+
+        var existsSaved = state.savedPatternDraws.some(function(r) {
+            return r.formatId === d.formatId && r.date === d.date &&
+                   (r.drawTime || '') === (d.drawTime || '');
+        });
+        if (!existsSaved) {
+            state.savedPatternDraws.unshift({
+                id:       drawId + '-spd',
+                formatId: d.formatId,
+                fmt:      d.fmt,
+                rawName:  d.rawName,
+                date:     d.date,
+                drawTime: d.drawTime || '',
+                numbers:  d.numbers,
+                bonus:    d.bonus,
+                savedAt:  new Date().toISOString()
+            });
+            addedSaved++;
+        }
     });
 
     if (state.recentDraws.length > 200) state.recentDraws = state.recentDraws.slice(0, 200);
@@ -10091,6 +10100,7 @@ function clearDpPasteCanvas() {
     updateDpPasteWorkspaceStatus();
 }
 
+var _dpPasteCanvasDebounceTimer = null;
 function onDpPasteCanvasInput() {
     var txt = document.getElementById('dp-paste-canvas').value.trim();
     var dot = document.getElementById('dp-paste-status-dot');
@@ -10099,8 +10109,13 @@ function onDpPasteCanvasInput() {
     var badge   = document.getElementById('dp-paste-parsed-count-badge');
     if (txt.length > 0) {
         if (dot) { dot.className = 'paste-status-dot parsed'; }
-        if (lbl) lbl.textContent = 'Text entered — click Parse';
+        if (lbl) lbl.textContent = 'Detecting…';
+        if (_dpPasteCanvasDebounceTimer) clearTimeout(_dpPasteCanvasDebounceTimer);
+        _dpPasteCanvasDebounceTimer = setTimeout(function() {
+            parseDpPasteCanvas();
+        }, 350);
     } else {
+        if (_dpPasteCanvasDebounceTimer) clearTimeout(_dpPasteCanvasDebounceTimer);
         if (dot) { dot.className = 'paste-status-dot'; }
         if (lbl) lbl.textContent = 'Ready';
         if (saveBtn) saveBtn.style.display = 'none';
@@ -10126,7 +10141,7 @@ function updateDpPasteWorkspaceStatus() {
         var txt = document.getElementById('dp-paste-canvas') ? document.getElementById('dp-paste-canvas').value.trim() : '';
         if (txt.length > 0) {
             if (dot) { dot.className = 'paste-status-dot parsed'; }
-            if (lbl) lbl.textContent = 'Text entered — click Parse';
+            if (lbl) lbl.textContent = 'Detecting…';
         } else {
             if (dot) { dot.className = 'paste-status-dot'; }
             if (lbl) lbl.textContent = 'Ready';
