@@ -13007,6 +13007,8 @@ function runPrngMlPredict() {
 
     /* Bonus-ball deterministic shuffle multipliers (coprime) */
     var SHUF_A = 37, SHUF_B = 13, SHUF_C = 7;
+    /* Sampling constants */
+    var MAX_PREDICTION_ATTEMPTS = 5000;
 
     /* ── Build composite score ── */
     var score = {};
@@ -13105,7 +13107,7 @@ function runPrngMlPredict() {
     var dna         = model.dnaTemplate;
     var dnaHalf     = Math.floor(fmt.mainMax / 2);
 
-    while (predictions.length < count && attempt < 5000) {
+    while (predictions.length < count && attempt < MAX_PREDICTION_ATTEMPTS) {
         attempt++;
         var pick = _prngSamplePick(ranked, fmt.mainCount, fmt.mainMax, targetSum, sumTol, attempt);
         if (!pick) continue;
@@ -13319,7 +13321,8 @@ function runPrngMlPredict() {
 }
 
 function _prngSamplePick(ranked, count, max, targetSum, tolerance, seed) {
-    var pool = ranked.slice(0, Math.min(ranked.length, Math.max(count * 6, 30)));
+    var POOL_MULTIPLIER = 6, MIN_POOL_SIZE = 30;
+    var pool = ranked.slice(0, Math.min(ranked.length, Math.max(count * POOL_MULTIPLIER, MIN_POOL_SIZE)));
     var pick  = [];
     var used  = {};
 
