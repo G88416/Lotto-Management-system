@@ -1271,6 +1271,7 @@
         <div id="pattern-results">
             <p class="text-muted text-center mt-14">Select a lottery and add at least 3 draw results on the <strong>Live Draws</strong> tab to analyse patterns.</p>
         </div>
+        <div id="pattern-dna-panel"></div>
 
         <!-- Combi-Matrix Lab redirect -->
         <div class="matrix-redirect-card" id="combinator-lab">
@@ -1442,6 +1443,7 @@
                 </div>
             </div>
             <div id="matrix-output"></div>
+            <div id="matrix-dna-panel"></div>
         </div>
 
         <!-- ── Sub 1: Draw Reconstructor ─────────────────────────── -->
@@ -1750,6 +1752,7 @@
                 </div>
             </div>
             <div id="gap-gen-output"></div>
+            <div id="gap-dna-panel"></div>
         </div>
 
         <!-- Sub 3: Frequency Analysis -->
@@ -1849,6 +1852,7 @@
         <div id="digitpattern-history" style="margin-top:16px;"></div>
         <div id="digitpattern-analysis" style="margin-top:16px;"></div>
         <div id="digitpattern-prediction" style="margin-top:16px;"></div>
+        <div id="digit-dna-panel"></div>
     </section>
 
     <!-- INTELLIGENT CANVAS -->
@@ -7387,7 +7391,8 @@ function runPatternDetector() {
             suggestion.tags.map(function(t){ return '<span class="suggest-tag ' + t.cls + '">' + t.icon + ' ' + t.label + '</span>'; }).join('') +
             '</div>' +
         '</div>';
-    container.innerHTML += renderDNABorrowedBrilliancePanel(fmt, draws);
+    var patDnaPanel = document.getElementById('pattern-dna-panel');
+    if (patDnaPanel) patDnaPanel.innerHTML = renderDNABorrowedBrilliancePanel(fmt, draws);
 }
 
 function buildSuggestion(fmt, freq, sorted, hotNums, coldNums, evenCount, oddCount, totalNums, lowCount, midCount, highCount) {
@@ -8394,8 +8399,8 @@ function runMatrixLab() {
         c.classList.toggle('wf-active', c.getAttribute('data-mxf-hl') === 'any');
     });
     var st = document.getElementById('mxf-status'); if (st) st.textContent = '';
-    var mxOut = document.getElementById('matrix-output');
-    if (mxOut) mxOut.innerHTML += renderDNABorrowedBrilliancePanel(fmt, getCombinedDrawsForFormat(fmtId));
+    var mxDnaPanel = document.getElementById('matrix-dna-panel');
+    if (mxDnaPanel) mxDnaPanel.innerHTML = renderDNABorrowedBrilliancePanel(fmt, getCombinedDrawsForFormat(fmtId));
     showToast('Generated ' + _matrixResults.length + ' combination' + (_matrixResults.length !== 1 ? 's' : '') + ' using ' + _matrixAlgos.length + ' formula' + (_matrixAlgos.length !== 1 ? 's' : '') + '!', 'success');
 }
 
@@ -9823,8 +9828,8 @@ function runGapGenerator() {
     }
     persist();
     renderGapGenOutput(fmt, _gapGenSets);
-    var gapOut = document.getElementById('gap-gen-output');
-    if (gapOut) gapOut.innerHTML += renderDNABorrowedBrilliancePanel(fmt, draws);
+    var gapDnaPanel = document.getElementById('gap-dna-panel');
+    if (gapDnaPanel) gapDnaPanel.innerHTML = renderDNABorrowedBrilliancePanel(fmt, draws);
     updateHeader();
     // Clear filter export after use so next run is unrestricted unless re-exported
     _gapFilterExport = null;
@@ -10735,7 +10740,8 @@ function runDigitPattern() {
         '<thead><tr><th>Position</th><th>Candidates (frequency &amp; match type)</th></tr></thead>' +
         '<tbody>' + altRows + '</tbody></table></div>' +
         '</div>';
-    predictionEl.innerHTML += renderDNABorrowedBrilliancePanel(fmt, allDraws);
+    var digitDnaPanel = document.getElementById('digit-dna-panel');
+    if (digitDnaPanel) digitDnaPanel.innerHTML = renderDNABorrowedBrilliancePanel(fmt, allDraws);
 }
 
 /* ============================================================
