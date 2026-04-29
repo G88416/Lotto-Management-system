@@ -813,6 +813,7 @@
                     </div>
                     <div id="wheel-combos-list"></div>
                 </div>
+                <div id="wheel-dna-panel"></div>
             </div>
         </div>
 
@@ -1923,6 +1924,8 @@
             </div>
             <div id="ic-prediction-results"></div>
         </div>
+        <!-- DNA Fingerprint Panel -->
+        <div id="ic-dna-panel"></div>
     </section>
 
     <!-- INTELLIGENT PREDICTION GENERATOR -->
@@ -3252,6 +3255,8 @@ function runWheeling() {
     _wheelState.combos = combos;
     _wheelState.fmtId  = fmtId;
     renderWheelResults(combos, fmt, algo);
+    var wheelDnaPanel = document.getElementById('wheel-dna-panel');
+    if (wheelDnaPanel) wheelDnaPanel.innerHTML = renderDNABorrowedBrilliancePanel(fmt, getCombinedDrawsForFormat(fmtId));
     showToast(combos.length + ' combinations generated!', 'success');
 }
 
@@ -4246,7 +4251,7 @@ function generateFromSeed() {
         html += '<div class="ticket-card"><div class="ticket-header"><span class="ticket-format-badge">' + fmt.flag + ' ' + fmt.name + '</span><span class="text-sm text-muted">Set ' + (s+1) + '</span></div><div class="balls-row">' + renderBalls(main, 'ball-main', fmt, bonus) + '</div></div>';
         recordStats(fmt.id, main.concat(bonus));
     }
-    document.getElementById('seed-lotto-result').innerHTML = html;
+    document.getElementById('seed-lotto-result').innerHTML = html + renderDNABorrowedBrilliancePanel(fmt, getCombinedDrawsForFormat(fmt.id));
     persist();
 }
 
@@ -4292,7 +4297,7 @@ function generateFromSeedPattern() {
         html += '<div class="ticket-card"><div class="ticket-header"><span class="ticket-format-badge">' + fmt.flag + ' ' + fmt.name + '</span><span class="text-sm text-muted">Set ' + (i + 1) + '</span></div><div class="balls-row">' + renderBalls(s.main, 'ball-main', fmt, s.bonus) + '</div></div>';
         recordStats(fmt.id, s.main.concat(s.bonus));
     }
-    document.getElementById('seed-lotto-result').innerHTML = html;
+    document.getElementById('seed-lotto-result').innerHTML = html + renderDNABorrowedBrilliancePanel(fmt, pd.draws);
     persist();
     showToast('Generated ' + setCount + ' pattern-based set' + (setCount > 1 ? 's' : '') + '!', 'success');
 }
@@ -7114,6 +7119,147 @@ function computePatternData(fmtId) {
              lowCount: lowCount, midCount: midCount, highCount: highCount, draws: draws };
 }
 
+/* ── DNA Fingerprint Utility ─────────────────────────────────────── */
+var DNA_WINDOW = 30; /* Number of most-recent draws used for DNA fingerprint analysis */
+
+/* Compute a DNA fingerprint from the last DNA_WINDOW draws.
+   Returns { template, lastDNA, trend, half, drawCount } or null when
+   there is insufficient data. */
+function computeDNAFingerprint(fmt, draws) {
+    if (!fmt || !draws || !draws.length) return null;
+    var dnaHalf = Math.floor(fmt.mainMax / 2);
+    var recent  = draws.slice(0, Math.min(DNA_WINDOW, draws.length));
+    var dnaList = recent.map(function(d) {
+        var nums = (d.numbers || []).slice().sort(function(a, b) { return a - b; });
+        if (!nums.length) return null;
+        var dSum    = nums.reduce(function(s, x) { return s + x; }, 0);
+        var dEven   = nums.filter(function(x) { return x % 2 === 0; }).length / nums.length;
+        var dLow    = nums.filter(function(x) { return x <= dnaHalf; }).length / nums.length;
+        var dSpan   = nums[nums.length - 1] - nums[0];
+        var dGaps   = [];
+        for (var gi = 1; gi < nums.length; gi++) dGaps.push(nums[gi] - nums[gi - 1]);
+        var dAvgGap = dGaps.length ? dGaps.reduce(function(s, x) { return s + x; }, 0) / dGaps.length : 0;
+        var dGapVar = dGaps.length ? dGaps.reduce(function(s, x) { return s + Math.pow(x - dAvgGap, 2); }, 0) / dGaps.length : 0;
+        return { sum: dSum, even: dEven, low: dLow, span: dSpan, avgGap: dAvgGap, gapVar: dGapVar };
+    }).filter(Boolean);
+
+    if (!dnaList.length) return null;
+    var dnaSumMean = dnaList.reduce(function(s, d) { return s + d.sum; }, 0) / dnaList.length;
+    var dnaSumStd  = Math.sqrt(dnaList.reduce(function(s, d) { return s + Math.pow(d.sum - dnaSumMean, 2); }, 0) / dnaList.length);
+    var template   = {
+        sum:    dnaSumMean,
+        sumStd: dnaSumStd,
+        even:   dnaList.reduce(function(s, d) { return s + d.even;   }, 0) / dnaList.length,
+        low:    dnaList.reduce(function(s, d) { return s + d.low;    }, 0) / dnaList.length,
+        span:   dnaList.reduce(function(s, d) { return s + d.span;   }, 0) / dnaList.length,
+        avgGap: dnaList.reduce(function(s, d) { return s + d.avgGap; }, 0) / dnaList.length,
+        gapVar: dnaList.reduce(function(s, d) { return s + d.gapVar; }, 0) / dnaList.length
+    };
+
+    /* Trend: compare newer half vs older half of the window */
+    var splitIdx = Math.floor(dnaList.length / 2);
+    var newerDna = dnaList.slice(0, splitIdx);
+    var olderDna = dnaList.slice(splitIdx);
+    var trend    = null;
+    if (newerDna.length && olderDna.length) {
+        var _dnaAvg = function(list, key) { return list.reduce(function(s, d) { return s + d[key]; }, 0) / list.length; };
+        trend = {
+            sumDelta:  _dnaAvg(newerDna, 'sum')  - _dnaAvg(olderDna, 'sum'),
+            evenDelta: _dnaAvg(newerDna, 'even') - _dnaAvg(olderDna, 'even'),
+            lowDelta:  _dnaAvg(newerDna, 'low')  - _dnaAvg(olderDna, 'low'),
+            spanDelta: _dnaAvg(newerDna, 'span') - _dnaAvg(olderDna, 'span')
+        };
+    }
+
+    /* Last draw DNA */
+    var lastNums = (recent[0] ? (recent[0].numbers || []) : []).slice().sort(function(a, b) { return a - b; });
+    var lastDNA  = null;
+    if (lastNums.length) {
+        var ldEven   = lastNums.filter(function(x) { return x % 2 === 0; }).length;
+        var ldLow    = lastNums.filter(function(x) { return x <= dnaHalf; }).length;
+        var ldSpan   = lastNums[lastNums.length - 1] - lastNums[0];
+        var ldGaps   = [];
+        for (var gj = 1; gj < lastNums.length; gj++) ldGaps.push(lastNums[gj] - lastNums[gj - 1]);
+        var ldAvgGap = ldGaps.length ? ldGaps.reduce(function(s, x) { return s + x; }, 0) / ldGaps.length : 0;
+        lastDNA = {
+            sum:     lastNums.reduce(function(s, x) { return s + x; }, 0),
+            even:    ldEven,
+            low:     ldLow,
+            span:    ldSpan,
+            evenPct: (ldEven / lastNums.length * 100).toFixed(0),
+            lowPct:  (ldLow  / lastNums.length * 100).toFixed(0),
+            avgGap:  ldAvgGap.toFixed(1),
+            nums:    lastNums
+        };
+    }
+
+    return { template: template, lastDNA: lastDNA, trend: trend, half: dnaHalf, drawCount: dnaList.length };
+}
+
+/* Render a compact Borrowed-Brilliance DNA panel as an HTML string.
+   Depends on _prngStatBox (defined in the PRNG section). */
+function renderDNABorrowedBrilliancePanel(fmt, draws) {
+    var dna = computeDNAFingerprint(fmt, draws);
+    if (!dna) return '';
+    var tmpl  = dna.template;
+    var last  = dna.lastDNA;
+    var trend = dna.trend;
+    var half  = dna.half;
+    var _arrow = function(delta, threshold) {
+        threshold = threshold || 0.01;
+        if (Math.abs(delta) < threshold) return '<span style="color:var(--text-muted);">&#8596;</span>';
+        return delta > 0
+            ? '<span style="color:#22c55e;" title="Rising trend">&#8593;</span>'
+            : '<span style="color:#ef4444;" title="Falling trend">&#8595;</span>';
+    };
+    var html = '<div class="card" style="margin-top:18px;">' +
+        '<div class="pattern-section-title">&#129516; Borrowed Brilliance &mdash; DNA Fingerprint (Last ' + dna.drawCount + ' Draws)</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">' +
+        'Draw DNA encodes each of the last <strong>' + dna.drawCount + '</strong> draws as a feature vector ' +
+        '(sum, even/odd ratio, low/high split, spread, gap variance). ' +
+        'The mean profile is the &ldquo;typical draw signature&rdquo; &mdash; use it to evaluate and guide your future picks.' +
+        '</div>' +
+        '<div class="grid-3" style="gap:8px;margin-bottom:10px;">' +
+        _prngStatBox('Target Sum', tmpl.sum.toFixed(0) + ' &plusmn;' + tmpl.sumStd.toFixed(0)) +
+        _prngStatBox('Even Ratio', (tmpl.even * 100).toFixed(0) + '% ' + (trend ? _arrow(trend.evenDelta, 0.04) : '')) +
+        _prngStatBox('Low Half (&le;' + half + ')', (tmpl.low * 100).toFixed(0) + '% ' + (trend ? _arrow(trend.lowDelta, 0.04) : '')) +
+        _prngStatBox('Avg Span', tmpl.span.toFixed(0) + ' ' + (trend ? _arrow(trend.spanDelta, 1) : '')) +
+        _prngStatBox('Avg Gap', tmpl.avgGap.toFixed(1)) +
+        _prngStatBox('Gap Variance', tmpl.gapVar.toFixed(1)) +
+        '</div>';
+    if (last) {
+        var sumDiff   = last.sum - tmpl.sum;
+        var onProfile = Math.abs(sumDiff) <= tmpl.sumStd;
+        html += '<div class="pattern-section-title" style="font-size:0.88rem;margin-top:4px;margin-bottom:6px;">&#128255; Last Draw DNA</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">' +
+            last.nums.map(function(n) { return '<span class="ball ball-main ball-sm">' + n + '</span>'; }).join('') +
+            '</div>' +
+            '<div class="grid-3" style="gap:8px;">' +
+            _prngStatBox('Sum', last.sum) +
+            _prngStatBox('Even', last.even + ' (' + last.evenPct + '%)') +
+            _prngStatBox('Low (&le;' + half + ')', last.low + ' (' + last.lowPct + '%)') +
+            _prngStatBox('Span', last.span) +
+            _prngStatBox('Avg Gap', last.avgGap) +
+            _prngStatBox('Profile Match', onProfile
+                ? '<span style="color:#22c55e;">&#10003; On Profile</span>'
+                : '<span style="color:#f59e0b;">&#8773; ' + (sumDiff > 0 ? '+' : '') + sumDiff.toFixed(0) + '</span>') +
+            '</div>';
+    }
+    if (trend) {
+        var trendParts = [];
+        if (Math.abs(trend.sumDelta)  >= 1)    trendParts.push('Sum '  + (trend.sumDelta  > 0 ? 'rising'    : 'falling')    + ' (' + (trend.sumDelta > 0 ? '+' : '') + trend.sumDelta.toFixed(0) + ')');
+        if (Math.abs(trend.evenDelta) >= 0.05) trendParts.push(trend.evenDelta > 0 ? 'shifting to even' : 'shifting to odd');
+        if (Math.abs(trend.lowDelta)  >= 0.05) trendParts.push('low-half ' + (trend.lowDelta > 0 ? 'increasing' : 'decreasing'));
+        if (trendParts.length) {
+            html += '<div class="algo-info" style="margin-top:8px;font-size:0.82rem;">&#128202; <strong>Recent trend (newer ' +
+                Math.floor(dna.drawCount / 2) + ' vs older ' + (dna.drawCount - Math.floor(dna.drawCount / 2)) + ' draws):</strong> ' +
+                trendParts.join(' &middot; ') + '</div>';
+        }
+    }
+    html += '</div>';
+    return html;
+}
+
 function runPatternDetector() {
     var fmtEl = document.getElementById('pattern-format');
     if (!fmtEl) return;
@@ -7241,6 +7387,7 @@ function runPatternDetector() {
             suggestion.tags.map(function(t){ return '<span class="suggest-tag ' + t.cls + '">' + t.icon + ' ' + t.label + '</span>'; }).join('') +
             '</div>' +
         '</div>';
+    container.innerHTML += renderDNABorrowedBrilliancePanel(fmt, draws);
 }
 
 function buildSuggestion(fmt, freq, sorted, hotNums, coldNums, evenCount, oddCount, totalNums, lowCount, midCount, highCount) {
@@ -8247,6 +8394,8 @@ function runMatrixLab() {
         c.classList.toggle('wf-active', c.getAttribute('data-mxf-hl') === 'any');
     });
     var st = document.getElementById('mxf-status'); if (st) st.textContent = '';
+    var mxOut = document.getElementById('matrix-output');
+    if (mxOut) mxOut.innerHTML += renderDNABorrowedBrilliancePanel(fmt, getCombinedDrawsForFormat(fmtId));
     showToast('Generated ' + _matrixResults.length + ' combination' + (_matrixResults.length !== 1 ? 's' : '') + ' using ' + _matrixAlgos.length + ' formula' + (_matrixAlgos.length !== 1 ? 's' : '') + '!', 'success');
 }
 
@@ -9674,6 +9823,8 @@ function runGapGenerator() {
     }
     persist();
     renderGapGenOutput(fmt, _gapGenSets);
+    var gapOut = document.getElementById('gap-gen-output');
+    if (gapOut) gapOut.innerHTML += renderDNABorrowedBrilliancePanel(fmt, draws);
     updateHeader();
     // Clear filter export after use so next run is unrestricted unless re-exported
     _gapFilterExport = null;
@@ -10584,6 +10735,7 @@ function runDigitPattern() {
         '<thead><tr><th>Position</th><th>Candidates (frequency &amp; match type)</th></tr></thead>' +
         '<tbody>' + altRows + '</tbody></table></div>' +
         '</div>';
+    predictionEl.innerHTML += renderDNABorrowedBrilliancePanel(fmt, allDraws);
 }
 
 /* ============================================================
@@ -11249,6 +11401,10 @@ function runIntelligentCanvas() {
 
     /* ── 4. Predictions from all algorithms ── */
     _icRenderPrediction(predData, fmt);
+
+    /* ── 5. DNA Fingerprint panel ── */
+    var icDnaPanel = document.getElementById('ic-dna-panel');
+    if (icDnaPanel) icDnaPanel.innerHTML = renderDNABorrowedBrilliancePanel(fmt, getCombinedDrawsForFormat(fmtId));
 }
 
 function _icRenderMatches(matches, fmt) {
@@ -11585,6 +11741,7 @@ function runIntelligentGenerator() {
             '<div class="pattern-section-title">' + fmt.flag + ' ' + fmt.name + ' — ' + predictionCount + ' predictions</div>' +
             '<div class="algo-info" style="margin-bottom:12px;">Combined engines: Quick Pick, Manual Pick, My Tickets, Wheeling, Seed Engine, Budget, Draws, Live Draws, Patterns, Combi-Matrix, Lotto Gap, Digit Pattern, Smart Canvas.</div>' +
             body +
+            renderDNABorrowedBrilliancePanel(fmt, getCombinedDrawsForFormat(fmt.id)) +
             '</div>';
     }).join('');
 
@@ -12608,38 +12765,20 @@ function _runPrngTrainer(fmt, draws) {
         momentumNorm[parseInt(k, 10)] = (momentumRaw[k] - minMom) / momRange;
     });
 
-    /* 9. Draw DNA fingerprint (NEW)
-          Each draw is encoded as a compact feature vector. The mean DNA
+    /* 9. Draw DNA fingerprint — computed from the last DNA_WINDOW draws so the
+          template reflects recent behaviour rather than the full history. The mean DNA
           becomes the target template for prediction generation. */
-    var dnaHalf  = Math.floor(fmt.mainMax / 2);
-    var dnaList  = draws.map(function(d) {
-        var nums = (d.numbers || []).slice().sort(function(a, b) { return a - b; });
-        if (!nums.length) return null;
-        var dSum    = nums.reduce(function(s, x) { return s + x; }, 0);
-        var dEven   = nums.filter(function(x) { return x % 2 === 0; }).length / nums.length;
-        var dLow    = nums.filter(function(x) { return x <= dnaHalf; }).length / nums.length;
-        var dSpan   = nums[nums.length - 1] - nums[0];
-        var dGaps   = [];
-        for (var gi = 1; gi < nums.length; gi++) dGaps.push(nums[gi] - nums[gi - 1]);
-        var dAvgGap = dGaps.length ? dGaps.reduce(function(s, x) { return s + x; }, 0) / dGaps.length : 0;
-        var dGapVar = dGaps.length ? dGaps.reduce(function(s, x) { return s + Math.pow(x - dAvgGap, 2); }, 0) / dGaps.length : 0;
-        return { sum: dSum, even: dEven, low: dLow, span: dSpan, avgGap: dAvgGap, gapVar: dGapVar };
-    }).filter(function(x) { return x !== null; });
-
-    var dnaTemplate = null;
-    if (dnaList.length) {
-        var dnaSumMean = dnaList.reduce(function(s, d) { return s + d.sum; }, 0) / dnaList.length;
-        var dnaSumStd  = Math.sqrt(dnaList.reduce(function(s, d) { return s + Math.pow(d.sum - dnaSumMean, 2); }, 0) / dnaList.length);
-        dnaTemplate = {
-            sum:    dnaSumMean,
-            sumStd: dnaSumStd,
-            even:   dnaList.reduce(function(s, d) { return s + d.even;   }, 0) / dnaList.length,
-            low:    dnaList.reduce(function(s, d) { return s + d.low;    }, 0) / dnaList.length,
-            span:   dnaList.reduce(function(s, d) { return s + d.span;   }, 0) / dnaList.length,
-            avgGap: dnaList.reduce(function(s, d) { return s + d.avgGap; }, 0) / dnaList.length,
-            gapVar: dnaList.reduce(function(s, d) { return s + d.gapVar; }, 0) / dnaList.length
-        };
-    }
+    var dnaFP       = computeDNAFingerprint(fmt, draws);
+    var dnaList     = dnaFP ? [dnaFP.template] : []; /* kept for backward compat */
+    var dnaTemplate = dnaFP ? {
+        sum:    dnaFP.template.sum,
+        sumStd: dnaFP.template.sumStd,
+        even:   dnaFP.template.even,
+        low:    dnaFP.template.low,
+        span:   dnaFP.template.span,
+        avgGap: dnaFP.template.avgGap,
+        gapVar: dnaFP.template.gapVar
+    } : null;
 
     /* 10. Self-validation: retrospective coverage rate
            Using frequency ranking, measure what % of the last 20 draw numbers
@@ -12756,7 +12895,7 @@ function _runPrngTrainer(fmt, draws) {
         _prngStatBox('Active Signals', '8') +
         _prngStatBox('Target Sum', sumMean.toFixed(0) + ' &#177;' + (sumStd * 1.5).toFixed(0)) +
         _prngStatBox('Coverage Rate', coverageRate.toFixed(1) + '%') +
-        _prngStatBox('DNA Template', dnaTemplate ? '&#10003; Ready' : '&#9888; N/A') +
+        _prngStatBox('DNA Template', dnaTemplate ? '&#10003; Ready (' + Math.min(DNA_WINDOW, n) + ' draws)' : '&#9888; N/A') +
         _prngStatBox('Carry Pairs', (n > 1 ? (n - 1) : 0) + ' draws') +
         '</div></div>' +
 
@@ -12832,24 +12971,11 @@ function _runPrngBrillianceTab(fmt, draws) {
     var n     = draws.length;
     var half  = Math.floor(fmt.mainMax / 2);
 
-    /* Extract DNA of the last draw */
-    var lastDraw = draws[0] ? (draws[0].numbers || []).slice().sort(function(a, b) { return a - b; }) : [];
-    var lastDNA  = null;
-    if (lastDraw.length) {
-        var ldSum  = lastDraw.reduce(function(s, x) { return s + x; }, 0);
-        var ldEven = lastDraw.filter(function(x) { return x % 2 === 0; }).length;
-        var ldLow  = lastDraw.filter(function(x) { return x <= half; }).length;
-        var ldSpan = lastDraw[lastDraw.length - 1] - lastDraw[0];
-        var ldGaps = [];
-        for (var gi = 1; gi < lastDraw.length; gi++) ldGaps.push(lastDraw[gi] - lastDraw[gi - 1]);
-        var ldAvgGap = ldGaps.length ? ldGaps.reduce(function(s, x) { return s + x; }, 0) / ldGaps.length : 0;
-        lastDNA = {
-            sum: ldSum, even: ldEven, low: ldLow, span: ldSpan,
-            evenPct: (ldEven / lastDraw.length * 100).toFixed(0),
-            lowPct:  (ldLow  / lastDraw.length * 100).toFixed(0),
-            avgGap:  ldAvgGap.toFixed(1)
-        };
-    }
+    /* Extract DNA fingerprint from last 30 draws */
+    var dnaFP30  = computeDNAFingerprint(fmt, draws);
+    var lastDNA  = dnaFP30 ? dnaFP30.lastDNA : null;
+    var lastDraw = lastDNA ? lastDNA.nums : [];
+    var predDNA  = model.dnaTemplate;
 
     /* Carry-forward heat: candidates most likely to follow last draw's numbers */
     var carryHeat = [];
@@ -12891,8 +13017,6 @@ function _runPrngBrillianceTab(fmt, draws) {
         .sort(function(a, b) { return b.sc - a.sc; }).slice(0, 15);
     var maxBright = brightRanked[0] ? brightRanked[0].sc : 1;
 
-    var predDNA = model.dnaTemplate;
-
     var html =
         '<div class="card">' +
         '<div class="pattern-section-title">&#129516; Borrowed Brilliance &#8212; Draw DNA Analysis</div>' +
@@ -12903,26 +13027,51 @@ function _runPrngBrillianceTab(fmt, draws) {
         'so predictions genuinely mimic the hidden rhythm of the analysed draw history.' +
         '</div></div>' +
 
-        (lastDNA ?
+        (dnaFP30 ?
             '<div class="card">' +
-            '<div class="pattern-section-title">&#128255; Last Draw DNA Fingerprint</div>' +
-            '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">' +
+            '<div class="pattern-section-title">&#128255; DNA Fingerprint &#8212; Last ' + dnaFP30.drawCount + ' Draws</div>' +
+            '<div class="algo-info" style="margin-bottom:10px;">Feature vector computed from the <strong>last ' + dnaFP30.drawCount + ' draws</strong> (sum, even/odd ratio, low/high split, spread, gap variance). ' +
+            'These statistics define the &ldquo;expected signature&rdquo; for future draws.</div>' +
+            (lastDNA ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
+            '<span style="font-size:0.82rem;color:var(--text-muted);align-self:center;">Last draw:</span>' +
             lastDraw.map(function(nm) { return '<span class="ball ball-main ball-sm">' + nm + '</span>'; }).join('') +
+            '</div>' : '') +
+            '<div class="grid-3" style="gap:10px;margin-bottom:8px;">' +
+            _prngStatBox('Target Sum', dnaFP30.template.sum.toFixed(0) + ' &#177;' + dnaFP30.template.sumStd.toFixed(0)) +
+            _prngStatBox('Even Ratio', (dnaFP30.template.even * 100).toFixed(0) + '%' +
+                (dnaFP30.trend ? (Math.abs(dnaFP30.trend.evenDelta) >= 0.04 ? (dnaFP30.trend.evenDelta > 0 ? ' &#8593;' : ' &#8595;') : '') : '')) +
+            _prngStatBox('Low Half (&le;' + dnaFP30.half + ')', (dnaFP30.template.low * 100).toFixed(0) + '%' +
+                (dnaFP30.trend ? (Math.abs(dnaFP30.trend.lowDelta) >= 0.04 ? (dnaFP30.trend.lowDelta > 0 ? ' &#8593;' : ' &#8595;') : '') : '')) +
+            _prngStatBox('Avg Span', dnaFP30.template.span.toFixed(0)) +
+            _prngStatBox('Avg Gap', dnaFP30.template.avgGap.toFixed(1)) +
+            _prngStatBox('Gap Variance', dnaFP30.template.gapVar.toFixed(1)) +
             '</div>' +
-            '<div class="grid-3" style="gap:10px;">' +
-            _prngStatBox('Sum', lastDNA.sum) +
-            _prngStatBox('Even Numbers', lastDNA.even + ' (' + lastDNA.evenPct + '%)') +
-            _prngStatBox('Low Half (&le;' + half + ')', lastDNA.low + ' (' + lastDNA.lowPct + '%)') +
-            _prngStatBox('Span (max&minus;min)', lastDNA.span) +
-            _prngStatBox('Avg Gap', lastDNA.avgGap) +
-            _prngStatBox('Numbers Drawn', lastDraw.length) +
-            '</div></div>'
+            (lastDNA ? '<div class="grid-3" style="gap:10px;">' +
+            _prngStatBox('Last Sum', lastDNA.sum) +
+            _prngStatBox('Last Even', lastDNA.even + ' (' + lastDNA.evenPct + '%)') +
+            _prngStatBox('Last Low (&le;' + dnaFP30.half + ')', lastDNA.low + ' (' + lastDNA.lowPct + '%)') +
+            _prngStatBox('Last Span', lastDNA.span) +
+            _prngStatBox('Last Avg Gap', lastDNA.avgGap) +
+            _prngStatBox('Profile Match', Math.abs(lastDNA.sum - dnaFP30.template.sum) <= dnaFP30.template.sumStd
+                ? '<span style="color:#22c55e;">&#10003; On Profile</span>'
+                : '<span style="color:#f59e0b;">&#8773; ' + (lastDNA.sum > dnaFP30.template.sum ? '+' : '') + (lastDNA.sum - dnaFP30.template.sum).toFixed(0) + '</span>') +
+            '</div>' : '') +
+            (dnaFP30.trend ? (function() {
+                var tparts = [];
+                if (Math.abs(dnaFP30.trend.sumDelta)  >= 1)    tparts.push('Sum ' + (dnaFP30.trend.sumDelta  > 0 ? 'rising' : 'falling') + ' (' + (dnaFP30.trend.sumDelta > 0 ? '+' : '') + dnaFP30.trend.sumDelta.toFixed(0) + ')');
+                if (Math.abs(dnaFP30.trend.evenDelta) >= 0.05) tparts.push(dnaFP30.trend.evenDelta > 0 ? 'shifting to even' : 'shifting to odd');
+                if (Math.abs(dnaFP30.trend.lowDelta)  >= 0.05) tparts.push('low-half ' + (dnaFP30.trend.lowDelta > 0 ? 'increasing' : 'decreasing'));
+                return tparts.length ? '<div class="algo-info" style="margin-top:8px;font-size:0.82rem;">&#128202; <strong>Recent trend (newer ' +
+                    Math.floor(dnaFP30.drawCount / 2) + ' vs older ' + (dnaFP30.drawCount - Math.floor(dnaFP30.drawCount / 2)) + ' draws):</strong> ' +
+                    tparts.join(' &middot; ') + '</div>' : '';
+            })() : '') +
+            '</div>'
         : '') +
 
         (predDNA ?
             '<div class="card">' +
-            '<div class="pattern-section-title">&#127919; Target DNA for Next Prediction</div>' +
-            '<div class="algo-info" style="margin-bottom:10px;">Mean DNA computed from all ' + n + ' historical draws. Predictions are constrained to match this profile &#8212; giving them the &ldquo;borrowed brilliance&rdquo; of past draws.</div>' +
+            '<div class="pattern-section-title">&#127919; Target DNA for Future Draws</div>' +
+            '<div class="algo-info" style="margin-bottom:10px;">Mean DNA computed from the last ' + Math.min(DNA_WINDOW, n) + ' draws (window of ' + DNA_WINDOW + '). Predictions are constrained to match this profile &mdash; giving them the &ldquo;borrowed brilliance&rdquo; of recent draws.</div>' +
             '<div class="grid-3" style="gap:10px;">' +
             _prngStatBox('Target Sum', predDNA.sum.toFixed(0) + ' &#177;' + predDNA.sumStd.toFixed(0)) +
             _prngStatBox('Even Ratio Target', (predDNA.even * 100).toFixed(0) + '%') +
