@@ -512,6 +512,68 @@
         .gem-draw-mapping-sep  { color:var(--text-muted); font-size:0.7rem; }
         .gem-draw-mapping-letter { color:var(--text); }
         .gem-draw-alts { font-size:0.72rem; color:var(--text-muted); margin-top:10px; line-height:1.6; }
+        /* ── ML Wheeling Engine ─────────────────────────────────────────── */
+        .ml-tab-row { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+        .ml-tab-btn { padding:7px 16px; border-radius:20px; border:2px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:0.8rem; font-weight:700; cursor:pointer; transition:all 0.18s; }
+        .ml-tab-btn:hover { border-color:var(--purple); color:var(--purple); }
+        .ml-tab-btn.ml-active { background:var(--accent-grad); color:#fff; border-color:transparent; box-shadow:0 2px 10px rgba(139,92,246,0.3); }
+        .ml-draw-list { max-height:280px; overflow-y:auto; border:1px solid var(--border); border-radius:12px; padding:8px; background:var(--surface2); }
+        .ml-draw-row { display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:9px; cursor:pointer; transition:background 0.15s; border-bottom:1px solid var(--border); }
+        .ml-draw-row:last-child { border-bottom:none; }
+        .ml-draw-row:hover { background:rgba(139,92,246,0.07); }
+        .ml-draw-row.ml-selected { background:rgba(139,92,246,0.12); border-color:rgba(139,92,246,0.25); }
+        .ml-draw-check { width:18px; height:18px; border-radius:5px; border:2px solid var(--border); background:var(--surface); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s; }
+        .ml-draw-row.ml-selected .ml-draw-check { background:var(--accent-grad); border-color:transparent; color:#fff; font-size:0.7rem; }
+        .ml-draw-date { font-size:0.75rem; color:var(--text-muted); font-weight:600; min-width:72px; }
+        .ml-draw-balls { display:flex; gap:5px; flex-wrap:wrap; flex:1; }
+        .ml-draw-ball { width:28px; height:28px; border-radius:50%; background:var(--surface); border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:800; color:var(--text); }
+        .ml-train-progress { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 16px; margin-bottom:14px; }
+        .ml-progress-bar-wrap { background:var(--border); border-radius:100px; height:10px; overflow:hidden; margin:10px 0 6px; }
+        .ml-progress-bar { height:100%; border-radius:100px; background:var(--accent-grad); transition:width 0.4s; }
+        .ml-model-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:700; background:rgba(16,185,129,0.12); color:#059669; border:1px solid rgba(16,185,129,0.3); }
+        .ml-signal-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+        .ml-signal-row:last-child { border-bottom:none; }
+        .ml-signal-name { font-size:0.8rem; font-weight:700; min-width:140px; color:var(--text-muted); }
+        .ml-signal-bar-wrap { flex:1; background:var(--border); border-radius:100px; height:8px; overflow:hidden; }
+        .ml-signal-bar { height:100%; border-radius:100px; background:var(--accent-grad); transition:width 0.5s; }
+        .ml-signal-val { font-size:0.75rem; font-weight:800; color:var(--purple); min-width:36px; text-align:right; }
+        .ml-conf-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+        .ml-conf-row:last-child { border-bottom:none; }
+        .ml-conf-ball { width:36px; height:36px; border-radius:50%; background:var(--accent-grad); color:#fff; font-weight:800; font-size:0.88rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .ml-conf-bar-wrap { flex:1; background:var(--border); border-radius:100px; height:9px; overflow:hidden; }
+        .ml-conf-bar { height:100%; border-radius:100px; transition:width 0.5s; }
+        .ml-conf-bar.mhigh  { background:linear-gradient(90deg,#10b981,#059669); }
+        .ml-conf-bar.mmid   { background:linear-gradient(90deg,#f59e0b,#d97706); }
+        .ml-conf-bar.mlow   { background:linear-gradient(90deg,#3b82f6,#1d4ed8); }
+        .ml-conf-pct { font-size:0.78rem; font-weight:800; min-width:40px; text-align:right; color:var(--text-muted); }
+        .ml-conf-tags { font-size:0.68rem; color:var(--text-muted); font-weight:600; }
+        .ml-wheel-combo { background:var(--surface2); border:1.5px solid rgba(139,92,246,0.3); border-radius:12px; padding:10px 14px; margin-bottom:8px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+        .ml-wheel-combo-rank { font-size:0.72rem; font-weight:800; color:var(--text-muted); min-width:24px; }
+        .ml-wheel-combo-balls { display:flex; gap:6px; flex-wrap:wrap; flex:1; }
+        .ml-wheel-combo-score { font-size:0.75rem; font-weight:700; padding:3px 10px; border-radius:12px; background:rgba(139,92,246,0.12); color:#7c3aed; border:1px solid rgba(139,92,246,0.25); }
+        .ml-insight-chip { display:inline-flex; align-items:center; gap:4px; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:700; background:rgba(139,92,246,0.1); color:#7c3aed; border:1px solid rgba(139,92,246,0.25); margin:3px; }
+        .ml-pattern-detected { border:1.5px solid rgba(16,185,129,0.35); border-radius:12px; padding:12px 14px; background:rgba(16,185,129,0.05); margin-bottom:12px; }
+        .ml-pattern-title { font-size:0.82rem; font-weight:800; color:#059669; margin-bottom:6px; }
+        .ml-heatmap-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(52px,1fr)); gap:5px; margin-top:10px; }
+        .ml-heatmap-cell { border-radius:9px; padding:5px 3px; text-align:center; border:1px solid transparent; transition:transform 0.15s; }
+        .ml-heatmap-cell:hover { transform:scale(1.1); }
+        .ml-hc-num  { font-size:0.82rem; font-weight:800; display:block; }
+        .ml-hc-score { font-size:0.6rem; font-weight:700; opacity:0.85; }
+        .ml-hc-0 { background:rgba(100,116,139,0.1); color:var(--text-muted); border-color:rgba(100,116,139,0.2); }
+        .ml-hc-1 { background:rgba(59,130,246,0.14);  color:#1e40af;  border-color:rgba(59,130,246,0.25); }
+        .ml-hc-2 { background:rgba(16,185,129,0.16);  color:#065f46;  border-color:rgba(16,185,129,0.28); }
+        .ml-hc-3 { background:rgba(245,158,11,0.18);  color:#78350f;  border-color:rgba(245,158,11,0.32); }
+        .ml-hc-4 { background:rgba(239,68,68,0.22);   color:#7f1d1d;  border-color:rgba(239,68,68,0.38); }
+        .ml-empty-state { text-align:center; padding:40px 20px; color:var(--text-muted); }
+        .ml-empty-icon { font-size:2.8rem; margin-bottom:10px; }
+        .ml-section-divider { border:none; border-top:1.5px dashed var(--border); margin:18px 0; }
+        .ml-stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px; margin-bottom:16px; }
+        .ml-stat-card { background:var(--surface2); border:1px solid var(--border); border-radius:13px; padding:12px; text-align:center; }
+        .ml-stat-val { font-size:1.5rem; font-weight:900; color:var(--purple); }
+        .ml-stat-lbl { font-size:0.7rem; color:var(--text-muted); font-weight:700; margin-top:2px; }
+        .ml-select-all-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; align-items:center; }
+        .ml-quick-btn { padding:4px 12px; border-radius:16px; border:1.5px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.18s; }
+        .ml-quick-btn:hover { border-color:var(--purple); color:var(--purple); }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -668,6 +730,7 @@
             <button class="tab-btn active" id="wheel-sub-btn-0" onclick="switchWheelSub(0)">&#127921; Wheel Generator</button>
             <button class="tab-btn" id="wheel-sub-btn-1" onclick="switchWheelSub(1)">&#128270; Match Search</button>
             <button class="tab-btn" id="wheel-sub-btn-2" onclick="switchWheelSub(2)">&#128302; Predictor</button>
+            <button class="tab-btn" id="wheel-sub-btn-3" onclick="switchWheelSub(3)">&#129504; ML Engine</button>
         </div>
 
         <!-- Sub-tab 0: Wheel Generator -->
@@ -944,6 +1007,116 @@
                     <p class="text-muted text-sm mb-14">How many draws have passed since each predicted number last appeared. Longer bars = more overdue.</p>
                     <div id="gap-analysis-list"></div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Sub-tab 3: ML Engine -->
+        <div id="wheel-sub-3" style="display:none;">
+
+            <!-- Configuration Card -->
+            <div class="card">
+                <div class="fw-700 mb-14">&#129504; ML Wheeling Engine — Draw Canvas &amp; Trainer</div>
+                <p class="text-muted text-sm mb-14">Feed the ML engine with previous draws. It will learn the wheeling patterns used by your lottery and predict the most likely next wheel.</p>
+
+                <div class="grid-2" style="margin-bottom:14px;">
+                    <div>
+                        <label class="label">Lottery Format</label>
+                        <select id="ml-wheel-format" onchange="mlBuildDrawCanvas()" style="width:100%;"></select>
+                    </div>
+                    <div>
+                        <label class="label">Pool Size to Predict</label>
+                        <input type="number" id="ml-pool-size" value="12" min="6" max="20" style="width:120px;">
+                    </div>
+                </div>
+
+                <!-- Canvas Mode Tabs -->
+                <div class="ml-tab-row">
+                    <button class="ml-tab-btn ml-active" id="ml-canvas-btn-0" onclick="switchMlCanvas(0)">&#128467;&#65039; Select from History</button>
+                    <button class="ml-tab-btn" id="ml-canvas-btn-1" onclick="switchMlCanvas(1)">&#128203; Paste Draws</button>
+                </div>
+
+                <!-- Canvas 0: Select from history -->
+                <div id="ml-canvas-0">
+                    <div class="ml-select-all-row">
+                        <span class="text-sm fw-700 text-muted" id="ml-history-count">0 draws available</span>
+                        <button class="ml-quick-btn" onclick="mlSelectLastN(10)">Last 10</button>
+                        <button class="ml-quick-btn" onclick="mlSelectLastN(20)">Last 20</button>
+                        <button class="ml-quick-btn" onclick="mlSelectLastN(50)">Last 50</button>
+                        <button class="ml-quick-btn" onclick="mlSelectLastN(0)">All</button>
+                        <button class="ml-quick-btn" onclick="mlSelectNone()">Clear</button>
+                    </div>
+                    <div id="ml-draw-list" class="ml-draw-list">
+                        <p class="text-muted text-sm text-center" style="padding:20px 0;">Select a format to load draw history.</p>
+                    </div>
+                </div>
+
+                <!-- Canvas 1: Paste draws -->
+                <div id="ml-canvas-1" style="display:none;">
+                    <p class="text-muted text-sm mb-8">Paste draw results — one draw per line. Numbers may be space- or comma-separated.</p>
+                    <textarea id="ml-paste-area" rows="9" style="width:100%;font-family:monospace;font-size:0.88rem;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);resize:vertical;" placeholder="e.g.
+7 14 23 31 42 49
+3 11 18 27 36 45
+..."></textarea>
+                    <div id="ml-paste-status" class="wf-status" style="margin-top:6px;"></div>
+                </div>
+
+                <hr class="ml-section-divider">
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="trainWheelML()">&#129504; Train ML Model</button>
+                    <button class="btn btn-secondary" onclick="mlResetAll()">&#8634; Reset</button>
+                </div>
+            </div>
+
+            <!-- Training Status -->
+            <div id="ml-training-status" style="display:none;">
+                <div class="card">
+                    <div id="ml-training-content"></div>
+                </div>
+            </div>
+
+            <!-- ML Insights & Prediction Output -->
+            <div id="ml-results-section" style="display:none;">
+
+                <!-- Overview Stats -->
+                <div class="card">
+                    <div class="fw-700 mb-14">&#128200; Model Overview</div>
+                    <div class="ml-stats-grid" id="ml-overview-stats"></div>
+                    <div id="ml-pattern-insights"></div>
+                </div>
+
+                <!-- Signal Weights -->
+                <div class="card">
+                    <div class="fw-700 mb-14">&#9889; Signal Contributions</div>
+                    <p class="text-muted text-sm mb-14">How much each analysis signal influenced the final prediction scores.</p>
+                    <div id="ml-signal-breakdown"></div>
+                </div>
+
+                <!-- Number Confidence Heatmap -->
+                <div class="card">
+                    <div class="fw-700 mb-14">&#128293; ML Confidence Heatmap</div>
+                    <p class="text-muted text-sm mb-8">Each number's ML confidence score across all six signals. Brighter = higher probability of appearing in the next draw.</p>
+                    <div id="ml-heatmap-grid" class="ml-heatmap-grid"></div>
+                </div>
+
+                <!-- Top Predicted Numbers -->
+                <div class="card">
+                    <div class="fw-700 mb-14">&#127919; Predicted Pool — Confidence Ranking</div>
+                    <div id="ml-conf-list"></div>
+                    <hr class="ml-section-divider">
+                    <div class="btn-row">
+                        <button class="btn btn-primary" onclick="mlUsePoolInWheel()">&#127921; Load into Wheel Generator</button>
+                        <button class="btn btn-secondary" onclick="mlRetrain()">&#128260; Re-train with Same Draws</button>
+                    </div>
+                </div>
+
+                <!-- Recommended Wheel Combinations -->
+                <div class="card">
+                    <div class="fw-700 mb-14">&#127921; Top Predicted Wheel Combinations</div>
+                    <p class="text-muted text-sm mb-14">Combinations assembled from the highest-confidence numbers, ranked by combined ML score.</p>
+                    <div id="ml-top-combos"></div>
+                </div>
+
             </div>
         </div>
     </section>
@@ -2652,7 +2825,7 @@ function buildFormatGrids() {
                 '<div class="jackpot">' + f.jackpot + '</div></div>';
         }).join('');
     });
-    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter','gap-format','gap-delta-format','gap-gen-format','gap-freq-format','digitpattern-format','ic-format'].forEach(function(id) {
+    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter','gap-format','gap-delta-format','gap-gen-format','gap-freq-format','digitpattern-format','ic-format','ml-wheel-format'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
@@ -3011,10 +3184,11 @@ var _wheelState = {
 };
 
 function switchWheelSub(idx) {
-    [0,1,2].forEach(function(i) {
+    [0,1,2,3].forEach(function(i) {
         document.getElementById('wheel-sub-' + i).style.display = i === idx ? 'block' : 'none';
         document.getElementById('wheel-sub-btn-' + i).classList.toggle('active', i === idx);
     });
+    if (idx === 3) mlBuildDrawCanvas();
 }
 
 function buildWheelNumberGrid() {
@@ -3530,7 +3704,558 @@ function renderGapAnalysis(pool, fmtId, drawsScope, scopedDraws) {
     }).join('');
 }
 
-/* ---- Wheel Filter Logic ---- */
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ML WHEELING ENGINE
+   Multi-signal ensemble: frequency · recency · position · co-occur · gap · delta
+   ═══════════════════════════════════════════════════════════════════ */
+
+var _mlState = {
+    draws:       [],   // training draws [{numbers:[…], date:'…'}, …]
+    fmtId:       null,
+    fmt:         null,
+    model:       null, // computed signal scores per number
+    poolSize:    12,
+    canvasMode:  0,    // 0=history, 1=paste
+    selectedIds: {}    // draw id -> true (history mode)
+};
+
+/* ─── Canvas helpers ─────────────────────────────────────────────── */
+function switchMlCanvas(idx) {
+    _mlState.canvasMode = idx;
+    [0,1].forEach(function(i) {
+        document.getElementById('ml-canvas-' + i).style.display = i === idx ? 'block' : 'none';
+        document.getElementById('ml-canvas-btn-' + i).classList.toggle('ml-active', i === idx);
+    });
+}
+
+function mlBuildDrawCanvas() {
+    var fmtEl = document.getElementById('ml-wheel-format');
+    if (!fmtEl) return;
+    var fmtId = fmtEl.value;
+    _mlState.fmtId = fmtId;
+    _mlState.fmt   = getAllFormats().find(function(f){ return f.id === fmtId; });
+    _mlState.selectedIds = {};
+    var draws = (state.recentDraws || []).filter(function(d){ return d.formatId === fmtId; });
+    var listEl = document.getElementById('ml-draw-list');
+    var countEl = document.getElementById('ml-history-count');
+    if (countEl) countEl.textContent = draws.length + ' draw' + (draws.length !== 1 ? 's' : '') + ' available';
+    if (!listEl) return;
+    if (!draws.length) {
+        listEl.innerHTML = '<p class="text-muted text-sm text-center" style="padding:20px 0;">No draws saved for this format. Add draws on the Draws tab or use the Paste mode.</p>';
+        return;
+    }
+    listEl.innerHTML = draws.map(function(d, i) {
+        var balls = (d.numbers || []).map(function(n) {
+            return '<div class="ml-draw-ball">' + n + '</div>';
+        }).join('');
+        var dateStr = d.date ? d.date : ('Draw #' + (i + 1));
+        return '<div class="ml-draw-row" id="mdr-' + i + '" onclick="mlToggleDraw(' + i + ')">' +
+               '<div class="ml-draw-check" id="mdc-' + i + '"></div>' +
+               '<div class="ml-draw-date">' + dateStr + '</div>' +
+               '<div class="ml-draw-balls">' + balls + '</div>' +
+               '</div>';
+    }).join('');
+}
+
+function mlToggleDraw(idx) {
+    var fmtId  = (document.getElementById('ml-wheel-format') || {}).value;
+    var draws  = (state.recentDraws || []).filter(function(d){ return d.formatId === fmtId; });
+    var key    = idx;
+    if (_mlState.selectedIds[key]) {
+        delete _mlState.selectedIds[key];
+    } else {
+        _mlState.selectedIds[key] = true;
+    }
+    var rowEl = document.getElementById('mdr-' + idx);
+    var chkEl = document.getElementById('mdc-' + idx);
+    if (rowEl) rowEl.classList.toggle('ml-selected', !!_mlState.selectedIds[key]);
+    if (chkEl) chkEl.textContent = _mlState.selectedIds[key] ? '✓' : '';
+}
+
+function mlSelectLastN(n) {
+    var fmtId = (document.getElementById('ml-wheel-format') || {}).value;
+    var draws = (state.recentDraws || []).filter(function(d){ return d.formatId === fmtId; });
+    _mlState.selectedIds = {};
+    var count = n === 0 ? draws.length : Math.min(n, draws.length);
+    for (var i = 0; i < count; i++) { _mlState.selectedIds[i] = true; }
+    draws.forEach(function(_, i) {
+        var rowEl = document.getElementById('mdr-' + i);
+        var chkEl = document.getElementById('mdc-' + i);
+        var sel   = !!_mlState.selectedIds[i];
+        if (rowEl) rowEl.classList.toggle('ml-selected', sel);
+        if (chkEl) chkEl.textContent = sel ? '✓' : '';
+    });
+}
+
+function mlSelectNone() {
+    var fmtId = (document.getElementById('ml-wheel-format') || {}).value;
+    var draws = (state.recentDraws || []).filter(function(d){ return d.formatId === fmtId; });
+    _mlState.selectedIds = {};
+    draws.forEach(function(_, i) {
+        var rowEl = document.getElementById('mdr-' + i);
+        var chkEl = document.getElementById('mdc-' + i);
+        if (rowEl) rowEl.classList.remove('ml-selected');
+        if (chkEl) chkEl.textContent = '';
+    });
+}
+
+function mlResetAll() {
+    mlSelectNone();
+    var pasteEl = document.getElementById('ml-paste-area');
+    if (pasteEl) pasteEl.value = '';
+    var statusEl = document.getElementById('ml-paste-status');
+    if (statusEl) statusEl.textContent = '';
+    document.getElementById('ml-training-status').style.display = 'none';
+    document.getElementById('ml-results-section').style.display  = 'none';
+    _mlState.model = null;
+    _mlState.draws = [];
+}
+
+function mlRetrain() { trainWheelML(); }
+
+/* ─── Draw collection ────────────────────────────────────────────── */
+function mlGatherTrainingDraws() {
+    var fmtId   = (document.getElementById('ml-wheel-format') || {}).value;
+    var fmt     = getAllFormats().find(function(f){ return f.id === fmtId; });
+    if (!fmt) return null;
+    var draws   = [];
+    if (_mlState.canvasMode === 0) {
+        // history mode
+        var allDraws = (state.recentDraws || []).filter(function(d){ return d.formatId === fmtId; });
+        Object.keys(_mlState.selectedIds).forEach(function(k) {
+            var d = allDraws[parseInt(k)];
+            if (d && d.numbers && d.numbers.length >= fmt.mainCount) {
+                draws.push({ numbers: d.numbers.slice().sort(function(a,b){ return a-b; }), date: d.date || '' });
+            }
+        });
+    } else {
+        // paste mode
+        var pasteEl = document.getElementById('ml-paste-area');
+        var statusEl = document.getElementById('ml-paste-status');
+        if (!pasteEl) return null;
+        var lines = pasteEl.value.split('\n');
+        var bad = 0;
+        lines.forEach(function(line) {
+            var nums = line.trim().replace(/,/g,' ').split(/\s+/)
+                          .map(function(t){ return parseInt(t, 10); })
+                          .filter(function(n){ return !isNaN(n) && n >= 1 && n <= fmt.mainMax; });
+            if (nums.length >= fmt.mainCount) {
+                draws.push({ numbers: nums.slice(0, fmt.mainCount).sort(function(a,b){ return a-b; }), date: '' });
+            } else if (line.trim()) { bad++; }
+        });
+        if (statusEl) statusEl.textContent = draws.length + ' valid draw' + (draws.length !== 1 ? 's' : '') + ' parsed' + (bad ? ' (' + bad + ' line' + (bad!==1?'s':'') + ' skipped)' : '');
+    }
+    return { draws: draws, fmt: fmt };
+}
+
+/* ─── Core ML Training ───────────────────────────────────────────── */
+function trainWheelML() {
+    var fmtEl    = document.getElementById('ml-wheel-format');
+    var poolEl   = document.getElementById('ml-pool-size');
+    if (!fmtEl) return;
+
+    var result   = mlGatherTrainingDraws();
+    if (!result) { showToast('Select a format first', 'error'); return; }
+    var draws    = result.draws;
+    var fmt      = result.fmt;
+    _mlState.poolSize = Math.max(6, Math.min(20, parseInt((poolEl || {}).value) || 12));
+
+    if (draws.length < 3) {
+        showToast('Please select at least 3 draws to train the model', 'error'); return;
+    }
+
+    _mlState.draws = draws;
+    _mlState.fmt   = fmt;
+    _mlState.fmtId = fmtEl.value;
+
+    // Show progress
+    var statusDiv = document.getElementById('ml-training-status');
+    var statusContent = document.getElementById('ml-training-content');
+    if (statusDiv) statusDiv.style.display = 'block';
+    if (statusContent) statusContent.innerHTML =
+        '<div class="ml-train-progress">' +
+        '<div class="fw-700 mb-8">&#129504; Training ML Model on ' + draws.length + ' draws…</div>' +
+        '<div class="ml-progress-bar-wrap"><div class="ml-progress-bar" id="ml-progress-fill" style="width:0%"></div></div>' +
+        '<div class="text-muted text-sm" id="ml-progress-label">Initialising signals…</div>' +
+        '</div>';
+
+    // Async-style training with setTimeout steps for UI feedback
+    setTimeout(function() { _mlRunTraining(draws, fmt, _mlState.poolSize); }, 80);
+}
+
+function _mlSetProgress(pct, label) {
+    var fill  = document.getElementById('ml-progress-fill');
+    var lbl   = document.getElementById('ml-progress-label');
+    if (fill) fill.style.width = pct + '%';
+    if (lbl)  lbl.textContent  = label;
+}
+
+function _mlRunTraining(draws, fmt, poolSize) {
+    var maxNum = fmt.mainMax;
+    var n      = draws.length;
+
+    _mlSetProgress(10, 'Computing frequency signals…');
+
+    /* 1. RAW FREQUENCY */
+    var freqRaw = {};
+    for (var i = 1; i <= maxNum; i++) freqRaw[i] = 0;
+    draws.forEach(function(d) {
+        d.numbers.forEach(function(num) { freqRaw[num]++; });
+    });
+
+    _mlSetProgress(25, 'Computing recency-weighted frequency…');
+
+    /* 2. RECENCY-WEIGHTED FREQUENCY (exponential decay λ=0.1)
+       state.recentDraws is ordered most-recent-first, so idx=0 is the latest draw */
+    var freqRecent = {};
+    for (var i = 1; i <= maxNum; i++) freqRecent[i] = 0;
+    draws.forEach(function(d, idx) {
+        var weight = Math.exp(-0.1 * idx); // most recent = idx 0
+        d.numbers.forEach(function(num) { freqRecent[num] += weight; });
+    });
+
+    _mlSetProgress(38, 'Analysing positional distribution…');
+
+    /* 3. POSITIONAL FREQUENCY */
+    var posFreq = {}; // posFreq[num][pos] = count
+    for (var i = 1; i <= maxNum; i++) posFreq[i] = {};
+    draws.forEach(function(d) {
+        d.numbers.forEach(function(num, pos) { posFreq[num][pos] = (posFreq[num][pos] || 0) + 1; });
+    });
+    // Score: sum of counts across all positions (normalised by draws)
+    var posScore = {};
+    for (var i = 1; i <= maxNum; i++) {
+        var s = 0;
+        Object.keys(posFreq[i]).forEach(function(pos) { s += posFreq[i][pos]; });
+        posScore[i] = s / n;
+    }
+
+    _mlSetProgress(52, 'Computing co-occurrence pairs…');
+
+    /* 4. CO-OCCURRENCE */
+    var coMatrix = {}; // coMatrix[a][b] = count
+    for (var i = 1; i <= maxNum; i++) coMatrix[i] = {};
+    draws.forEach(function(d) {
+        var nums = d.numbers;
+        for (var a = 0; a < nums.length; a++) {
+            for (var b = a + 1; b < nums.length; b++) {
+                var na = nums[a], nb = nums[b];
+                coMatrix[na][nb] = (coMatrix[na][nb] || 0) + 1;
+                coMatrix[nb][na] = (coMatrix[nb][na] || 0) + 1;
+            }
+        }
+    });
+    // Co-score: for each number, sum of its pair counts weighted by partner's raw freq
+    var coScore = {};
+    for (var i = 1; i <= maxNum; i++) {
+        var s = 0;
+        Object.keys(coMatrix[i]).forEach(function(partner) {
+            s += coMatrix[i][partner] * (freqRaw[parseInt(partner)] || 0);
+        });
+        coScore[i] = s;
+    }
+
+    _mlSetProgress(65, 'Analysing gap / overdue cycles…');
+
+    /* 5. GAP / OVERDUE SCORE */
+    // Expected gap = maxNum / (draws per format count)
+    var expectedGap = maxNum / fmt.mainCount;
+    var gapScore = {};
+    for (var i = 1; i <= maxNum; i++) {
+        var lastSeen = -1;
+        for (var d = 0; d < draws.length; d++) {
+            if (draws[d].numbers.indexOf(i) !== -1) { lastSeen = d; break; }
+        }
+        var gap = lastSeen === -1 ? draws.length : lastSeen;
+        // Score peaks when gap is near expected gap, decays for very new or very old
+        gapScore[i] = Math.exp(-Math.pow((gap - expectedGap) / (expectedGap + 1), 2));
+    }
+
+    _mlSetProgress(78, 'Mining delta / gap sequences…');
+
+    /* 6. DELTA PATTERN PREDICTION */
+    // Extract deltas (differences between consecutive sorted numbers) from each draw
+    var deltaPatterns = draws.map(function(d) {
+        var s = d.numbers.slice().sort(function(a,b){ return a-b; });
+        var deltas = [];
+        for (var i = 1; i < s.length; i++) deltas.push(s[i] - s[i-1]);
+        return { firstNum: s[0], deltas: deltas };
+    });
+    // Find most common first-number and most common delta sequence
+    var firstNumFreq = {}, deltaFreq = {};
+    deltaPatterns.forEach(function(p) {
+        firstNumFreq[p.firstNum] = (firstNumFreq[p.firstNum] || 0) + 1;
+        var key = p.deltas.join(',');
+        deltaFreq[key] = (deltaFreq[key] || 0) + 1;
+    });
+    // Build delta score: project most common patterns and score each number
+    var deltaScore = {};
+    for (var i = 1; i <= maxNum; i++) deltaScore[i] = 0;
+    var topDeltaKeys = Object.keys(deltaFreq).sort(function(a,b){ return deltaFreq[b]-deltaFreq[a]; }).slice(0,5);
+    var topFirstNums = Object.keys(firstNumFreq).sort(function(a,b){ return firstNumFreq[b]-firstNumFreq[a]; }).slice(0,5);
+    topFirstNums.forEach(function(fn, fi) {
+        var weight1 = 1 / (fi + 1);
+        topDeltaKeys.forEach(function(key, ki) {
+            var weight2  = 1 / (ki + 1);
+            var deltas   = key.split(',').map(Number);
+            var numbers  = [parseInt(fn)];
+            deltas.forEach(function(d) { numbers.push(numbers[numbers.length-1] + d); });
+            numbers.forEach(function(num) {
+                if (num >= 1 && num <= maxNum) {
+                    deltaScore[num] += weight1 * weight2 * deltaFreq[key];
+                }
+            });
+        });
+    });
+
+    _mlSetProgress(90, 'Assembling ensemble scores…');
+
+    /* NORMALISE each signal to [0,1] */
+    function normalise(obj) {
+        var vals = Object.values(obj);
+        var max  = Math.max.apply(null, vals) || 1;
+        var out  = {};
+        Object.keys(obj).forEach(function(k) { out[k] = obj[k] / max; });
+        return out;
+    }
+    var nFreq    = normalise(freqRaw);
+    var nRecent  = normalise(freqRecent);
+    var nPos     = normalise(posScore);
+    var nCo      = normalise(coScore);
+    var nGap     = normalise(gapScore);
+    var nDelta   = normalise(deltaScore);
+
+    /* ENSEMBLE WEIGHTS */
+    var W = { freq:0.20, recent:0.22, pos:0.13, co:0.15, gap:0.15, delta:0.15 };
+
+    var ensemble = {};
+    for (var i = 1; i <= maxNum; i++) {
+        ensemble[i] = W.freq   * (nFreq[i]   || 0)
+                    + W.recent * (nRecent[i]  || 0)
+                    + W.pos    * (nPos[i]     || 0)
+                    + W.co     * (nCo[i]      || 0)
+                    + W.gap    * (nGap[i]     || 0)
+                    + W.delta  * (nDelta[i]   || 0);
+    }
+
+    _mlSetProgress(100, 'Model ready!');
+
+    // Store model
+    _mlState.model = {
+        ensemble: ensemble,
+        signals:  { freq: nFreq, recent: nRecent, pos: nPos, co: nCo, gap: nGap, delta: nDelta },
+        weights:  W,
+        freqRaw:  freqRaw,
+        coMatrix: coMatrix,
+        deltaFreq: deltaFreq,
+        firstNumFreq: firstNumFreq,
+        topDeltaKeys: topDeltaKeys,
+        n: n
+    };
+
+    setTimeout(function() { _mlRenderResults(); }, 200);
+}
+
+/* ─── Render ML Results ──────────────────────────────────────────── */
+function _mlRenderResults() {
+    var model    = _mlState.model;
+    var draws    = _mlState.draws;
+    var fmt      = _mlState.fmt;
+    var poolSize = _mlState.poolSize;
+    var maxNum   = fmt.mainMax;
+    var n        = draws.length;
+
+    // Update training status
+    var statusContent = document.getElementById('ml-training-content');
+    if (statusContent) statusContent.innerHTML =
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<span class="ml-model-badge">&#129504; Model Trained</span>' +
+        '<span class="text-muted text-sm">' + n + ' draw' + (n!==1?'s':'') + ' · ' + maxNum + ' numbers · 6 signals</span>' +
+        '</div>';
+
+    // Sort numbers by ensemble score
+    var ranked = [];
+    for (var i = 1; i <= maxNum; i++) {
+        ranked.push({ num: i, score: model.ensemble[i] || 0 });
+    }
+    ranked.sort(function(a,b){ return b.score - a.score; });
+
+    var topPool = ranked.slice(0, poolSize);
+
+    /* ── Overview Stats ── */
+    var overviewEl = document.getElementById('ml-overview-stats');
+    if (overviewEl) {
+        overviewEl.innerHTML =
+            '<div class="ml-stat-card"><div class="ml-stat-val">' + n + '</div><div class="ml-stat-lbl">Training Draws</div></div>' +
+            '<div class="ml-stat-card"><div class="ml-stat-val">' + maxNum + '</div><div class="ml-stat-lbl">Total Numbers</div></div>' +
+            '<div class="ml-stat-card"><div class="ml-stat-val">' + poolSize + '</div><div class="ml-stat-lbl">Pool Size</div></div>' +
+            '<div class="ml-stat-card"><div class="ml-stat-val">6</div><div class="ml-stat-lbl">ML Signals</div></div>' +
+            '<div class="ml-stat-card"><div class="ml-stat-val">' + fmt.mainCount + '</div><div class="ml-stat-lbl">Picks/Draw</div></div>' +
+            '<div class="ml-stat-card"><div class="ml-stat-val">' + Math.round(topPool[0].score * 100) + '%</div><div class="ml-stat-lbl">Top Confidence</div></div>';
+    }
+
+    /* ── Pattern Insights ── */
+    var insightsEl = document.getElementById('ml-pattern-insights');
+    if (insightsEl) {
+        // Detect dominant structure patterns from training draws
+        var oddCounts = draws.map(function(d){ return d.numbers.filter(function(n){ return n%2!==0; }).length; });
+        var avgOdd    = oddCounts.reduce(function(s,v){ return s+v; }, 0) / n;
+        var mid       = Math.floor(maxNum / 2);
+        var highCounts= draws.map(function(d){ return d.numbers.filter(function(num){ return num>mid; }).length; });
+        var avgHigh   = highCounts.reduce(function(s,v){ return s+v; }, 0) / n;
+        var sums      = draws.map(function(d){ return d.numbers.reduce(function(s,v){ return s+v; }, 0); });
+        var avgSum    = sums.reduce(function(s,v){ return s+v; }, 0) / n;
+        var topDeltaStr = _mlState.model.topDeltaKeys[0] ? _mlState.model.topDeltaKeys[0].split(',').join(' → ') : 'N/A';
+
+        insightsEl.innerHTML =
+            '<div class="ml-pattern-detected">' +
+            '<div class="ml-pattern-title">&#128302; Detected Wheeling Patterns</div>' +
+            '<div style="display:flex;flex-wrap:wrap;">' +
+            '<span class="ml-insight-chip">&#9898; Avg Odd ' + avgOdd.toFixed(1) + '/' + fmt.mainCount + '</span>' +
+            '<span class="ml-insight-chip">&#8679; Avg High ' + avgHigh.toFixed(1) + '/' + fmt.mainCount + '</span>' +
+            '<span class="ml-insight-chip">&#931; Avg Sum ' + Math.round(avgSum) + '</span>' +
+            '<span class="ml-insight-chip">&#8594; Top Delta: ' + topDeltaStr + '</span>' +
+            '<span class="ml-insight-chip">&#128270; ' + Object.keys(_mlState.model.deltaFreq).length + ' unique patterns</span>' +
+            '</div>' +
+            '</div>';
+    }
+
+    /* ── Signal Breakdown ── */
+    var signalEl = document.getElementById('ml-signal-breakdown');
+    var W = model.weights;
+    var signals = [
+        { name: '&#128293; Raw Frequency',          weight: W.freq,   key: 'freq'   },
+        { name: '&#9201; Recency-Weighted',         weight: W.recent, key: 'recent' },
+        { name: '&#127919; Positional Pattern',     weight: W.pos,    key: 'pos'    },
+        { name: '&#128279; Co-occurrence Pairs',    weight: W.co,     key: 'co'     },
+        { name: '&#9200; Gap / Overdue Cycle',      weight: W.gap,    key: 'gap'    },
+        { name: '&#8594; Delta Sequence Pattern',   weight: W.delta,  key: 'delta'  }
+    ];
+    if (signalEl) {
+        signalEl.innerHTML = signals.map(function(s) {
+            var pct = Math.round(s.weight * 100);
+            return '<div class="ml-signal-row">' +
+                   '<div class="ml-signal-name">' + s.name + '</div>' +
+                   '<div class="ml-signal-bar-wrap"><div class="ml-signal-bar" style="width:' + pct + '%;"></div></div>' +
+                   '<div class="ml-signal-val">' + pct + '%</div>' +
+                   '</div>';
+        }).join('');
+    }
+
+    /* ── Heatmap ── */
+    var heatmapEl = document.getElementById('ml-heatmap-grid');
+    if (heatmapEl) {
+        var maxScore = ranked[0].score || 1;
+        var allRanked = ranked.slice(); // sorted by score
+        // Sort by number for grid display
+        var byNum = allRanked.slice().sort(function(a,b){ return a.num - b.num; });
+        heatmapEl.innerHTML = byNum.map(function(e) {
+            var ratio = e.score / maxScore;
+            var tier  = ratio > 0.8 ? 4 : ratio > 0.6 ? 3 : ratio > 0.4 ? 2 : ratio > 0.2 ? 1 : 0;
+            var inPool = topPool.some(function(p){ return p.num === e.num; });
+            return '<div class="ml-heatmap-cell ml-hc-' + tier + '" title="Score: ' + (e.score*100).toFixed(1) + '%' + (inPool?' · In predicted pool':'') + '"' +
+                   (inPool ? ' style="box-shadow:0 0 0 2px var(--purple);"' : '') + '>' +
+                   '<span class="ml-hc-num">' + e.num + '</span>' +
+                   '<span class="ml-hc-score">' + Math.round(ratio*100) + '</span>' +
+                   '</div>';
+        }).join('');
+    }
+
+    /* ── Confidence Ranking List ── */
+    var confEl = document.getElementById('ml-conf-list');
+    if (confEl) {
+        var maxScore2 = topPool[0].score || 1;
+        confEl.innerHTML = topPool.map(function(e, i) {
+            var pct    = Math.round((e.score / maxScore2) * 100);
+            var tier   = pct > 75 ? 'mhigh' : pct > 45 ? 'mmid' : 'mlow';
+            var sig    = model.signals;
+            var tags   = [
+                sig.recent[e.num] > 0.7 ? '&#127383; Hot' : '',
+                sig.gap[e.num]    > 0.7 ? '&#9200; Overdue' : '',
+                sig.delta[e.num]  > 0.7 ? '&#8594; Delta' : '',
+                sig.co[e.num]     > 0.7 ? '&#128279; Pair' : ''
+            ].filter(Boolean).join(' ');
+            return '<div class="ml-conf-row">' +
+                   '<div style="font-size:0.75rem;font-weight:800;color:var(--text-muted);min-width:20px;">#' + (i+1) + '</div>' +
+                   '<div class="ml-conf-ball">' + e.num + '</div>' +
+                   '<div style="flex:1;">' +
+                   '<div class="ml-conf-bar-wrap"><div class="ml-conf-bar ' + tier + '" style="width:' + pct + '%;"></div></div>' +
+                   (tags ? '<div class="ml-conf-tags" style="margin-top:3px;">' + tags + '</div>' : '') +
+                   '</div>' +
+                   '<div class="ml-conf-pct">' + pct + '%</div>' +
+                   '</div>';
+        }).join('');
+    }
+
+    /* ── Store predicted pool for Wheel Generator ── */
+    _mlState.predictedPool = topPool.map(function(e){ return e.num; });
+
+    /* ── Top Wheel Combinations ── */
+    _mlRenderTopCombos(topPool, fmt, model);
+
+    document.getElementById('ml-results-section').style.display = 'block';
+}
+
+function _mlRenderTopCombos(topPool, fmt, model) {
+    var combosEl = document.getElementById('ml-top-combos');
+    if (!combosEl) return;
+    var k   = fmt.mainCount;
+    var pool = topPool.slice(0, Math.min(topPool.length, 15)); // limit for performance
+
+    // Generate all C(pool, k) combinations and score them (cap at 5000 for performance)
+    var combos = [];
+    var capped = false;
+    function combine(start, current) {
+        if (current.length === k) {
+            var score = current.reduce(function(s, e){ return s + e.score; }, 0) / k;
+            combos.push({ nums: current.map(function(e){ return e.num; }), score: score });
+            return;
+        }
+        if (start >= pool.length) return;
+        var remaining = pool.length - start;
+        var needed    = k - current.length;
+        if (remaining < needed) return;
+        if (combos.length >= 5000) { capped = true; return; }
+        combine(start + 1, current.concat([pool[start]]));
+        combine(start + 1, current);
+    }
+    combine(0, []);
+
+    combos.sort(function(a,b){ return b.score - a.score; });
+    var topCombos = combos.slice(0, 10);
+    var maxScore  = topCombos[0] ? topCombos[0].score : 1;
+    var capNote   = capped ? '<p class="text-muted text-sm" style="margin-bottom:10px;">&#9888;&#65039; Showing top 10 of first 5,000 combinations evaluated (pool is large — reduce pool size for exhaustive search).</p>' : '';
+
+    combosEl.innerHTML = capNote + topCombos.map(function(c, i) {
+        var pct   = Math.round((c.score / maxScore) * 100);
+        var balls = c.nums.map(function(n) {
+            return '<span class="ball ball-main ball-sm">' + n + '</span>';
+        }).join(' ');
+        return '<div class="ml-wheel-combo">' +
+               '<div class="ml-wheel-combo-rank">#' + (i+1) + '</div>' +
+               '<div class="ml-wheel-combo-balls">' + balls + '</div>' +
+               '<div class="ml-wheel-combo-score">' + pct + '% confidence</div>' +
+               '</div>';
+    }).join('');
+}
+
+/* ─── Use ML pool in wheel generator ─────────────────────────────── */
+function mlUsePoolInWheel() {
+    if (!_mlState.predictedPool || !_mlState.predictedPool.length) {
+        showToast('Train the ML model first', 'error'); return;
+    }
+    var fmtEl = document.getElementById('wheel-format-filter');
+    if (fmtEl && _mlState.fmtId) fmtEl.value = _mlState.fmtId;
+    _wheelState.pool   = _mlState.predictedPool.slice();
+    _wheelState.keyNum = null;
+    buildWheelNumberGrid();
+    switchWheelSub(0);
+    showToast('ML-predicted pool loaded into Wheel Generator', 'success');
+}
+
+
 var _wfOE = 'any';
 var _wfHL = 'any';
 
