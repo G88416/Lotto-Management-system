@@ -701,7 +701,7 @@
         <div class="section-title">&#127967; My Saved Tickets</div>
         <div class="card-grid">
             <div class="stat-card"><div class="stat-icon">&#127967;</div><div><div class="stat-label">Total Tickets</div><div class="stat-value" id="tkt-total">0</div></div></div>
-            <div class="stat-card"><div class="stat-icon">&#128184;</div><div><div class="stat-label">Total Spent</div><div class="stat-value" id="tkt-spent">R0</div></div></div>
+            <div class="stat-card"><div class="stat-icon">&#128184;</div><div><div class="stat-label">Total Spent</div><div class="stat-value" id="tkt-spent">0</div></div></div>
             <div class="stat-card"><div class="stat-icon">&#127942;</div><div><div class="stat-label">Formats Used</div><div class="stat-value" id="tkt-formats">0</div></div></div>
         </div>
         <div class="card">
@@ -3100,8 +3100,9 @@ function renderTickets() {
     else if (sort === 'format') tickets.sort(function(a,b) { return a.formatId.localeCompare(b.formatId); });
     var totalSpent = state.tickets.reduce(function(s,t) { return s+(t.price||0); }, 0);
     var fmtCount   = new Set(state.tickets.map(function(t) { return t.formatId; })).size;
+    var cur = state.budget.currency || 'R';
     document.getElementById('tkt-total').textContent   = state.tickets.length;
-    document.getElementById('tkt-spent').textContent   = 'R' + totalSpent.toFixed(2);
+    document.getElementById('tkt-spent').textContent   = cur + totalSpent.toFixed(2);
     document.getElementById('tkt-formats').textContent = fmtCount;
     var container = document.getElementById('tickets-list');
     if (!tickets.length) { container.innerHTML = '<p class="text-muted text-center mt-14">No tickets found.</p>'; return; }
@@ -13046,7 +13047,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelector('.theme-toggle').textContent = savedTheme === 'dark' ? '\u2600\uFE0F Light' : '\uD83C\uDF19 Dark';
         }
     } catch(e) {}
-    document.getElementById('reverse-input').value = '8 15 22 29 36 44';
+
     setInterval(function() {
         if (document.getElementById('sec-schedule').classList.contains('active')) tickCountdowns();
     }, 1000);
