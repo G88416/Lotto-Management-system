@@ -3907,7 +3907,8 @@ function _mlRunTraining(draws, fmt, poolSize) {
 
     _mlSetProgress(25, 'Computing recency-weighted frequency…');
 
-    /* 2. RECENCY-WEIGHTED FREQUENCY (exponential decay λ=0.1) */
+    /* 2. RECENCY-WEIGHTED FREQUENCY (exponential decay λ=0.1)
+       state.recentDraws is ordered most-recent-first, so idx=0 is the latest draw */
     var freqRecent = {};
     for (var i = 1; i <= maxNum; i++) freqRecent[i] = 0;
     draws.forEach(function(d, idx) {
@@ -4203,8 +4204,9 @@ function _mlRenderTopCombos(topPool, fmt, model) {
     var k   = fmt.mainCount;
     var pool = topPool.slice(0, Math.min(topPool.length, 15)); // limit for performance
 
-    // Generate all C(pool, k) combinations and score them
+    // Generate all C(pool, k) combinations and score them (cap at 5000 for performance)
     var combos = [];
+    var capped = false;
     function combine(start, current) {
         if (current.length === k) {
             var score = current.reduce(function(s, e){ return s + e.score; }, 0) / k;
@@ -4215,7 +4217,7 @@ function _mlRenderTopCombos(topPool, fmt, model) {
         var remaining = pool.length - start;
         var needed    = k - current.length;
         if (remaining < needed) return;
-        if (combos.length > 5000) return; // safety cap
+        if (combos.length >= 5000) { capped = true; return; }
         combine(start + 1, current.concat([pool[start]]));
         combine(start + 1, current);
     }
@@ -4224,8 +4226,9 @@ function _mlRenderTopCombos(topPool, fmt, model) {
     combos.sort(function(a,b){ return b.score - a.score; });
     var topCombos = combos.slice(0, 10);
     var maxScore  = topCombos[0] ? topCombos[0].score : 1;
+    var capNote   = capped ? '<p class="text-muted text-sm" style="margin-bottom:10px;">&#9888;&#65039; Showing top 10 of first 5,000 combinations evaluated (pool is large — reduce pool size for exhaustive search).</p>' : '';
 
-    combosEl.innerHTML = topCombos.map(function(c, i) {
+    combosEl.innerHTML = capNote + topCombos.map(function(c, i) {
         var pct   = Math.round((c.score / maxScore) * 100);
         var balls = c.nums.map(function(n) {
             return '<span class="ball ball-main ball-sm">' + n + '</span>';
