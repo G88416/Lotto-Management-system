@@ -14477,8 +14477,10 @@ function runIntegrityCheck() {
         return (d.numbers || []).filter(function(x) { return x % 2 === 0; }).length;
     });
     var meanEven  = evenCounts.reduce(function(s, x) { return s + x; }, 0) / n;
-    var stdEven   = Math.sqrt(_hyperVar(N, k));
-    var z_even    = stdEven > 0 ? Math.abs(meanEven - k / 2) / (stdEven / Math.sqrt(n)) : 0;
+    /* singleDrawStdEven = theoretical std dev of even count in one draw (hypergeometric) */
+    var singleDrawStdEven = Math.sqrt(_hyperVar(N, k));
+    /* Standard error of the mean across n draws = singleDrawStdEven / sqrt(n) */
+    var z_even    = singleDrawStdEven > 0 ? Math.abs(meanEven - k / 2) / (singleDrawStdEven / Math.sqrt(n)) : 0;
     var p_even    = 2 * _normSf(z_even);   /* two-tailed */
     var s_even    = _testScore(p_even);
 
@@ -14493,7 +14495,10 @@ function runIntegrityCheck() {
     var s_sum    = _testScore(p_sum);
     var sumStd   = Math.sqrt(sums.reduce(function(s, x) { return s + Math.pow(x - meanSum, 2); }, 0) / n);
 
-    /* ══ TEST 4: Runs Test (serial independence) ══ */
+    /* ══ TEST 4: Runs Test (serial independence) ══
+       Wald-Wolfowitz runs test. n1 = items above midpoint, n2 = items below.
+       Variance formula: (2*n1*n2*(2*n1*n2 - n1 - n2)) / ((n1+n2)^2 * (n1+n2-1))
+       Note: total = n1+n2, so (2*n1*n2 - total) = (2*n1*n2 - n1 - n2). */
     var n1 = allNums.filter(function(x) { return x > N / 2; }).length;
     var n2 = total - n1;
     var runs = 1;
@@ -14501,7 +14506,9 @@ function runIntegrityCheck() {
         if ((allNums[ri] > N / 2) !== (allNums[ri - 1] > N / 2)) runs++;
     }
     var expRuns  = (2 * n1 * n2) / total + 1;
-    var varRuns  = (2 * n1 * n2 * (2 * n1 * n2 - total)) / (total * total * (total - 1));
+    var varRuns  = total > 1 && n1 > 0 && n2 > 0
+        ? (2 * n1 * n2 * (2 * n1 * n2 - n1 - n2)) / (total * total * (total - 1))
+        : 0;
     var z_runs   = varRuns > 0 ? Math.abs(runs - expRuns) / Math.sqrt(varRuns) : 0;
     var p_runs   = 2 * _normSf(z_runs);
     var s_runs   = _testScore(p_runs);
@@ -14524,10 +14531,9 @@ function runIntegrityCheck() {
     var extremeGap    = Math.round(expMaxGap * 3);   /* flag if gap > 3× expected */
     var overdueNums   = gapArr.filter(function(g) { return g.gap >= extremeGap; });
     var maxGap        = gapArr.reduce(function(mx, g) { return g.gap > mx ? g.gap : mx; }, 0);
-    /* Score: extreme overdue numbers reduce score */
+    /* Heuristic score: each number with an extreme gap reduces score proportionally */
     var gapPenalty    = overdueNums.length / N;
     var s_gap         = Math.max(0, Math.round(100 - gapPenalty * 500));
-    var p_gap         = s_gap < 70 ? (100 - s_gap) / 1000 : 0.5;   /* synthetic p-value for display */
 
     /* ══ TEST 6: Pair Co-occurrence ══ */
     var pairFreq = {};
@@ -14554,9 +14560,8 @@ function runIntegrityCheck() {
     }).map(function(k2) { return { pair: k2, count: pairFreq[k2] }; })
         .sort(function(a, b) { return b.count - a.count; }).slice(0, 20);
     var pairBias   = hotPairs.length;
-    /* Score: penalise for hot pairs */
+    /* Heuristic score: penalise for hot pairs (each ≥2.5σ pair reduces score) */
     var s_pair = Math.max(0, Math.round(100 - pairBias * 5));
-    var p_pair = s_pair < 70 ? (100 - s_pair) / 1000 : 0.5;
 
     /* ══ TEST 7: Duplicate / Near-Duplicate Draws ══ */
     var seenKeys   = {};
@@ -14567,7 +14572,8 @@ function runIntegrityCheck() {
         if (seenKeys[key]) { dupCount++; }
         seenKeys[key] = true;
     });
-    /* Near-duplicates: draws sharing ≥ (k-1) numbers */
+    /* Near-duplicates: draws sharing ≥ (k-1) numbers. Capped at 200 draws to keep
+       this O(n²) comparison within ~20 000 iterations and avoid UI blocking. */
     for (var di2 = 0; di2 < Math.min(draws.length, 200); di2++) {
         var setA = {};
         (draws[di2].numbers || []).forEach(function(x) { setA[x] = true; });
@@ -14576,9 +14582,8 @@ function runIntegrityCheck() {
             if (shared >= k - 1 && shared < k) nearDupCount++;
         }
     }
-    /* Expected near-duplicates by hypergeometric: very small for most formats */
+    /* Heuristic score: duplicates are statistically near-impossible; penalise heavily */
     var s_dup = Math.max(0, 100 - dupCount * 20 - nearDupCount * 3);
-    var p_dup = s_dup < 70 ? (100 - s_dup) / 1000 : 0.5;
 
     /* ══ Composite Randomness Score ══ */
     /* Weighted average of all test scores */
@@ -14601,14 +14606,14 @@ function runIntegrityCheck() {
     }
 
     /* ══ Render ══ */
-    _renderIntegrityOverview(fmt, draws, n, composite, scores, weights, p_freq, p_even, p_sum, p_runs, p_gap, p_pair, p_dup,
+    _renderIntegrityOverview(fmt, draws, n, composite, scores, weights, p_freq, p_even, p_sum, p_runs,
         meanSum, expSum, stdSum, sumStd, meanEven, k, z_runs, runs, expRuns, overdueNums, expMaxGap, extremeGap, pairBias, dupCount, nearDupCount);
     _renderIntegrityFrequency(fmt, draws, n, N, freq, total, expected1, chi2_freq, p_freq, s_freq, expMaxGap, gapArr);
     _renderIntegritySequential(fmt, draws, n, N, k, sums, expSum, sumStd, meanSum, p_sum, s_sum,
-        evenCounts, meanEven, stdEven, z_even, p_even, s_even,
+        evenCounts, meanEven, singleDrawStdEven, z_even, p_even, s_even,
         runs, expRuns, z_runs, p_runs, s_runs,
         dupCount, nearDupCount, s_dup);
-    _renderIntegrityTemporal(fmt, draws, clusterData, expSum, expMaxGap * k);
+    _renderIntegrityTemporal(fmt, draws, clusterData, expSum);
     _renderIntegrityHeatmap(fmt, N, freq, total, expected1, pairFreq, hotPairs, expPairFreq, pairMean, pairStd);
 
     document.getElementById('integ-sub-tabs').style.display = 'flex';
@@ -14618,7 +14623,7 @@ function runIntegrityCheck() {
 
 /* ── Overview & Score ─────────────────────────────────────────────── */
 function _renderIntegrityOverview(fmt, draws, n, composite, scores, weights,
-    p_freq, p_even, p_sum, p_runs, p_gap, p_pair, p_dup,
+    p_freq, p_even, p_sum, p_runs,
     meanSum, expSum, stdSum, sumStd, meanEven, k, z_runs, runs, expRuns,
     overdueNums, expMaxGap, extremeGap, pairBias, dupCount, nearDupCount) {
 
@@ -14646,26 +14651,26 @@ function _renderIntegrityOverview(fmt, draws, n, composite, scores, weights,
         text:'<strong>Extreme Gap / Overdue (' + overdueNums.length + ' number' + (overdueNums.length > 1 ? 's' : '') + '):</strong> ' +
             overdueNums.slice(0, 5).map(function(g) { return g.num + ' (' + g.gap + 'd)'; }).join(', ') +
             (overdueNums.length > 5 ? '&hellip;' : '') +
-            ' — absent for ≥' + extremeGap + ' draws (3× expected max gap of ' + expMaxGap + ').' });
+            ' — absent for ≥' + extremeGap + ' draws (3× expected max gap of ' + expMaxGap + '). [Heuristic]' });
 
-    if (pairBias >= 3)  flags.push({ level:'warn', icon:'&#128101;', text:'<strong>Pair Co-occurrence Bias:</strong> ' + pairBias + ' number pair' + (pairBias > 1 ? 's appear' : ' appears') + ' disproportionately often (≥2.5σ above mean). Investigate for mechanical favouritism.' });
+    if (pairBias >= 3)  flags.push({ level:'warn', icon:'&#128101;', text:'<strong>Pair Co-occurrence Bias:</strong> ' + pairBias + ' number pair' + (pairBias > 1 ? 's appear' : ' appears') + ' disproportionately often (≥2.5σ above mean). Investigate for mechanical favouritism. [Heuristic]' });
 
     if (dupCount > 0)   flags.push({ level:'alert', icon:'&#129315;', text:'<strong>Duplicate Draws Detected:</strong> ' + dupCount + ' exact duplicate draw result' + (dupCount > 1 ? 's' : '') + ' found. This is statistically near-impossible in a fair lottery.' });
-    if (nearDupCount > 5) flags.push({ level:'warn', icon:'&#128203;', text:'<strong>Near-Duplicate Draws:</strong> ' + nearDupCount + ' pairs of draws share ≥' + (k - 1) + ' of ' + k + ' numbers. Higher than expected by chance.' });
+    if (nearDupCount > 5) flags.push({ level:'warn', icon:'&#128203;', text:'<strong>Near-Duplicate Draws:</strong> ' + nearDupCount + ' pairs of draws share ≥' + (k - 1) + ' of ' + k + ' numbers. Higher than expected by chance. [Heuristic]' });
 
-    if (flags.length === 0) flags.push({ level:'ok', icon:'&#9989;', text:'<strong>No significant anomalies detected</strong> across all 7 tests at p&lt;0.05 significance level. The draw history appears statistically consistent with fair random sampling.' });
+    if (flags.length === 0) flags.push({ level:'ok', icon:'&#9989;', text:'<strong>No significant anomalies detected</strong> across all 7 tests. The draw history appears statistically consistent with fair random sampling.' });
 
     if (n < 30) flags.push({ level:'warn', icon:'&#9888;&#65039;', text:'<strong>Small Sample Warning:</strong> Only ' + n + ' draws analysed. Statistical tests require 100+ draws for reliable conclusions. Results may show many false positives.' });
 
     var testNames = ['Chi-Sq Freq', 'Even/Odd', 'Sum Dist', 'Runs Test', 'Gap Extremes', 'Pair Bias', 'Duplicates'];
-    var testPs    = [p_freq, p_even, p_sum, p_runs, p_gap, p_pair, p_dup];
+    var testTypes = ['p-value', 'p-value', 'p-value', 'p-value', 'Heuristic', 'Heuristic', 'Heuristic'];
 
     var testRows = testNames.map(function(name, i) {
         var sc = scores[i];
         var lv = _levelFromScore(sc);
         var wt = Math.round(weights[i] * 100);
         return '<div class="integ-test-row">' +
-            '<span class="integ-test-name">' + name + ' <span class="text-muted" style="font-weight:400;font-size:0.75rem;">(w:' + wt + '%)</span></span>' +
+            '<span class="integ-test-name">' + name + ' <span class="text-muted" style="font-weight:400;font-size:0.72rem;">(w:' + wt + '%, ' + testTypes[i] + ')</span></span>' +
             '<div class="integ-test-bar-wrap"><div class="integ-test-bar" style="width:' + sc + '%;background:' + _barColor(sc) + ';"></div></div>' +
             '<span class="integ-test-val">' + sc + '/100</span>' +
             _badge(lv) + '</div>';
@@ -14738,7 +14743,12 @@ function _renderIntegrityFrequency(fmt, draws, n, N, freq, total, expected1, chi
         _prngStatBox('p-value', p_freq < 0.001 ? '&lt;0.001' : p_freq.toFixed(4)) +
         _prngStatBox('Score', s_freq + '/100') +
         _prngStatBox('Verdict', p_freq >= 0.05 ? '&#10003; Uniform' : p_freq >= 0.01 ? '&#9888; Mild Bias' : '&#9888; Significant Bias') +
-        _prngStatBox('Critical &#967;&#178; (p=0.05)', (N - 1 + 2 * Math.sqrt(2 * (N - 1))).toFixed(1)) +
+        /* Chi-square critical value at df=N-1, p=0.05 using the Fisher approximation:
+           χ²_crit ≈ df * (1 - 2/(9*df) + 1.645 * sqrt(2/(9*df)))^3 (Wilson-Hilferty) */
+        _prngStatBox('Critical &#967;&#178; (p=0.05)', (function(df) {
+            var p9 = 2 / (9 * df);
+            return (df * Math.pow(1 - p9 + 1.645 * Math.sqrt(p9), 3)).toFixed(1);
+        })(N - 1)) +
         '</div>' +
         expectedLine +
         '<div style="max-height:360px;overflow-y:auto;">' + freqBars + '</div>' +
@@ -14763,7 +14773,7 @@ function _renderIntegrityFrequency(fmt, draws, n, N, freq, total, expected1, chi
 
 /* ── Sequential Tests ─────────────────────────────────────────────── */
 function _renderIntegritySequential(fmt, draws, n, N, k, sums, expSum, sumStd, meanSum, p_sum, s_sum,
-    evenCounts, meanEven, stdEven, z_even, p_even, s_even,
+    evenCounts, meanEven, singleDrawStdEven, z_even, p_even, s_even,
     runs, expRuns, z_runs, p_runs, s_runs,
     dupCount, nearDupCount, s_dup) {
     var out = document.getElementById('integ-sub-2');
@@ -14811,7 +14821,7 @@ function _renderIntegritySequential(fmt, draws, n, N, k, sums, expSum, sumStd, m
         _prngStatBox('Expected Mean', expSum.toFixed(1)) +
         _prngStatBox('Observed Mean', meanSum.toFixed(1)) +
         _prngStatBox('Std Dev', sumStd.toFixed(1)) +
-        _prngStatBox('Z-Score', Math.abs(meanSum - expSum).toFixed(2) + '&#963;') +
+        _prngStatBox('Z-Score', z_sum.toFixed(2) + '&#963;') +
         _prngStatBox('p-value', p_sum < 0.001 ? '&lt;0.001' : p_sum.toFixed(4)) +
         _prngStatBox('Score', s_sum + '/100') +
         '</div>' +
@@ -14824,7 +14834,7 @@ function _renderIntegritySequential(fmt, draws, n, N, k, sums, expSum, sumStd, m
         '<div class="grid-3" style="gap:8px;margin-bottom:12px;">' +
         _prngStatBox('Expected Even', (k/2).toFixed(1)) +
         _prngStatBox('Observed Mean', meanEven.toFixed(2)) +
-        _prngStatBox('Std Dev', stdEven.toFixed(2)) +
+        _prngStatBox('Std Dev (single draw)', singleDrawStdEven.toFixed(2)) +
         _prngStatBox('Z-Score', z_even.toFixed(2)) +
         _prngStatBox('p-value', p_even < 0.001 ? '&lt;0.001' : p_even.toFixed(4)) +
         _prngStatBox('Score', s_even + '/100') +
@@ -14859,7 +14869,7 @@ function _renderIntegritySequential(fmt, draws, n, N, k, sums, expSum, sumStd, m
 }
 
 /* ── Temporal / Cluster Analysis ─────────────────────────────────── */
-function _renderIntegrityTemporal(fmt, draws, clusterData, expSum, expEvenProduct) {
+function _renderIntegrityTemporal(fmt, draws, clusterData, expSum) {
     var out = document.getElementById('integ-sub-3');
     if (!out) return;
 
@@ -14916,7 +14926,16 @@ function _renderIntegrityTemporal(fmt, draws, clusterData, expSum, expEvenProduc
         if (lc >= Math.ceil(k * 0.7)) { curLowRun++; maxLowRun = Math.max(maxLowRun, curLowRun); }
         else curLowRun = 0;
     });
-    var expMaxRun = Math.ceil(Math.log(draws.length) / Math.log(1 / 0.3));  /* geometric run expectation */
+    /* Probability a single draw is "low-heavy" (≥70% low): approximate via normal approx
+       to hypergeometric. Mean low count = k*half/N, std = sqrt(k*(half/N)*(1-half/N)).
+       P(X >= ceil(0.7k)) approximated by normal upper tail. */
+    var pLowMean = k * half / N;
+    var pLowStd  = Math.sqrt(k * (half / N) * (1 - half / N));
+    var pLowThresh = Math.ceil(k * 0.7);
+    var pLow = pLowStd > 0 ? _normSf((pLowThresh - 0.5 - pLowMean) / pLowStd) : 0;
+    pLow = Math.max(pLow, 0.001);  /* floor to avoid log(0) */
+    /* Expected max run of geometric-distributed events: E[max] ≈ -log(draws.length) / log(1-pLow) */
+    var expMaxRun = Math.ceil(-Math.log(draws.length) / Math.log(1 - pLow));
 
     var html =
         '<div class="card">' +
