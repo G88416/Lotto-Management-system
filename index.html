@@ -14381,7 +14381,9 @@ function clearIntegrityCheck() {
 function _chiSqPValue(chi2, df) {
     if (df <= 0) return 1;
     if (df < 3) {
-        /* Conservative fallback: use chi2/df ratio as crude indicator */
+        /* Conservative fallback for very small pools (df < 3).
+           Thresholds: chi2 > 5×df → likely significant (p≈0.001),
+                       chi2 > 3×df → borderline (p≈0.05), else pass (p≈0.5). */
         return chi2 > df * 5 ? 0.001 : chi2 > df * 3 ? 0.05 : 0.5;
     }
     /* Wilson-Hilferty transform: (chi2/df)^(1/3) ~ N(1 - 2/(9df), 2/(9df)) */
@@ -14934,23 +14936,24 @@ function _renderIntegrityTemporal(fmt, draws, clusterData, expSum) {
     }).join('');
 
     /* Low/High cluster detection: count runs of predominantly low-number draws.
-       Renamed to kTemporal/NTemporal to avoid shadowing module-level k/N. */
-    var kTemporal = fmt.mainCount, NTemporal = fmt.mainMax;
-    var half = Math.floor(NTemporal / 2);
+       pickCount = fmt.mainCount, poolSize = fmt.mainMax; renamed to avoid
+       shadowing the k/N variables used in the parent runIntegrityCheck scope. */
+    var pickCount = fmt.mainCount, poolSize = fmt.mainMax;
+    var half = Math.floor(poolSize / 2);
     var drawLow = draws.map(function(d) {
         return (d.numbers || []).filter(function(x) { return x <= half; }).length;
     });
     var maxLowRun = 0, curLowRun = 0;
     drawLow.forEach(function(lc) {
-        if (lc >= Math.ceil(kTemporal * 0.7)) { curLowRun++; maxLowRun = Math.max(maxLowRun, curLowRun); }
+        if (lc >= Math.ceil(pickCount * 0.7)) { curLowRun++; maxLowRun = Math.max(maxLowRun, curLowRun); }
         else curLowRun = 0;
     });
     /* Probability a single draw is "low-heavy" (≥70% low): approximate via normal approx
-       to hypergeometric. Mean low count = kTemporal*half/NTemporal.
+       to hypergeometric. Mean low count = pickCount*half/poolSize.
        P(X >= ceil(0.7k)) approximated by normal upper tail. */
-    var pLowMean = kTemporal * half / NTemporal;
-    var pLowStd  = Math.sqrt(kTemporal * (half / NTemporal) * (1 - half / NTemporal));
-    var pLowThresh = Math.ceil(kTemporal * 0.7);
+    var pLowMean = pickCount * half / poolSize;
+    var pLowStd  = Math.sqrt(pickCount * (half / poolSize) * (1 - half / poolSize));
+    var pLowThresh = Math.ceil(pickCount * 0.7);
     var pLow = pLowStd > 0 ? _normSf((pLowThresh - 0.5 - pLowMean) / pLowStd) : 0;
     pLow = Math.max(pLow, 0.001);  /* floor to avoid log(0) */
     /* Expected max run of geometric-distributed events: E[max] ≈ -log(draws.length) / log(1-pLow) */
@@ -14997,15 +15000,18 @@ function _renderIntegrityHeatmap(fmt, N, freq, total, expected1, pairFreq, hotPa
     var maxFreq = Math.max.apply(null, Object.values ? Object.values(freq) : Object.keys(freq).map(function(k2) { return freq[k2]; }));
     var minFreq = Math.min.apply(null, Object.values ? Object.values(freq) : Object.keys(freq).map(function(k2) { return freq[k2]; }));
 
-    /* Heatmap cells */
+    /* Heatmap cells: cold (blue) → warm (red) gradient scale
+       R: 30 (cold) → 250 (hot), G: peaks at mid-range (~220), B: 240 (cold) → 20 (hot) */
+    var HM_R_MIN = 30, HM_R_RANGE = 220;
+    var HM_G_BASE = 40, HM_G_RANGE = 180, HM_G_CURVE = 1.5;
+    var HM_B_MIN = 20, HM_B_RANGE = 220;
     var cells = '';
     for (var nn = 1; nn <= N; nn++) {
         var cnt  = freq[nn] || 0;
         var norm = maxFreq > minFreq ? (cnt - minFreq) / (maxFreq - minFreq) : 0.5;
-        /* Colour: cold (blue) → warm (red) scale */
-        var r    = Math.round(norm * 220 + 30);
-        var g    = Math.round((1 - Math.abs(norm - 0.5) * 1.5) * 180 + 40);
-        var b    = Math.round((1 - norm) * 220 + 20);
+        var r    = Math.round(norm * HM_R_RANGE + HM_R_MIN);
+        var g    = Math.round((1 - Math.abs(norm - 0.5) * HM_G_CURVE) * HM_G_RANGE + HM_G_BASE);
+        var b    = Math.round((1 - norm) * HM_B_RANGE + HM_B_MIN);
         var bg   = 'rgb(' + r + ',' + g + ',' + b + ')';
         var textCol = norm > 0.5 ? '#fff' : '#1e293b';
         var devPct  = expected1 > 0 ? ((cnt - expected1) / expected1 * 100) : 0;
