@@ -14343,6 +14343,9 @@ function _prngSamplePick(ranked, count, max, targetSum, tolerance, seed) {
    INTEGRITY CHECK MODULE
    ═══════════════════════════════════════════════════════════════════ */
 
+/* Threshold: pairs with z-score above this are considered "hot" */
+var INTEG_HOT_PAIR_SIGMA = 2.5;
+
 function initIntegrityTab() {
     var sel = document.getElementById('integrity-format');
     if (!sel) return;
@@ -14373,9 +14376,14 @@ function clearIntegrityCheck() {
 }
 
 /* Chi-square p-value approximation (df = bins-1).
-   Uses Wilson-Hilferty normal approximation: valid for df >= 3. */
+   Uses Wilson-Hilferty normal approximation: valid for df >= 3.
+   For df < 3 (very small lottery pools), falls back to a conservative bound. */
 function _chiSqPValue(chi2, df) {
     if (df <= 0) return 1;
+    if (df < 3) {
+        /* Conservative fallback: use chi2/df ratio as crude indicator */
+        return chi2 > df * 5 ? 0.001 : chi2 > df * 3 ? 0.05 : 0.5;
+    }
     /* Wilson-Hilferty transform: (chi2/df)^(1/3) ~ N(1 - 2/(9df), 2/(9df)) */
     var p = 2 / (9 * df);
     var z = (Math.pow(chi2 / df, 1 / 3) - (1 - p)) / Math.sqrt(p);
@@ -14557,7 +14565,7 @@ function runIntegrityCheck() {
         ? Math.sqrt(pairVals.reduce(function(s, x) { return s + Math.pow(x - pairMean, 2); }, 0) / pairVals.length)
         : 1;
     var hotPairs   = Object.keys(pairFreq).filter(function(k2) {
-        return pairFreq[k2] >= pairMean + 2.5 * Math.max(pairStd, 0.1);
+        return pairFreq[k2] >= pairMean + INTEG_HOT_PAIR_SIGMA * Math.max(pairStd, 0.1);
     }).map(function(k2) { return { pair: k2, count: pairFreq[k2] }; })
         .sort(function(a, b) { return b.count - a.count; }).slice(0, 20);
     var pairBias   = hotPairs.length;
@@ -14587,7 +14595,14 @@ function runIntegrityCheck() {
     var s_dup = Math.max(0, 100 - dupCount * 20 - nearDupCount * 3);
 
     /* ══ Composite Randomness Score ══ */
-    /* Weighted average of all test scores */
+    /* Test weights rationale:
+       - Chi-Sq Freq (0.22): highest weight — directly measures ball/RNG uniformity, the primary concern
+       - Runs Test   (0.18): second highest — serial dependence is a key indicator of PRNG failure
+       - Sum Dist    (0.16): good general bias detector spanning all numbers
+       - Even/Odd    (0.12): structural balance check; catches range-biased RNG issues
+       - Gap Extremes(0.12): heuristic but catches systematic avoidance of specific numbers
+       - Pair Bias   (0.10): heuristic; useful but large sample needed for reliability
+       - Duplicates  (0.10): heuristic; near-impossible in fair draws, so rare events weigh in */
     var weights = [0.22, 0.12, 0.16, 0.18, 0.12, 0.10, 0.10];
     var scores  = [s_freq, s_even, s_sum, s_runs, s_gap, s_pair, s_dup];
     var totalW  = weights.reduce(function(s, w) { return s + w; }, 0);
@@ -14610,10 +14625,10 @@ function runIntegrityCheck() {
     _renderIntegrityOverview(fmt, draws, n, composite, scores, weights, pFreq, pEven, pSum, pRuns,
         meanSum, expSum, expectedSumStd, observedSumStd, meanEven, k, zRuns, runs, expRuns, overdueNums, expMaxGap, extremeGap, pairBias, dupCount, nearDupCount);
     _renderIntegrityFrequency(fmt, draws, n, N, freq, total, expected1, chi2Freq, pFreq, s_freq, expMaxGap, gapArr);
-    _renderIntegritySequential(fmt, draws, n, N, k, sums, expSum, expectedSumStd, observedSumStd, meanSum, pSum, s_sum,
+    _renderIntegritySequential(fmt, draws, n, N, k, sums, expSum, expectedSumStd, observedSumStd, zSum, meanSum, pSum, s_sum,
         evenCounts, meanEven, evenStd, zEven, pEven, s_even,
         runs, expRuns, zRuns, pRuns, s_runs,
-        dupCount, nearDupCount, s_dup);
+        dupCount, nearDupCount, s_dup, n);
     _renderIntegrityTemporal(fmt, draws, clusterData, expSum);
     _renderIntegrityHeatmap(fmt, N, freq, total, expected1, pairFreq, hotPairs, expPairFreq, pairMean, pairStd);
 
@@ -14773,10 +14788,10 @@ function _renderIntegrityFrequency(fmt, draws, n, N, freq, total, expected1, chi
 }
 
 /* ── Sequential Tests ─────────────────────────────────────────────── */
-function _renderIntegritySequential(fmt, draws, n, N, k, sums, expSum, expectedSumStd, observedSumStd, meanSum, pSum, s_sum,
+function _renderIntegritySequential(fmt, draws, n, N, k, sums, expSum, expectedSumStd, observedSumStd, zSum, meanSum, pSum, s_sum,
     evenCounts, meanEven, evenStd, zEven, pEven, s_even,
     runs, expRuns, zRuns, pRuns, s_runs,
-    dupCount, nearDupCount, s_dup) {
+    dupCount, nearDupCount, s_dup, totalDrawCount) {
     var out = document.getElementById('integ-sub-2');
     if (!out) return;
 
@@ -14859,10 +14874,12 @@ function _renderIntegritySequential(fmt, draws, n, N, k, sums, expSum, expectedS
 
         '<div class="card">' +
         '<div class="pattern-section-title">&#129315; Duplicate Draw Detection</div>' +
-        '<div class="algo-info" style="margin-bottom:8px;">Exact duplicate draws are near-statistically impossible in a fair lottery. Near-duplicates (sharing ≥' + (k-1) + ' of ' + k + ' numbers) are also flagged.</div>' +
+        '<div class="algo-info" style="margin-bottom:8px;">Exact duplicate draws are near-statistically impossible in a fair lottery. Near-duplicates (sharing ≥' + (k-1) + ' of ' + k + ' numbers) are also flagged.' +
+        (totalDrawCount > 200 ? ' <strong>Note:</strong> Near-duplicate scan is limited to the most recent 200 draws (of ' + totalDrawCount + ' total).' : '') +
+        '</div>' +
         '<div class="grid-3" style="gap:8px;">' +
         _prngStatBox('Exact Duplicates', dupCount) +
-        _prngStatBox('Near-Duplicates', nearDupCount) +
+        _prngStatBox('Near-Duplicates', nearDupCount + (totalDrawCount > 200 ? '*' : '')) +
         _prngStatBox('Score', s_dup + '/100') +
         '</div></div>';
 
@@ -14916,23 +14933,24 @@ function _renderIntegrityTemporal(fmt, draws, clusterData, expSum) {
             '</tr>';
     }).join('');
 
-    /* Low/High cluster detection: count runs of predominantly low-number draws */
-    var k = fmt.mainCount, N = fmt.mainMax;
-    var half = Math.floor(N / 2);
+    /* Low/High cluster detection: count runs of predominantly low-number draws.
+       Renamed to kTemporal/NTemporal to avoid shadowing module-level k/N. */
+    var kTemporal = fmt.mainCount, NTemporal = fmt.mainMax;
+    var half = Math.floor(NTemporal / 2);
     var drawLow = draws.map(function(d) {
         return (d.numbers || []).filter(function(x) { return x <= half; }).length;
     });
     var maxLowRun = 0, curLowRun = 0;
     drawLow.forEach(function(lc) {
-        if (lc >= Math.ceil(k * 0.7)) { curLowRun++; maxLowRun = Math.max(maxLowRun, curLowRun); }
+        if (lc >= Math.ceil(kTemporal * 0.7)) { curLowRun++; maxLowRun = Math.max(maxLowRun, curLowRun); }
         else curLowRun = 0;
     });
     /* Probability a single draw is "low-heavy" (≥70% low): approximate via normal approx
-       to hypergeometric. Mean low count = k*half/N, std = sqrt(k*(half/N)*(1-half/N)).
+       to hypergeometric. Mean low count = kTemporal*half/NTemporal.
        P(X >= ceil(0.7k)) approximated by normal upper tail. */
-    var pLowMean = k * half / N;
-    var pLowStd  = Math.sqrt(k * (half / N) * (1 - half / N));
-    var pLowThresh = Math.ceil(k * 0.7);
+    var pLowMean = kTemporal * half / NTemporal;
+    var pLowStd  = Math.sqrt(kTemporal * (half / NTemporal) * (1 - half / NTemporal));
+    var pLowThresh = Math.ceil(kTemporal * 0.7);
     var pLow = pLowStd > 0 ? _normSf((pLowThresh - 0.5 - pLowMean) / pLowStd) : 0;
     pLow = Math.max(pLow, 0.001);  /* floor to avoid log(0) */
     /* Expected max run of geometric-distributed events: E[max] ≈ -log(draws.length) / log(1-pLow) */
@@ -15009,7 +15027,7 @@ function _renderIntegrityHeatmap(fmt, N, freq, total, expected1, pairFreq, hotPa
         .sort(function(a, b) { return b.count - a.count; }).slice(0, 30);
     var topPairsHtml = topAllPairs.map(function(item) {
         var devFromMean = pairStd > 0 ? (item.count - pairMean) / pairStd : 0;
-        var isHot = devFromMean >= 2.5;
+        var isHot = devFromMean >= INTEG_HOT_PAIR_SIGMA;
         return '<span class="integ-pair-chip' + (isHot ? ' hot' : '') + '">' + item.pair + ' &#215;' + item.count + '</span>';
     }).join('');
 
