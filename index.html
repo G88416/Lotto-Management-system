@@ -574,6 +574,47 @@
         .ml-select-all-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; align-items:center; }
         .ml-quick-btn { padding:4px 12px; border-radius:16px; border:1.5px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.18s; }
         .ml-quick-btn:hover { border-color:var(--purple); color:var(--purple); }
+        /* ── Integrity Check ────────────────────────────────────────────── */
+        .integ-score-ring { display:flex; flex-direction:column; align-items:center; justify-content:center; width:130px; height:130px; border-radius:50%; border:6px solid var(--border); margin:0 auto 14px; position:relative; background:var(--surface2); flex-shrink:0; }
+        .integ-score-ring .score-val { font-size:2.2rem; font-weight:900; line-height:1; }
+        .integ-score-ring .score-lbl { font-size:0.65rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-top:2px; }
+        .integ-score-green  { border-color:#22c55e; color:#16a34a; }
+        .integ-score-yellow { border-color:#f59e0b; color:#d97706; }
+        .integ-score-orange { border-color:#f97316; color:#ea580c; }
+        .integ-score-red    { border-color:#ef4444; color:#dc2626; }
+        .integ-flag { display:flex; align-items:flex-start; gap:10px; padding:10px 14px; border-radius:13px; margin-bottom:8px; font-size:0.84rem; font-weight:600; }
+        .integ-flag-ok     { background:#f0fdf4; border:1px solid #86efac; color:#166534; }
+        .integ-flag-warn   { background:#fffbeb; border:1px solid #fde68a; color:#92400e; }
+        .integ-flag-alert  { background:#fef2f2; border:1px solid #fca5a5; color:#991b1b; }
+        [data-theme="dark"] .integ-flag-ok    { background:#052e16; border-color:#166534; color:#4ade80; }
+        [data-theme="dark"] .integ-flag-warn  { background:#422006; border-color:#d97706; color:#fcd34d; }
+        [data-theme="dark"] .integ-flag-alert { background:#450a0a; border-color:#991b1b; color:#fca5a5; }
+        .integ-flag-icon { font-size:1.1rem; flex-shrink:0; margin-top:1px; }
+        .integ-test-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+        .integ-test-row:last-child { border-bottom:none; }
+        .integ-test-name { flex:1; min-width:140px; font-size:0.85rem; font-weight:700; }
+        .integ-test-val  { font-size:0.85rem; color:var(--text-muted); min-width:80px; text-align:right; }
+        .integ-test-bar-wrap { flex:2; min-width:80px; background:var(--surface2); border-radius:100px; height:9px; overflow:hidden; }
+        .integ-test-bar  { height:100%; border-radius:100px; transition:width 0.5s; }
+        .integ-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; font-weight:700; padding:3px 9px; border-radius:20px; white-space:nowrap; }
+        .integ-badge-ok     { background:#f0fdf4; color:#166534; border:1px solid #86efac; }
+        .integ-badge-warn   { background:#fffbeb; color:#92400e; border:1px solid #fde68a; }
+        .integ-badge-alert  { background:#fef2f2; color:#991b1b; border:1px solid #fca5a5; }
+        [data-theme="dark"] .integ-badge-ok    { background:#052e16; border-color:#166534; color:#4ade80; }
+        [data-theme="dark"] .integ-badge-warn  { background:#422006; border-color:#d97706; color:#fcd34d; }
+        [data-theme="dark"] .integ-badge-alert { background:#450a0a; border-color:#991b1b; color:#fca5a5; }
+        .integ-heatmap-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(52px,1fr)); gap:6px; margin-top:12px; }
+        .integ-hm-cell { border-radius:10px; padding:6px 4px; text-align:center; border:1px solid transparent; transition:transform 0.15s; cursor:default; }
+        .integ-hm-cell:hover { transform:scale(1.12); }
+        .integ-hm-num  { font-size:0.82rem; font-weight:800; display:block; }
+        .integ-hm-cnt  { font-size:0.6rem; font-weight:700; opacity:0.85; }
+        .integ-pair-chip { display:inline-flex; align-items:center; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:4px 10px; font-size:0.78rem; font-weight:700; margin:3px; color:var(--purple); }
+        .integ-pair-chip.hot { background:rgba(239,68,68,0.1); border-color:#fca5a5; color:#dc2626; }
+        .integ-control-chart { width:100%; height:120px; overflow:hidden; }
+        .integ-mini-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+        .integ-mini-tab { padding:6px 14px; border-radius:20px; border:1.5px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.15s; }
+        .integ-mini-tab:hover { border-color:var(--purple); color:var(--purple); }
+        .integ-mini-tab.active { background:var(--accent-grad); color:#fff; border-color:transparent; box-shadow:0 2px 10px rgba(139,92,246,0.3); }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -631,6 +672,7 @@
         <button class="tab-btn" onclick="switchTab('intelligentcanvas')">&#127912; Smart Canvas</button>
         <button class="tab-btn" onclick="switchTab('tetragematrn')">&#129504; Intelligent Generator</button>
         <button class="tab-btn" onclick="switchTab('prngml')">&#129302; PRNG ML</button>
+        <button class="tab-btn" onclick="switchTab('integrity')">&#128270; Integrity Check</button>
     </nav>
 
     <!-- QUICK PICK -->
@@ -2219,6 +2261,71 @@
         </div>
     </section>
 
+    </section>
+
+    <!-- INTEGRITY CHECK -->
+    <section id="sec-integrity" class="section">
+        <div class="section-title">&#128270; Integrity Check</div>
+        <div class="algo-info">
+            Statistical anomaly detection engine &#8212; runs <strong>7 independent tests</strong> on your draw history and synthesises them into a single <strong>Randomness Score (0&#8211;100)</strong>.
+            A score above 70 indicates statistically healthy randomness. Persistent bias across 100+ draws warrants deeper investigation.
+            <strong>Note:</strong> small samples (&lt;30 draws) produce many false positives; results are most reliable with 100+ draws.
+        </div>
+
+        <!-- Configuration -->
+        <div class="card">
+            <div class="pattern-section-title">&#9881;&#65039; Configuration</div>
+            <div class="grid-2" style="margin-bottom:14px;">
+                <div>
+                    <label>Lottery Format</label>
+                    <select id="integrity-format"></select>
+                </div>
+                <div>
+                    <label>Analysis Window (most recent draws)</label>
+                    <select id="integrity-window">
+                        <option value="0">All draws</option>
+                        <option value="50">Last 50</option>
+                        <option value="100" selected>Last 100</option>
+                        <option value="200">Last 200</option>
+                        <option value="500">Last 500</option>
+                    </select>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="runIntegrityCheck()">&#128270; Run Integrity Check</button>
+                <button class="btn btn-ghost" onclick="clearIntegrityCheck()">&#10006; Clear</button>
+            </div>
+        </div>
+
+        <!-- Sub-tabs -->
+        <div class="integ-mini-tabs" id="integ-sub-tabs" style="display:none;">
+            <button class="integ-mini-tab active" id="integ-tab-0" onclick="switchIntegSub(0)">&#127775; Overview &amp; Score</button>
+            <button class="integ-mini-tab" id="integ-tab-1" onclick="switchIntegSub(1)">&#128200; Frequency Tests</button>
+            <button class="integ-mini-tab" id="integ-tab-2" onclick="switchIntegSub(2)">&#128257; Sequential Tests</button>
+            <button class="integ-mini-tab" id="integ-tab-3" onclick="switchIntegSub(3)">&#128336; Temporal / Cluster</button>
+            <button class="integ-mini-tab" id="integ-tab-4" onclick="switchIntegSub(4)">&#127754; Heatmap &amp; Pairs</button>
+        </div>
+
+        <!-- Sub-tab 0: Overview -->
+        <div id="integ-sub-0">
+            <p class="text-muted text-sm text-center" style="padding:30px 0;">
+                Select a lottery format and click <strong>Run Integrity Check</strong> to begin.
+            </p>
+        </div>
+
+        <!-- Sub-tab 1: Frequency Tests -->
+        <div id="integ-sub-1" style="display:none;"></div>
+
+        <!-- Sub-tab 2: Sequential Tests -->
+        <div id="integ-sub-2" style="display:none;"></div>
+
+        <!-- Sub-tab 3: Temporal / Cluster -->
+        <div id="integ-sub-3" style="display:none;"></div>
+
+        <!-- Sub-tab 4: Heatmap & Pairs -->
+        <div id="integ-sub-4" style="display:none;"></div>
+    </section>
+
 <!-- SAVE TICKET MODAL -->
 <div class="modal-backdrop" id="save-modal">
     <div class="modal">
@@ -2782,7 +2889,7 @@ function purgeOrphanedDataManual() {
     }
 }
 
-var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern','intelligentcanvas','tetragematrn','prngml'];
+var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern','intelligentcanvas','tetragematrn','prngml','integrity'];
 
 function switchTab(key) {
     TAB_KEYS.forEach(function(k, i) {
@@ -2803,6 +2910,7 @@ function switchTab(key) {
     if (key === 'intelligentcanvas') { initIntelligentCanvas(); }
     if (key === 'tetragematrn')      { initIntelligentGeneratorTab(); }
     if (key === 'prngml')            { initPrngMlTab(); }
+    if (key === 'integrity')         { initIntegrityTab(); }
 }
 
 function switchSeedSub(idx) {
@@ -2825,7 +2933,7 @@ function buildFormatGrids() {
                 '<div class="jackpot">' + f.jackpot + '</div></div>';
         }).join('');
     });
-    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter','gap-format','gap-delta-format','gap-gen-format','gap-freq-format','digitpattern-format','ic-format','ml-wheel-format'].forEach(function(id) {
+    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter','gap-format','gap-delta-format','gap-gen-format','gap-freq-format','digitpattern-format','ic-format','ml-wheel-format','integrity-format'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
@@ -14229,6 +14337,686 @@ function _prngSamplePick(ranked, count, max, targetSum, tolerance, seed) {
     }
 
     return pick.length === count ? pick : null;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   INTEGRITY CHECK MODULE
+   ═══════════════════════════════════════════════════════════════════ */
+
+function initIntegrityTab() {
+    var sel = document.getElementById('integrity-format');
+    if (!sel) return;
+    var prev = sel.value;
+    sel.innerHTML = getAllFormats().map(function(f) {
+        return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>';
+    }).join('');
+    if (prev && Array.from(sel.options).some(function(o) { return o.value === prev; })) sel.value = prev;
+}
+
+function switchIntegSub(idx) {
+    [0,1,2,3,4].forEach(function(i) {
+        document.getElementById('integ-sub-' + i).style.display = i === idx ? 'block' : 'none';
+        document.getElementById('integ-tab-' + i).classList.toggle('active', i === idx);
+    });
+}
+
+function clearIntegrityCheck() {
+    [0,1,2,3,4].forEach(function(i) {
+        var el = document.getElementById('integ-sub-' + i);
+        if (el) el.innerHTML = '';
+    });
+    var el0 = document.getElementById('integ-sub-0');
+    if (el0) el0.innerHTML = '<p class="text-muted text-sm text-center" style="padding:30px 0;">Select a lottery format and click <strong>Run Integrity Check</strong> to begin.</p>';
+    var tabs = document.getElementById('integ-sub-tabs');
+    if (tabs) tabs.style.display = 'none';
+    switchIntegSub(0);
+}
+
+/* Chi-square p-value approximation (df = bins-1).
+   Uses Wilson-Hilferty normal approximation: valid for df >= 3. */
+function _chiSqPValue(chi2, df) {
+    if (df <= 0) return 1;
+    /* Wilson-Hilferty transform: (chi2/df)^(1/3) ~ N(1 - 2/(9df), 2/(9df)) */
+    var p = 2 / (9 * df);
+    var z = (Math.pow(chi2 / df, 1 / 3) - (1 - p)) / Math.sqrt(p);
+    /* Standard normal survival function using Hart (1968) approximation */
+    var pval = _normSf(z);
+    return Math.max(0, Math.min(1, pval));
+}
+
+/* Standard normal survival (upper tail) P(Z > z) */
+function _normSf(z) {
+    var t = 1 / (1 + 0.2316419 * Math.abs(z));
+    var poly = t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+    var pdf  = Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI);
+    var p    = pdf * poly;
+    return z >= 0 ? p : 1 - p;
+}
+
+/* Hypergeometric mean and variance for k picks from 1..N pool */
+function _hyperMean(N, k) { return k * (N + 1) / 2; }
+function _hyperVar(N, k)  {
+    if (N <= 1) return 0;
+    return k * (N - k) * (N + 1) / (12);
+}
+
+/* Score a test result to 0-100 (100 = perfectly random) */
+function _testScore(pValue) {
+    /* Map p-value to score: p≥0.1 → 100, p=0.05 → 75, p=0.01 → 40, p<0.001 → 0 */
+    if (pValue >= 0.1)  return 100;
+    if (pValue >= 0.05) return Math.round(75 + (pValue - 0.05) / 0.05 * 25);
+    if (pValue >= 0.01) return Math.round(40 + (pValue - 0.01) / 0.04 * 35);
+    if (pValue >= 0.001) return Math.round((pValue - 0.001) / 0.009 * 40);
+    return 0;
+}
+
+function _badge(level) {
+    if (level === 'ok')    return '<span class="integ-badge integ-badge-ok">&#10003; Pass</span>';
+    if (level === 'warn')  return '<span class="integ-badge integ-badge-warn">&#9888; Warn</span>';
+    return '<span class="integ-badge integ-badge-alert">&#9888; Alert</span>';
+}
+function _flagDiv(level, icon, text) {
+    return '<div class="integ-flag integ-flag-' + level + '"><span class="integ-flag-icon">' + icon + '</span><span>' + text + '</span></div>';
+}
+function _barColor(score) {
+    if (score >= 70) return '#22c55e';
+    if (score >= 50) return '#f59e0b';
+    return '#ef4444';
+}
+function _scoreClass(score) {
+    if (score >= 70) return 'integ-score-green';
+    if (score >= 50) return 'integ-score-yellow';
+    if (score >= 30) return 'integ-score-orange';
+    return 'integ-score-red';
+}
+function _levelFromScore(s) { return s >= 70 ? 'ok' : s >= 50 ? 'warn' : 'alert'; }
+
+function runIntegrityCheck() {
+    var fmtSel = document.getElementById('integrity-format');
+    if (!fmtSel || !fmtSel.value) { showToast('Select a lottery format first', 'error'); return; }
+    var fmt = getAllFormats().find(function(f) { return f.id === fmtSel.value; });
+    if (!fmt) return;
+
+    var winSel = document.getElementById('integrity-window');
+    var win    = winSel ? parseInt(winSel.value, 10) : 0;
+
+    var allDraws = getCombinedDrawsForFormat(fmt.id);
+    var draws    = (win > 0 && allDraws.length > win) ? allDraws.slice(0, win) : allDraws;
+
+    if (draws.length < 5) {
+        showToast('Need at least 5 draws for ' + fmt.name + '. Add draws on the Live Draws tab.', 'error');
+        return;
+    }
+
+    var N = fmt.mainMax;
+    var k = fmt.mainCount;
+    var n = draws.length;
+
+    /* ── Collect all numbers flat ── */
+    var allNums = [];
+    draws.forEach(function(d) { (d.numbers || []).forEach(function(x) { allNums.push(x); }); });
+    var total = allNums.length; /* = n * k */
+
+    /* ── Frequency map ── */
+    var freq = {};
+    for (var i = 1; i <= N; i++) freq[i] = 0;
+    allNums.forEach(function(x) { if (freq[x] !== undefined) freq[x]++; });
+
+    /* ══ TEST 1: Chi-Square Frequency Bias ══ */
+    var expected1 = total / N;
+    var chi2_freq = 0;
+    for (var nn = 1; nn <= N; nn++) {
+        chi2_freq += Math.pow(freq[nn] - expected1, 2) / expected1;
+    }
+    var p_freq  = _chiSqPValue(chi2_freq, N - 1);
+    var s_freq  = _testScore(p_freq);
+
+    /* ══ TEST 2: Even/Odd Balance ══ */
+    var expectedEven = k / 2;   /* per draw */
+    var evenCounts   = draws.map(function(d) {
+        return (d.numbers || []).filter(function(x) { return x % 2 === 0; }).length;
+    });
+    var meanEven  = evenCounts.reduce(function(s, x) { return s + x; }, 0) / n;
+    var stdEven   = Math.sqrt(_hyperVar(N, k));
+    var z_even    = stdEven > 0 ? Math.abs(meanEven - k / 2) / (stdEven / Math.sqrt(n)) : 0;
+    var p_even    = 2 * _normSf(z_even);   /* two-tailed */
+    var s_even    = _testScore(p_even);
+
+    /* ══ TEST 3: Sum Distribution ══ */
+    var sums     = draws.map(function(d) { return (d.numbers || []).reduce(function(s, x) { return s + x; }, 0); });
+    var expSum   = k * (N + 1) / 2;
+    var varSum   = _hyperVar(N, k);
+    var meanSum  = sums.reduce(function(s, x) { return s + x; }, 0) / n;
+    var stdSum   = Math.sqrt(varSum);
+    var z_sum    = stdSum > 0 ? Math.abs(meanSum - expSum) / (stdSum / Math.sqrt(n)) : 0;
+    var p_sum    = 2 * _normSf(z_sum);
+    var s_sum    = _testScore(p_sum);
+    var sumStd   = Math.sqrt(sums.reduce(function(s, x) { return s + Math.pow(x - meanSum, 2); }, 0) / n);
+
+    /* ══ TEST 4: Runs Test (serial independence) ══ */
+    var n1 = allNums.filter(function(x) { return x > N / 2; }).length;
+    var n2 = total - n1;
+    var runs = 1;
+    for (var ri = 1; ri < allNums.length; ri++) {
+        if ((allNums[ri] > N / 2) !== (allNums[ri - 1] > N / 2)) runs++;
+    }
+    var expRuns  = (2 * n1 * n2) / total + 1;
+    var varRuns  = (2 * n1 * n2 * (2 * n1 * n2 - total)) / (total * total * (total - 1));
+    var z_runs   = varRuns > 0 ? Math.abs(runs - expRuns) / Math.sqrt(varRuns) : 0;
+    var p_runs   = 2 * _normSf(z_runs);
+    var s_runs   = _testScore(p_runs);
+
+    /* ══ TEST 5: Gap Extremes ══ */
+    /* Expected max gap for a number in n draws with appearance probability p=k/N */
+    var p_app   = k / N;
+    var expMaxGap = Math.ceil(1 / p_app);   /* geometric expectation */
+    /* Track last seen per number */
+    var lastSeenG = {};
+    for (var gi = 1; gi <= N; gi++) lastSeenG[gi] = -1;
+    /* draws[0] is most recent; iterate oldest→newest for correct gap counting */
+    for (var di = draws.length - 1; di >= 0; di--) {
+        (draws[di].numbers || []).forEach(function(x) { if (lastSeenG[x] === -1) lastSeenG[x] = draws.length - 1 - di; });
+    }
+    var gapArr = [];
+    for (var gi2 = 1; gi2 <= N; gi2++) {
+        gapArr.push({ num: gi2, gap: lastSeenG[gi2] === -1 ? n : lastSeenG[gi2] });
+    }
+    var extremeGap    = Math.round(expMaxGap * 3);   /* flag if gap > 3× expected */
+    var overdueNums   = gapArr.filter(function(g) { return g.gap >= extremeGap; });
+    var maxGap        = gapArr.reduce(function(mx, g) { return g.gap > mx ? g.gap : mx; }, 0);
+    /* Score: extreme overdue numbers reduce score */
+    var gapPenalty    = overdueNums.length / N;
+    var s_gap         = Math.max(0, Math.round(100 - gapPenalty * 500));
+    var p_gap         = s_gap < 70 ? (100 - s_gap) / 1000 : 0.5;   /* synthetic p-value for display */
+
+    /* ══ TEST 6: Pair Co-occurrence ══ */
+    var pairFreq = {};
+    draws.forEach(function(d) {
+        var ns = (d.numbers || []).slice().sort(function(a, b) { return a - b; });
+        for (var a = 0; a < ns.length; a++) {
+            for (var b = a + 1; b < ns.length; b++) {
+                var key = ns[a] + '-' + ns[b];
+                pairFreq[key] = (pairFreq[key] || 0) + 1;
+            }
+        }
+    });
+    /* Expected pair frequency: k*(k-1)/2 pairs per draw → E[pair] = n * k*(k-1)/2 / (N*(N-1)/2) */
+    var totalPairs = k * (k - 1) / 2;
+    var poolPairs  = N * (N - 1) / 2;
+    var expPairFreq = n * totalPairs / poolPairs;
+    var pairVals   = Object.keys(pairFreq).map(function(key) { return pairFreq[key]; });
+    var pairMean   = pairVals.length ? pairVals.reduce(function(s, x) { return s + x; }, 0) / pairVals.length : 0;
+    var pairStd    = pairVals.length
+        ? Math.sqrt(pairVals.reduce(function(s, x) { return s + Math.pow(x - pairMean, 2); }, 0) / pairVals.length)
+        : 1;
+    var hotPairs   = Object.keys(pairFreq).filter(function(k2) {
+        return pairFreq[k2] >= pairMean + 2.5 * Math.max(pairStd, 0.1);
+    }).map(function(k2) { return { pair: k2, count: pairFreq[k2] }; })
+        .sort(function(a, b) { return b.count - a.count; }).slice(0, 20);
+    var pairBias   = hotPairs.length;
+    /* Score: penalise for hot pairs */
+    var s_pair = Math.max(0, Math.round(100 - pairBias * 5));
+    var p_pair = s_pair < 70 ? (100 - s_pair) / 1000 : 0.5;
+
+    /* ══ TEST 7: Duplicate / Near-Duplicate Draws ══ */
+    var seenKeys   = {};
+    var dupCount   = 0;
+    var nearDupCount = 0;
+    draws.forEach(function(d) {
+        var key = (d.numbers || []).slice().sort(function(a, b) { return a - b; }).join(',');
+        if (seenKeys[key]) { dupCount++; }
+        seenKeys[key] = true;
+    });
+    /* Near-duplicates: draws sharing ≥ (k-1) numbers */
+    for (var di2 = 0; di2 < Math.min(draws.length, 200); di2++) {
+        var setA = {};
+        (draws[di2].numbers || []).forEach(function(x) { setA[x] = true; });
+        for (var di3 = di2 + 1; di3 < Math.min(draws.length, 200); di3++) {
+            var shared = (draws[di3].numbers || []).filter(function(x) { return setA[x]; }).length;
+            if (shared >= k - 1 && shared < k) nearDupCount++;
+        }
+    }
+    /* Expected near-duplicates by hypergeometric: very small for most formats */
+    var s_dup = Math.max(0, 100 - dupCount * 20 - nearDupCount * 3);
+    var p_dup = s_dup < 70 ? (100 - s_dup) / 1000 : 0.5;
+
+    /* ══ Composite Randomness Score ══ */
+    /* Weighted average of all test scores */
+    var weights = [0.22, 0.12, 0.16, 0.18, 0.12, 0.10, 0.10];
+    var scores  = [s_freq, s_even, s_sum, s_runs, s_gap, s_pair, s_dup];
+    var totalW  = weights.reduce(function(s, w) { return s + w; }, 0);
+    var composite = Math.round(scores.reduce(function(s, sc, i) { return s + sc * weights[i]; }, 0) / totalW);
+
+    /* ══ Cluster Analysis ══ */
+    /* Split draws into windows of 10; compute mean of per-window sum and even-count */
+    var WINDOW = 10;
+    var clusterData = [];
+    for (var ci = 0; ci < draws.length; ci += WINDOW) {
+        var slice = draws.slice(ci, ci + WINDOW);
+        var wSums = slice.map(function(d) { return (d.numbers || []).reduce(function(s, x) { return s + x; }, 0); });
+        var wMean = wSums.reduce(function(s, x) { return s + x; }, 0) / wSums.length;
+        var wEven = slice.map(function(d) { return (d.numbers || []).filter(function(x) { return x % 2 === 0; }).length; });
+        var wEvenMean = wEven.reduce(function(s, x) { return s + x; }, 0) / wEven.length;
+        clusterData.push({ label: 'D' + (ci + 1) + '&#8211;' + (ci + slice.length), sumMean: wMean, evenMean: wEvenMean });
+    }
+
+    /* ══ Render ══ */
+    _renderIntegrityOverview(fmt, draws, n, composite, scores, weights, p_freq, p_even, p_sum, p_runs, p_gap, p_pair, p_dup,
+        meanSum, expSum, stdSum, sumStd, meanEven, k, z_runs, runs, expRuns, overdueNums, expMaxGap, extremeGap, pairBias, dupCount, nearDupCount);
+    _renderIntegrityFrequency(fmt, draws, n, N, freq, total, expected1, chi2_freq, p_freq, s_freq, expMaxGap, gapArr);
+    _renderIntegritySequential(fmt, draws, n, N, k, sums, expSum, sumStd, meanSum, p_sum, s_sum,
+        evenCounts, meanEven, stdEven, z_even, p_even, s_even,
+        runs, expRuns, z_runs, p_runs, s_runs,
+        dupCount, nearDupCount, s_dup);
+    _renderIntegrityTemporal(fmt, draws, clusterData, expSum, expMaxGap * k);
+    _renderIntegrityHeatmap(fmt, N, freq, total, expected1, pairFreq, hotPairs, expPairFreq, pairMean, pairStd);
+
+    document.getElementById('integ-sub-tabs').style.display = 'flex';
+    switchIntegSub(0);
+    showToast('Integrity check complete for ' + fmt.name + ' (' + n + ' draws)', 'success');
+}
+
+/* ── Overview & Score ─────────────────────────────────────────────── */
+function _renderIntegrityOverview(fmt, draws, n, composite, scores, weights,
+    p_freq, p_even, p_sum, p_runs, p_gap, p_pair, p_dup,
+    meanSum, expSum, stdSum, sumStd, meanEven, k, z_runs, runs, expRuns,
+    overdueNums, expMaxGap, extremeGap, pairBias, dupCount, nearDupCount) {
+
+    var out = document.getElementById('integ-sub-0');
+    if (!out) return;
+
+    var ringClass  = _scoreClass(composite);
+    var scoreLabel = composite >= 70 ? 'Healthy' : composite >= 50 ? 'Moderate' : composite >= 30 ? 'Suspicious' : 'Critical';
+
+    /* Red flags */
+    var flags = [];
+    if (p_freq < 0.01)  flags.push({ level:'alert', icon:'&#128308;', text:'<strong>Frequency Bias (p=' + p_freq.toFixed(4) + '):</strong> Chi-square test detected significant non-uniform number distribution. Some numbers appear far more/less often than expected.' });
+    else if (p_freq < 0.05) flags.push({ level:'warn', icon:'&#128992;', text:'<strong>Mild Frequency Skew (p=' + p_freq.toFixed(3) + '):</strong> Slight non-uniformity in number frequencies. Monitor with more draws.' });
+
+    if (p_even < 0.01)  flags.push({ level:'alert', icon:'&#128308;', text:'<strong>Even/Odd Imbalance (p=' + p_even.toFixed(4) + '):</strong> Even/odd ratio deviates significantly from expected (' + k + '/2 = ' + (k/2).toFixed(1) + '). Observed average: ' + meanEven.toFixed(2) + '.' });
+    else if (p_even < 0.05) flags.push({ level:'warn', icon:'&#128992;', text:'<strong>Even/Odd Skew (p=' + p_even.toFixed(3) + '):</strong> Mild even/odd imbalance detected.' });
+
+    if (p_sum < 0.01)   flags.push({ level:'alert', icon:'&#128308;', text:'<strong>Sum Distribution Bias (p=' + p_sum.toFixed(4) + '):</strong> Draw sums deviate significantly from expected mean of ' + expSum.toFixed(1) + '. Observed: ' + meanSum.toFixed(1) + ' &#177;' + sumStd.toFixed(1) + '.' });
+    else if (p_sum < 0.05) flags.push({ level:'warn', icon:'&#128992;', text:'<strong>Sum Skew (p=' + p_sum.toFixed(3) + '):</strong> Mild deviation in sum distribution. Expected mean: ' + expSum.toFixed(0) + ', observed: ' + meanSum.toFixed(0) + '.' });
+
+    if (p_runs < 0.01)  flags.push({ level:'alert', icon:'&#128308;', text:'<strong>Serial Correlation (Z=' + z_runs.toFixed(2) + ', p=' + p_runs.toFixed(4) + '):</strong> Significant sequential dependence detected. Observed runs: ' + runs + ', expected: ' + expRuns.toFixed(1) + '. Draws may not be independently generated.' });
+    else if (p_runs < 0.05) flags.push({ level:'warn', icon:'&#128992;', text:'<strong>Mild Serial Pattern (p=' + p_runs.toFixed(3) + '):</strong> Slight sequential correlation. Observed runs: ' + runs + ', expected: ~' + expRuns.toFixed(0) + '.' });
+
+    if (overdueNums.length > 0) flags.push({ level: overdueNums.length >= 3 ? 'alert' : 'warn', icon:'&#9201;&#65039;',
+        text:'<strong>Extreme Gap / Overdue (' + overdueNums.length + ' number' + (overdueNums.length > 1 ? 's' : '') + '):</strong> ' +
+            overdueNums.slice(0, 5).map(function(g) { return g.num + ' (' + g.gap + 'd)'; }).join(', ') +
+            (overdueNums.length > 5 ? '&hellip;' : '') +
+            ' — absent for ≥' + extremeGap + ' draws (3× expected max gap of ' + expMaxGap + ').' });
+
+    if (pairBias >= 3)  flags.push({ level:'warn', icon:'&#128101;', text:'<strong>Pair Co-occurrence Bias:</strong> ' + pairBias + ' number pair' + (pairBias > 1 ? 's appear' : ' appears') + ' disproportionately often (≥2.5σ above mean). Investigate for mechanical favouritism.' });
+
+    if (dupCount > 0)   flags.push({ level:'alert', icon:'&#129315;', text:'<strong>Duplicate Draws Detected:</strong> ' + dupCount + ' exact duplicate draw result' + (dupCount > 1 ? 's' : '') + ' found. This is statistically near-impossible in a fair lottery.' });
+    if (nearDupCount > 5) flags.push({ level:'warn', icon:'&#128203;', text:'<strong>Near-Duplicate Draws:</strong> ' + nearDupCount + ' pairs of draws share ≥' + (k - 1) + ' of ' + k + ' numbers. Higher than expected by chance.' });
+
+    if (flags.length === 0) flags.push({ level:'ok', icon:'&#9989;', text:'<strong>No significant anomalies detected</strong> across all 7 tests at p&lt;0.05 significance level. The draw history appears statistically consistent with fair random sampling.' });
+
+    if (n < 30) flags.push({ level:'warn', icon:'&#9888;&#65039;', text:'<strong>Small Sample Warning:</strong> Only ' + n + ' draws analysed. Statistical tests require 100+ draws for reliable conclusions. Results may show many false positives.' });
+
+    var testNames = ['Chi-Sq Freq', 'Even/Odd', 'Sum Dist', 'Runs Test', 'Gap Extremes', 'Pair Bias', 'Duplicates'];
+    var testPs    = [p_freq, p_even, p_sum, p_runs, p_gap, p_pair, p_dup];
+
+    var testRows = testNames.map(function(name, i) {
+        var sc = scores[i];
+        var lv = _levelFromScore(sc);
+        var wt = Math.round(weights[i] * 100);
+        return '<div class="integ-test-row">' +
+            '<span class="integ-test-name">' + name + ' <span class="text-muted" style="font-weight:400;font-size:0.75rem;">(w:' + wt + '%)</span></span>' +
+            '<div class="integ-test-bar-wrap"><div class="integ-test-bar" style="width:' + sc + '%;background:' + _barColor(sc) + ';"></div></div>' +
+            '<span class="integ-test-val">' + sc + '/100</span>' +
+            _badge(lv) + '</div>';
+    }).join('');
+
+    var html =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#127775; Randomness Score &mdash; ' + fmt.flag + ' ' + fmt.name + ' (' + n + ' draws)</div>' +
+        '<div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-bottom:16px;">' +
+        '<div class="integ-score-ring ' + ringClass + '">' +
+            '<span class="score-val">' + composite + '</span>' +
+            '<span class="score-lbl">' + scoreLabel + '</span>' +
+        '</div>' +
+        '<div style="flex:1;min-width:200px;">' +
+        '<div class="algo-info" style="margin-bottom:10px;">' +
+        'Score combines 7 independent statistical tests weighted by sensitivity. ' +
+        '<strong>70–100:</strong> Healthy &nbsp;&#124;&nbsp; <strong>50–69:</strong> Moderate &nbsp;&#124;&nbsp; <strong>30–49:</strong> Suspicious &nbsp;&#124;&nbsp; <strong>0–29:</strong> Critical.' +
+        '</div>' +
+        '<div class="grid-3" style="gap:8px;">' +
+        _prngStatBox('Draws', n) +
+        _prngStatBox('Pool', '1&#8211;' + fmt.mainMax) +
+        _prngStatBox('Pick', fmt.mainCount) +
+        '</div></div></div>' +
+        testRows +
+        '</div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128680; Red Flags &amp; Findings</div>' +
+        flags.map(function(f) { return _flagDiv(f.level, f.icon, f.text); }).join('') +
+        '</div>';
+
+    out.innerHTML = html;
+}
+
+/* ── Frequency Tests ──────────────────────────────────────────────── */
+function _renderIntegrityFrequency(fmt, draws, n, N, freq, total, expected1, chi2_freq, p_freq, s_freq, expMaxGap, gapArr) {
+    var out = document.getElementById('integ-sub-1');
+    if (!out) return;
+
+    var sortedNums = Object.keys(freq).map(function(k2) { return { num: parseInt(k2, 10), cnt: freq[k2] }; })
+        .sort(function(a, b) { return b.cnt - a.cnt; });
+    var maxF = sortedNums[0] ? sortedNums[0].cnt : 1;
+    var minF = sortedNums[sortedNums.length - 1] ? sortedNums[sortedNums.length - 1].cnt : 0;
+
+    var freqBars = sortedNums.map(function(item) {
+        var pct      = maxF > 0 ? Math.round((item.cnt / maxF) * 100) : 0;
+        var dev      = item.cnt - expected1;
+        var devPct   = expected1 > 0 ? (dev / expected1 * 100) : 0;
+        var devColor = Math.abs(devPct) > 30 ? '#ef4444' : Math.abs(devPct) > 15 ? '#f59e0b' : '#22c55e';
+        return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">' +
+            '<span style="min-width:28px;font-weight:700;font-size:0.82rem;color:var(--purple);">' + item.num + '</span>' +
+            '<div style="flex:1;background:var(--surface2);border-radius:6px;height:13px;">' +
+            '<div style="width:' + pct + '%;background:var(--accent-grad);height:100%;border-radius:6px;"></div></div>' +
+            '<span style="min-width:28px;font-size:0.78rem;color:var(--text-muted);text-align:right;">' + item.cnt + '</span>' +
+            '<span style="min-width:54px;font-size:0.74rem;font-weight:700;text-align:right;color:' + devColor + ';">' +
+            (dev >= 0 ? '+' : '') + devPct.toFixed(1) + '%</span></div>';
+    }).join('');
+
+    var expectedLine = '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">Expected frequency per number: <strong>' + expected1.toFixed(2) + '</strong> &nbsp;&#124;&nbsp; Max observed: <strong>' + maxF + '</strong> &nbsp;&#124;&nbsp; Min observed: <strong>' + minF + '</strong></div>';
+
+    var html =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#967;&#178; Chi-Square Frequency Test</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">' +
+        'Tests whether each number appears with equal probability (1/' + N + '). A significant result (p &lt; 0.05) indicates systematic bias.' +
+        '</div>' +
+        '<div class="grid-3" style="gap:8px;margin-bottom:12px;">' +
+        _prngStatBox('&#967;&#178; Statistic', chi2_freq.toFixed(2)) +
+        _prngStatBox('Degrees of Freedom', N - 1) +
+        _prngStatBox('p-value', p_freq < 0.001 ? '&lt;0.001' : p_freq.toFixed(4)) +
+        _prngStatBox('Score', s_freq + '/100') +
+        _prngStatBox('Verdict', p_freq >= 0.05 ? '&#10003; Uniform' : p_freq >= 0.01 ? '&#9888; Mild Bias' : '&#9888; Significant Bias') +
+        _prngStatBox('Critical &#967;&#178; (p=0.05)', (N - 1 + 2 * Math.sqrt(2 * (N - 1))).toFixed(1)) +
+        '</div>' +
+        expectedLine +
+        '<div style="max-height:360px;overflow-y:auto;">' + freqBars + '</div>' +
+        '</div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#9201;&#65039; Gap Extremes</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">Expected maximum gap for any number ≈ ' + expMaxGap + ' draws. Numbers with gaps ≥ 3× this value (' + Math.round(expMaxGap * 3) + ' draws) are flagged as extreme outliers.</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+        gapArr.sort(function(a, b) { return b.gap - a.gap; }).slice(0, 30).map(function(g) {
+            var extreme = g.gap >= expMaxGap * 3;
+            var warn    = !extreme && g.gap >= expMaxGap * 2;
+            var col     = extreme ? 'ball-power' : warn ? 'ball-bonus' : 'ball-main';
+            return '<div style="text-align:center;">' +
+                '<span class="ball ' + col + ' ball-sm">' + g.num + '</span>' +
+                '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">' + g.gap + 'd</div></div>';
+        }).join('') +
+        '</div></div>';
+
+    out.innerHTML = html;
+}
+
+/* ── Sequential Tests ─────────────────────────────────────────────── */
+function _renderIntegritySequential(fmt, draws, n, N, k, sums, expSum, sumStd, meanSum, p_sum, s_sum,
+    evenCounts, meanEven, stdEven, z_even, p_even, s_even,
+    runs, expRuns, z_runs, p_runs, s_runs,
+    dupCount, nearDupCount, s_dup) {
+    var out = document.getElementById('integ-sub-2');
+    if (!out) return;
+
+    /* Sum control chart (draw-by-draw sums vs expected band) */
+    var chartW  = 400, chartH = 100;
+    var margin  = 4;
+    var inner_w = chartW - 2 * margin;
+    var inner_h = chartH - 2 * margin;
+    var sumMin  = Math.min.apply(null, sums);
+    var sumMax2 = Math.max.apply(null, sums);
+    var yRange  = Math.max(sumMax2 - sumMin, 1);
+    var bandLo  = expSum - 2 * sumStd;
+    var bandHi  = expSum + 2 * sumStd;
+
+    function yMap(v) { return margin + inner_h - ((v - sumMin) / yRange) * inner_h; }
+    function xMap(i) { return margin + (i / Math.max(sums.length - 1, 1)) * inner_w; }
+
+    var pts = sums.map(function(s2, i) { return xMap(i) + ',' + yMap(s2); }).join(' ');
+    var bandLoY = yMap(bandLo), bandHiY = yMap(bandHi), expY = yMap(expSum);
+    var svgChart = '<svg viewBox="0 0 ' + chartW + ' ' + chartH + '" style="width:100%;height:120px;" xmlns="http://www.w3.org/2000/svg">' +
+        '<rect x="' + margin + '" y="' + Math.min(bandLoY, bandHiY) + '" width="' + inner_w + '" height="' + Math.abs(bandHiY - bandLoY) + '" fill="rgba(139,92,246,0.08)" rx="4"/>' +
+        '<line x1="' + margin + '" y1="' + expY + '" x2="' + (chartW - margin) + '" y2="' + expY + '" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="4,3"/>' +
+        '<polyline points="' + pts + '" fill="none" stroke="var(--accent,#8b5cf6)" stroke-width="1.5"/>' +
+        sums.map(function(s2, i) {
+            var outside = s2 < bandLo || s2 > bandHi;
+            return '<circle cx="' + xMap(i) + '" cy="' + yMap(s2) + '" r="' + (outside ? 2.5 : 1.5) + '" fill="' + (outside ? '#ef4444' : '#8b5cf6') + '"/>';
+        }).join('') +
+        '</svg>';
+
+    /* Even/odd trend chart */
+    var ePts = evenCounts.map(function(v, i) { return xMap(i) + ',' + (margin + inner_h - (v / k) * inner_h); }).join(' ');
+    var halfY = margin + inner_h * 0.5;
+    var svgEven = '<svg viewBox="0 0 ' + chartW + ' ' + chartH + '" style="width:100%;height:100px;" xmlns="http://www.w3.org/2000/svg">' +
+        '<line x1="' + margin + '" y1="' + halfY + '" x2="' + (chartW - margin) + '" y2="' + halfY + '" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="4,3"/>' +
+        '<polyline points="' + ePts + '" fill="none" stroke="#06b6d4" stroke-width="1.5"/>' +
+        '</svg>';
+
+    var html =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128200; Sum Distribution</div>' +
+        '<div class="algo-info" style="margin-bottom:8px;">Expected draw sum: <strong>' + expSum.toFixed(1) + '</strong> &plusmn;' + sumStd.toFixed(1) + '. Purple band = &#177;2&#963; expected range. Red dots = outlier draws.</div>' +
+        '<div class="grid-3" style="gap:8px;margin-bottom:12px;">' +
+        _prngStatBox('Expected Mean', expSum.toFixed(1)) +
+        _prngStatBox('Observed Mean', meanSum.toFixed(1)) +
+        _prngStatBox('Std Dev', sumStd.toFixed(1)) +
+        _prngStatBox('Z-Score', Math.abs(meanSum - expSum).toFixed(2) + '&#963;') +
+        _prngStatBox('p-value', p_sum < 0.001 ? '&lt;0.001' : p_sum.toFixed(4)) +
+        _prngStatBox('Score', s_sum + '/100') +
+        '</div>' +
+        svgChart +
+        '</div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#9878;&#65039; Even/Odd Balance</div>' +
+        '<div class="algo-info" style="margin-bottom:8px;">Expected even count per draw: <strong>' + (k/2).toFixed(1) + '</strong>. Cyan line shows per-draw even count; purple dashed = expected.</div>' +
+        '<div class="grid-3" style="gap:8px;margin-bottom:12px;">' +
+        _prngStatBox('Expected Even', (k/2).toFixed(1)) +
+        _prngStatBox('Observed Mean', meanEven.toFixed(2)) +
+        _prngStatBox('Std Dev', stdEven.toFixed(2)) +
+        _prngStatBox('Z-Score', z_even.toFixed(2)) +
+        _prngStatBox('p-value', p_even < 0.001 ? '&lt;0.001' : p_even.toFixed(4)) +
+        _prngStatBox('Score', s_even + '/100') +
+        '</div>' +
+        svgEven +
+        '</div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128257; Runs Test (Serial Independence)</div>' +
+        '<div class="algo-info" style="margin-bottom:8px;">Tests whether successive draw numbers are independently generated. Too few or too many alternating sequences (runs) indicates dependence.</div>' +
+        '<div class="grid-3" style="gap:8px;margin-bottom:8px;">' +
+        _prngStatBox('Observed Runs', runs) +
+        _prngStatBox('Expected Runs', expRuns.toFixed(1)) +
+        _prngStatBox('Z-Score', z_runs.toFixed(2)) +
+        _prngStatBox('p-value (2-tail)', p_runs < 0.001 ? '&lt;0.001' : p_runs.toFixed(4)) +
+        _prngStatBox('Score', s_runs + '/100') +
+        _prngStatBox('Verdict', z_runs < 1.96 ? '&#10003; Independent' : '&#9888; Dependent') +
+        '</div>' +
+        '<div class="algo-info" style="font-size:0.78rem;">Z &lt; 1.96 → 95% confidence in independence. Z &gt; 2.58 → strong evidence of serial pattern.</div>' +
+        '</div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#129315; Duplicate Draw Detection</div>' +
+        '<div class="algo-info" style="margin-bottom:8px;">Exact duplicate draws are near-statistically impossible in a fair lottery. Near-duplicates (sharing ≥' + (k-1) + ' of ' + k + ' numbers) are also flagged.</div>' +
+        '<div class="grid-3" style="gap:8px;">' +
+        _prngStatBox('Exact Duplicates', dupCount) +
+        _prngStatBox('Near-Duplicates', nearDupCount) +
+        _prngStatBox('Score', s_dup + '/100') +
+        '</div></div>';
+
+    out.innerHTML = html;
+}
+
+/* ── Temporal / Cluster Analysis ─────────────────────────────────── */
+function _renderIntegrityTemporal(fmt, draws, clusterData, expSum, expEvenProduct) {
+    var out = document.getElementById('integ-sub-3');
+    if (!out) return;
+
+    /* Control chart for cluster sum means */
+    var clusterSums  = clusterData.map(function(c) { return c.sumMean; });
+    var globalMin    = Math.min.apply(null, clusterSums);
+    var globalMax    = Math.max.apply(null, clusterSums);
+    var rangeY       = Math.max(globalMax - globalMin, 1);
+    var chartW2 = 400, chartH2 = 120, margin2 = 6, inner_w2 = chartW2 - 2 * margin2, inner_h2 = chartH2 - 2 * margin2;
+
+    function y2(v) { return margin2 + inner_h2 - ((v - globalMin) / rangeY) * inner_h2; }
+    function x2(i) { return margin2 + (i / Math.max(clusterSums.length - 1, 1)) * inner_w2; }
+
+    var globalMeanSumCluster = clusterSums.reduce(function(s, x) { return s + x; }, 0) / (clusterSums.length || 1);
+    var clusterStd = Math.sqrt(clusterSums.reduce(function(s, x) { return s + Math.pow(x - globalMeanSumCluster, 2); }, 0) / (clusterSums.length || 1));
+    var ucl = globalMeanSumCluster + 2 * clusterStd;
+    var lcl = globalMeanSumCluster - 2 * clusterStd;
+
+    var clusterPts = clusterSums.map(function(v, i) { return x2(i) + ',' + y2(v); }).join(' ');
+    var svgCluster = '<svg viewBox="0 0 ' + chartW2 + ' ' + chartH2 + '" style="width:100%;height:130px;" xmlns="http://www.w3.org/2000/svg">' +
+        '<rect x="' + margin2 + '" y="' + Math.min(y2(ucl), y2(lcl)) + '" width="' + inner_w2 + '" height="' + Math.abs(y2(ucl) - y2(lcl)) + '" fill="rgba(139,92,246,0.07)" rx="4"/>' +
+        '<line x1="' + margin2 + '" y1="' + y2(expSum) + '" x2="' + (chartW2 - margin2) + '" y2="' + y2(expSum) + '" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="5,3"/>' +
+        '<line x1="' + margin2 + '" y1="' + y2(globalMeanSumCluster) + '" x2="' + (chartW2 - margin2) + '" y2="' + y2(globalMeanSumCluster) + '" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,2"/>' +
+        '<polyline points="' + clusterPts + '" fill="none" stroke="#06b6d4" stroke-width="2"/>' +
+        clusterSums.map(function(v, i) {
+            var outlier = v > ucl || v < lcl;
+            return '<circle cx="' + x2(i) + '" cy="' + y2(v) + '" r="' + (outlier ? 3 : 2) + '" fill="' + (outlier ? '#ef4444' : '#06b6d4') + '"/>';
+        }).join('') +
+        '</svg>';
+
+    /* Cluster table */
+    var clusterRows = clusterData.map(function(c, i) {
+        var deviation = c.sumMean - expSum;
+        var devPct    = expSum > 0 ? (deviation / expSum * 100) : 0;
+        var level     = Math.abs(devPct) > 15 ? 'alert' : Math.abs(devPct) > 8 ? 'warn' : 'ok';
+        return '<tr style="border-top:1px solid var(--surface2);">' +
+            '<td style="padding:6px;font-weight:700;color:var(--purple);">Window ' + (i+1) + '</td>' +
+            '<td style="padding:6px;text-align:center;font-size:0.78rem;">' + c.label + '</td>' +
+            '<td style="padding:6px;text-align:right;">' + c.sumMean.toFixed(1) + '</td>' +
+            '<td style="padding:6px;text-align:right;">' + (deviation >= 0 ? '+' : '') + devPct.toFixed(1) + '%</td>' +
+            '<td style="padding:6px;text-align:right;">' + c.evenMean.toFixed(2) + '</td>' +
+            '<td style="padding:6px;text-align:right;">' + _badge(level) + '</td>' +
+            '</tr>';
+    }).join('');
+
+    /* Low/High cluster detection: count runs of predominantly low-number draws */
+    var k = fmt.mainCount, N = fmt.mainMax;
+    var half = Math.floor(N / 2);
+    var drawLow = draws.map(function(d) {
+        return (d.numbers || []).filter(function(x) { return x <= half; }).length;
+    });
+    var maxLowRun = 0, curLowRun = 0;
+    drawLow.forEach(function(lc) {
+        if (lc >= Math.ceil(k * 0.7)) { curLowRun++; maxLowRun = Math.max(maxLowRun, curLowRun); }
+        else curLowRun = 0;
+    });
+    var expMaxRun = Math.ceil(Math.log(draws.length) / Math.log(1 / 0.3));  /* geometric run expectation */
+
+    var html =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128336; Cluster / Temporal Analysis</div>' +
+        '<div class="algo-info" style="margin-bottom:8px;">' +
+        'Draw history split into windows of 10. Mean sum per window compared against overall expected (' + expSum.toFixed(0) + '). ' +
+        'Cyan = observed window mean, purple dashed = theoretical, green dashed = dataset mean. Red dots = outlier windows (&gt;2&#963;).' +
+        '</div>' +
+        svgCluster +
+        '<table style="width:100%;font-size:0.8rem;border-collapse:collapse;margin-top:10px;">' +
+        '<thead><tr style="font-size:0.72rem;color:var(--text-muted);">' +
+        '<th style="padding:6px;text-align:left;">Window</th><th style="padding:6px;text-align:center;">Draws</th>' +
+        '<th style="padding:6px;text-align:right;">Mean Sum</th><th style="padding:6px;text-align:right;">Deviation</th>' +
+        '<th style="padding:6px;text-align:right;">Avg Even</th><th style="padding:6px;text-align:right;">Status</th>' +
+        '</tr></thead><tbody>' +
+        clusterRows + '</tbody></table></div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128207; Low/High Number Cluster Runs</div>' +
+        '<div class="algo-info" style="margin-bottom:8px;">' +
+        'Counts consecutive draws where ≥70% of numbers are in the low half (1&#8211;' + half + '). ' +
+        'Expected max run length: ~' + expMaxRun + ' draws.' +
+        '</div>' +
+        '<div class="grid-3" style="gap:8px;">' +
+        _prngStatBox('Max Low-Cluster Run', maxLowRun + ' draws') +
+        _prngStatBox('Expected Max Run', '~' + expMaxRun) +
+        _prngStatBox('Status', maxLowRun > expMaxRun * 2
+            ? '<span style="color:#ef4444;">&#9888; Unusual</span>'
+            : '<span style="color:#22c55e;">&#10003; Normal</span>') +
+        '</div></div>';
+
+    out.innerHTML = html;
+}
+
+/* ── Heatmap & Pairs ──────────────────────────────────────────────── */
+function _renderIntegrityHeatmap(fmt, N, freq, total, expected1, pairFreq, hotPairs, expPairFreq, pairMean, pairStd) {
+    var out = document.getElementById('integ-sub-4');
+    if (!out) return;
+
+    var maxFreq = Math.max.apply(null, Object.values ? Object.values(freq) : Object.keys(freq).map(function(k2) { return freq[k2]; }));
+    var minFreq = Math.min.apply(null, Object.values ? Object.values(freq) : Object.keys(freq).map(function(k2) { return freq[k2]; }));
+
+    /* Heatmap cells */
+    var cells = '';
+    for (var nn = 1; nn <= N; nn++) {
+        var cnt  = freq[nn] || 0;
+        var norm = maxFreq > minFreq ? (cnt - minFreq) / (maxFreq - minFreq) : 0.5;
+        /* Colour: cold (blue) → warm (red) scale */
+        var r    = Math.round(norm * 220 + 30);
+        var g    = Math.round((1 - Math.abs(norm - 0.5) * 1.5) * 180 + 40);
+        var b    = Math.round((1 - norm) * 220 + 20);
+        var bg   = 'rgb(' + r + ',' + g + ',' + b + ')';
+        var textCol = norm > 0.5 ? '#fff' : '#1e293b';
+        var devPct  = expected1 > 0 ? ((cnt - expected1) / expected1 * 100) : 0;
+        cells += '<div class="integ-hm-cell" style="background:' + bg + ';color:' + textCol + ';" title="' + nn + ': ' + cnt + 'x (' + (devPct >= 0 ? '+' : '') + devPct.toFixed(1) + '%)">' +
+            '<span class="integ-hm-num">' + nn + '</span>' +
+            '<span class="integ-hm-cnt">' + cnt + 'x</span>' +
+            '</div>';
+    }
+
+    /* Top hot pairs */
+    var hotPairsHtml = hotPairs.length
+        ? hotPairs.map(function(item) {
+            return '<span class="integ-pair-chip hot" title="Expected ≈' + expPairFreq.toFixed(1) + 'x">' + item.pair + ' <strong>&#215;' + item.count + '</strong></span>';
+        }).join('')
+        : '<p class="text-muted text-sm">No significantly hot pairs detected.</p>';
+
+    /* Top common pairs (by absolute count) */
+    var topAllPairs = Object.keys(pairFreq).map(function(k2) { return { pair: k2, count: pairFreq[k2] }; })
+        .sort(function(a, b) { return b.count - a.count; }).slice(0, 30);
+    var topPairsHtml = topAllPairs.map(function(item) {
+        var devFromMean = pairStd > 0 ? (item.count - pairMean) / pairStd : 0;
+        var isHot = devFromMean >= 2.5;
+        return '<span class="integ-pair-chip' + (isHot ? ' hot' : '') + '">' + item.pair + ' &#215;' + item.count + '</span>';
+    }).join('');
+
+    var html =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#127754; Number Frequency Heatmap</div>' +
+        '<div class="algo-info" style="margin-bottom:8px;">' +
+        'Colour scale: <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#1e5ce8;vertical-align:middle;"></span> Cold (under-drawn) &nbsp;&#8594;&nbsp; <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#e83c1e;vertical-align:middle;"></span> Hot (over-drawn). Hover for deviation %. Expected: ' + expected1.toFixed(1) + '/number.' +
+        '</div>' +
+        '<div class="integ-heatmap-grid">' + cells + '</div>' +
+        '</div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128101; Hot Pair Analysis (&ge;2.5&#963; above mean)</div>' +
+        '<div class="algo-info" style="margin-bottom:8px;">' +
+        'Expected pair frequency: <strong>' + expPairFreq.toFixed(2) + 'x</strong> &nbsp;&#124;&nbsp; Dataset mean: <strong>' + pairMean.toFixed(2) + 'x</strong> &nbsp;&#124;&nbsp; Std dev: <strong>' + pairStd.toFixed(2) + '</strong>. ' +
+        'Red chips = statistically hot pairs (&ge;2.5&#963;).' +
+        '</div>' +
+        hotPairsHtml +
+        '</div>' +
+
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#128202; Top 30 Most Frequent Pairs</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">' + topPairsHtml + '</div>' +
+        '</div>';
+
+    out.innerHTML = html;
 }
 </script>
     // Register the PWA service worker
