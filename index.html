@@ -16246,6 +16246,7 @@ function _integRenderUI() {
         }).join('') +
         '<span style="color:var(--text-muted);font-size:0.7rem;margin-left:4px;">or</span>' +
         '<input type="date" id="integ-date-custom" value="' + (predictForDate || '') + '" ' +
+            'aria-label="Custom draw date" ' +
             'style="border:1.5px solid var(--border);border-radius:8px;padding:4px 8px;background:var(--surface2);color:var(--text);font-size:0.75rem;margin-left:4px;" ' +
             'onchange="_integSetDate(this.value)">' +
         '</div>' +
@@ -16258,12 +16259,14 @@ function _integRenderUI() {
         '<div><div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;">PREDICTIONS TO GENERATE</div>' +
         '<div style="display:flex;align-items:center;gap:8px;">' +
         '<input type="range" id="integ-pred-count" min="3" max="10" step="1" value="' + (st.predCount || 6) + '" ' +
+            'aria-label="Number of predictions to generate" ' +
+            'aria-valuemin="3" aria-valuemax="10" aria-valuenow="' + (st.predCount || 6) + '" ' +
             'style="width:100px;accent-color:var(--purple);" ' +
             'oninput="var d=document.getElementById(\'integ-pred-count-val\');if(d)d.textContent=this.value;var s=window._integState;if(s)s.predCount=parseInt(this.value);">' +
         '<span id="integ-pred-count-val" style="font-weight:800;font-size:0.88rem;color:var(--purple);min-width:14px;">' + (st.predCount || 6) + '</span>' +
         '</div></div>' +
         '<div><div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;">EVEN/ODD TARGET</div>' +
-        '<select id="integ-eo-override" style="border:1.5px solid var(--border);border-radius:8px;padding:4px 9px;background:var(--surface2);color:var(--text);font-size:0.78rem;" ' +
+        '<select id="integ-eo-override" aria-label="Even/Odd target override" style="border:1.5px solid var(--border);border-radius:8px;padding:4px 9px;background:var(--surface2);color:var(--text);font-size:0.78rem;" ' +
             'onchange="var s=window._integState;if(s)s.evenOddOverride=this.value;">' +
         '<option value="auto"' + (st.evenOddOverride==='auto'||!st.evenOddOverride ? ' selected' : '') + '>Auto (' + targetEven + 'E/' + targetOdd + 'O)</option>' +
         '<option value="balanced"' + (st.evenOddOverride==='balanced' ? ' selected' : '') + '>Balanced</option>' +
