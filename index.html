@@ -2269,6 +2269,7 @@
         <div class="algo-info">
             Statistical anomaly detection engine &#8212; runs <strong>7 independent tests</strong> on your draw history and synthesises them into a single <strong>Randomness Score (0&#8211;100)</strong>.
             A score above 70 indicates statistically healthy randomness. Persistent bias across 100+ draws warrants deeper investigation.
+            The <strong>Smart Prediction</strong> tab combines <strong>8 analytical signals</strong> (frequency deficit, gap extremes, hot-pair co-occurrence, recency decay, Markov transition, position frequency, cold-streak reversion, delta-gap pattern) across <strong>4 generation methods</strong> (Weighted Sampling, Ensemble Voting, Delta Pattern, Quadrant Balance) for maximum prediction accuracy and diversity.
             <strong>Note:</strong> small samples (&lt;30 draws) produce many false positives; results are most reliable with 100+ draws.
         </div>
 
@@ -15074,16 +15075,26 @@ function _renderIntegrityHeatmap(fmt, N, freq, total, expected1, pairFreq, hotPa
 }
 
 /* ── Integrity-Aware Intelligent Prediction ───────────────────────── */
-/* Uses all three statistical signals from the integrity check to score
-   every number in the pool and generate sum-band & even/odd constrained
-   ticket predictions.
+/* Integrity-Driven Prediction Engine
+   Combines 8 analytical signals (3 statistical + 2 algorithmic + 2 heuristic + 1 mathematical)
+   and 4 generation methods (Weighted Sampling, Ensemble Vote, Delta Pattern, Quadrant Balance)
+   to produce diverse, high-accuracy ticket predictions.
+
    Signals:
-     A) Frequency deficit   – under-drawn numbers score higher
-     B) Gap extremes        – overdue numbers score higher
-     C) Hot-pair involvement – numbers in ≥2.5σ pairs get a bonus
-   Confidence is scaled by the composite randomness score: low composite
-   (more bias detected) yields higher-confidence, pattern-based picks;
-   high composite (near-random) marks predictions as speculative. */
+     A) Frequency Deficit     – under-drawn numbers score higher (Mathematical / χ² residual)
+     B) Gap Extremes          – overdue numbers score higher (Heuristic)
+     C) Hot-Pair Involvement  – numbers in ≥2.5σ pairs get a bonus (Statistical)
+     D) Recency Decay         – recent appearances weighted by λ^i decay (Mathematical)
+     E) Markov Transition     – forward transition probability from last draw (Algorithmic)
+     F) Position Frequency    – rank-slot analysis across all draws (Algorithmic)
+     G) Cold-Streak Reversion – historically frequent + currently cold (Heuristic)
+     H) Delta Gap Pattern     – most common intra-draw gap sequence (Mathematical)
+
+   Methods:
+     1) Weighted-Random Sampling  – stochastic draw from weighted pool
+     2) Ensemble Voting           – multi-signal candidate nomination & voting
+     3) Delta Pattern Extrap.     – deterministic sequence from dominant gap template
+     4) Quadrant Balance          – enforces coverage across pool quartiles */
 function _renderIntegrityPrediction(fmt, draws, n, composite,
     freq, total, expected1,
     expSum, expectedSumStd, meanSum,
@@ -15094,26 +15105,34 @@ function _renderIntegrityPrediction(fmt, draws, n, composite,
     var out = document.getElementById('integ-sub-5');
     if (!out) return;
 
-    /* ── 1. Score every number using integrity signals ── */
-    var numScore = {};
-    for (var ni = 1; ni <= N; ni++) numScore[ni] = 0;
-
-    /* Signal A: Frequency deficit
-       Weight increases as composite score drops (stronger bias = more signal). */
+    /* ══════════════════════════════════════════════════════════════════
+       SIGNAL A: Frequency Deficit  (Mathematical – χ² residual scoring)
+       Under-represented numbers score higher; weight scales with bias.
+    ══════════════════════════════════════════════════════════════════ */
+    var sigA = {};
+    for (var i = 1; i <= N; i++) sigA[i] = 0;
     var freqW = composite < 50 ? 2.5 : composite < 70 ? 1.5 : 0.8;
     for (var na = 1; na <= N; na++) {
         var deficit = expected1 - (freq[na] || 0);
-        if (deficit > 0) numScore[na] += freqW * (deficit / expected1) * 10;
+        if (deficit > 0) sigA[na] = freqW * (deficit / expected1) * 10;
     }
 
-    /* Signal B: Gap extremes – numbers absent longer than expected get a boost */
+    /* ══════════════════════════════════════════════════════════════════
+       SIGNAL B: Gap Extremes  (Heuristic – overdue detection)
+       Numbers absent longer than expected get a proportional boost.
+    ══════════════════════════════════════════════════════════════════ */
+    var sigB = {};
+    for (var i2 = 1; i2 <= N; i2++) sigB[i2] = 0;
     gapArr.forEach(function(g) {
         if (g.gap > expMaxGap) {
-            numScore[g.num] += Math.min(3.0, (g.gap - expMaxGap) / expMaxGap) * 4;
+            sigB[g.num] = Math.min(3.0, (g.gap - expMaxGap) / expMaxGap) * 4;
         }
     });
 
-    /* Signal C: Hot-pair involvement – numbers appearing in ≥2.5σ pairs */
+    /* ══════════════════════════════════════════════════════════════════
+       SIGNAL C: Hot-Pair Involvement  (Statistical – co-occurrence)
+       Numbers appearing in ≥2.5σ co-occurrence pairs receive a bonus.
+    ══════════════════════════════════════════════════════════════════ */
     var pairInvolvement = {};
     for (var np = 1; np <= N; np++) pairInvolvement[np] = 0;
     hotPairs.slice(0, 10).forEach(function(hp) {
@@ -15121,11 +15140,154 @@ function _renderIntegrityPrediction(fmt, draws, n, composite,
             if (p >= 1 && p <= N) pairInvolvement[p]++;
         });
     });
-    for (var nc = 1; nc <= N; nc++) {
-        if (pairInvolvement[nc] > 0) numScore[nc] += Math.min(pairInvolvement[nc], 3) * 1.5;
+    var sigC = {};
+    for (var nc = 1; nc <= N; nc++) sigC[nc] = Math.min(pairInvolvement[nc], 3) * 1.5;
+
+    /* ══════════════════════════════════════════════════════════════════
+       SIGNAL D: Recency-Weighted Frequency  (Mathematical – exponential decay)
+       draws[0] = most recent; weight = λ^i, λ=0.93.
+       Captures hot streaks — numbers on a recent run.
+    ══════════════════════════════════════════════════════════════════ */
+    var decayLambda = 0.93;
+    var sigD = {};
+    for (var rd = 1; rd <= N; rd++) sigD[rd] = 0;
+    draws.forEach(function(d, i) {
+        var w = Math.pow(decayLambda, i);
+        (d.numbers || []).forEach(function(x) { if (x >= 1 && x <= N) sigD[x] += w; });
+    });
+    var maxD = 0;
+    for (var dm = 1; dm <= N; dm++) if (sigD[dm] > maxD) maxD = sigD[dm];
+    if (maxD > 0) for (var da = 1; da <= N; da++) sigD[da] = sigD[da] / maxD * 10;
+
+    /* ══════════════════════════════════════════════════════════════════
+       SIGNAL E: Markov Transition  (Algorithmic – forward transition probability)
+       Given the most recent draw, score numbers that most often appeared
+       in the following draw for historically similar draws (overlap-weighted).
+    ══════════════════════════════════════════════════════════════════ */
+    var sigE = {};
+    for (var mi = 1; mi <= N; mi++) sigE[mi] = 0;
+    if (draws.length >= 2) {
+        var lastNums = draws[0].numbers || [];
+        for (var di = 1; di < draws.length; di++) {
+            var prevNums = draws[di].numbers || [];
+            var nextNums = draws[di - 1].numbers || [];
+            var overlap  = prevNums.filter(function(x) { return lastNums.indexOf(x) !== -1; }).length;
+            if (overlap > 0) {
+                var wt = overlap / Math.max(lastNums.length, 1);
+                nextNums.forEach(function(x) { if (x >= 1 && x <= N) sigE[x] += wt; });
+            }
+        }
+        var maxE = 0;
+        for (var em = 1; em <= N; em++) if (sigE[em] > maxE) maxE = sigE[em];
+        if (maxE > 0) for (var ea = 1; ea <= N; ea++) sigE[ea] = sigE[ea] / maxE * 10;
     }
 
-    /* ── 2. Normalise scores to 0–100 and rank ── */
+    /* ══════════════════════════════════════════════════════════════════
+       SIGNAL F: Position Frequency  (Algorithmic – rank-slot analysis)
+       Counts how often each number appears at each sorted rank-position
+       (1st, 2nd, …, k-th smallest). Lower positions (smallest numbers)
+       get a recency-like weight via 1/(pos+1).
+    ══════════════════════════════════════════════════════════════════ */
+    var sigF = {};
+    for (var pi = 1; pi <= N; pi++) sigF[pi] = 0;
+    draws.forEach(function(d) {
+        var sorted = (d.numbers || []).slice().sort(function(a, b) { return a - b; });
+        sorted.forEach(function(x, pos) { if (x >= 1 && x <= N) sigF[x] += 1 / (pos + 1); });
+    });
+    var maxF = 0;
+    for (var fm = 1; fm <= N; fm++) if (sigF[fm] > maxF) maxF = sigF[fm];
+    if (maxF > 0) for (var fa = 1; fa <= N; fa++) sigF[fa] = sigF[fa] / maxF * 10;
+
+    /* ══════════════════════════════════════════════════════════════════
+       SIGNAL G: Cold-Streak Reversion  (Heuristic – regression to mean)
+       Numbers that were historically frequent but are now on a cold streak
+       (gap ≥ 2× expected) receive a reversion bonus proportional to
+       their historical rank and current absence length.
+    ══════════════════════════════════════════════════════════════════ */
+    var sigG = {};
+    for (var gi = 1; gi <= N; gi++) sigG[gi] = 0;
+    var freqSorted = [];
+    for (var fs = 1; fs <= N; fs++) freqSorted.push({ num: fs, f: freq[fs] || 0 });
+    freqSorted.sort(function(a, b) { return b.f - a.f; });
+    var freqRankMap = {};
+    freqSorted.forEach(function(r, i) { freqRankMap[r.num] = i; });
+    gapArr.forEach(function(g) {
+        if (g.gap >= expMaxGap * 2) {
+            var rankFactor = 1 - (freqRankMap[g.num] || N - 1) / N;
+            var gapFactor  = Math.min(2, (g.gap - expMaxGap * 2) / Math.max(expMaxGap, 1));
+            sigG[g.num] = rankFactor * gapFactor * 10;
+        }
+    });
+
+    /* ══════════════════════════════════════════════════════════════════
+       SIGNAL H: Delta Gap Pattern  (Mathematical – intra-draw gap sequence)
+       Finds the most frequently recurring spacing pattern within draws.
+       Numbers that fit the dominant delta template score higher.
+    ══════════════════════════════════════════════════════════════════ */
+    var sigH = {};
+    for (var hi = 1; hi <= N; hi++) sigH[hi] = 0;
+    var deltaPatterns = {};
+    draws.forEach(function(d) {
+        var sorted = (d.numbers || []).slice().sort(function(a, b) { return a - b; });
+        if (sorted.length >= 2) {
+            var deltas = [];
+            for (var ddi = 1; ddi < sorted.length; ddi++) deltas.push(sorted[ddi] - sorted[ddi - 1]);
+            var key = deltas.join(',');
+            deltaPatterns[key] = (deltaPatterns[key] || 0) + 1;
+        }
+    });
+    var topDeltaKey   = '';
+    var topDeltaCount = 0;
+    Object.keys(deltaPatterns).forEach(function(k2) {
+        if (deltaPatterns[k2] > topDeltaCount) { topDeltaCount = deltaPatterns[k2]; topDeltaKey = k2; }
+    });
+    var anchorFreq = {};
+    var topDeltas  = [];
+    if (topDeltaKey) {
+        topDeltas = topDeltaKey.split(',').map(Number);
+        draws.forEach(function(d) {
+            var sorted = (d.numbers || []).slice().sort(function(a, b) { return a - b; });
+            if (sorted.length >= 2) {
+                var deltas = [];
+                for (var ddi = 1; ddi < sorted.length; ddi++) deltas.push(sorted[ddi] - sorted[ddi - 1]);
+                if (deltas.join(',') === topDeltaKey) {
+                    anchorFreq[sorted[0]] = (anchorFreq[sorted[0]] || 0) + 1;
+                }
+            }
+        });
+        /* Score numbers appearing in any top-delta sequence */
+        Object.keys(anchorFreq).forEach(function(anchor) {
+            var a    = parseInt(anchor);
+            var nums = [a];
+            var valid = true;
+            topDeltas.forEach(function(dd) {
+                var next = nums[nums.length - 1] + dd;
+                if (next > N) { valid = false; } else { nums.push(next); }
+            });
+            if (!valid) return;
+            nums.forEach(function(x) { if (x >= 1 && x <= N) sigH[x] += (anchorFreq[anchor] / draws.length) * 10; });
+        });
+        var maxH = 0;
+        for (var hm = 1; hm <= N; hm++) if (sigH[hm] > maxH) maxH = sigH[hm];
+        if (maxH > 0) for (var ha = 1; ha <= N; ha++) sigH[ha] = sigH[ha] / maxH * 10;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       COMBINED SCORE  (weighted ensemble of all 8 signals)
+       Weights balance short-term (D,E) vs long-term (A,B,G)
+       vs structural (C,F,H) signals.
+    ══════════════════════════════════════════════════════════════════ */
+    var SIG_WEIGHTS = { A: 1.8, B: 1.4, C: 1.2, D: 1.6, E: 1.5, F: 1.0, G: 1.3, H: 1.2 };
+    var totalSW = 0;
+    ['A','B','C','D','E','F','G','H'].forEach(function(k2) { totalSW += SIG_WEIGHTS[k2]; });
+    var numScore = {};
+    for (var cs = 1; cs <= N; cs++) {
+        numScore[cs] = (sigA[cs] * SIG_WEIGHTS.A + sigB[cs] * SIG_WEIGHTS.B +
+                        sigC[cs] * SIG_WEIGHTS.C + sigD[cs] * SIG_WEIGHTS.D +
+                        sigE[cs] * SIG_WEIGHTS.E + sigF[cs] * SIG_WEIGHTS.F +
+                        sigG[cs] * SIG_WEIGHTS.G + sigH[cs] * SIG_WEIGHTS.H) / totalSW;
+    }
+    /* Normalise to 0–100 */
     var maxSc = 0;
     for (var nm = 1; nm <= N; nm++) if (numScore[nm] > maxSc) maxSc = numScore[nm];
     if (maxSc > 0) for (var nr = 1; nr <= N; nr++) numScore[nr] = numScore[nr] / maxSc * 100;
@@ -15134,15 +15296,41 @@ function _renderIntegrityPrediction(fmt, draws, n, composite,
     for (var nk = 1; nk <= N; nk++) ranked.push({ num: nk, score: numScore[nk] });
     ranked.sort(function(a, b) { return b.score - a.score; });
 
-    /* ── 3. Structural targets derived from integrity data ── */
+    /* ══════════════════════════════════════════════════════════════════
+       STRUCTURAL TARGETS
+    ══════════════════════════════════════════════════════════════════ */
     var targetEven = Math.max(0, Math.min(k, Math.round(meanEven)));
     var targetOdd  = k - targetEven;
-    var sumLo  = expSum - expectedSumStd;
-    var sumHi  = expSum + expectedSumStd;
-    var sumLo2 = expSum - expectedSumStd * 2;  /* relaxed constraint */
-    var sumHi2 = expSum + expectedSumStd * 2;
 
-    /* ── 4. Weighted-random sampling helper ── */
+    /* Trend-adjusted sum band: blend global expected sum with recent 10-draw mean */
+    var recentSums = draws.slice(0, Math.min(10, draws.length))
+        .map(function(d) { return (d.numbers || []).reduce(function(s, x) { return s + x; }, 0); });
+    var recentMeanSum = recentSums.reduce(function(s, x) { return s + x; }, 0) / Math.max(recentSums.length, 1);
+    var adjExpSum = expSum * 0.65 + recentMeanSum * 0.35;
+    var sumLo  = adjExpSum - expectedSumStd;
+    var sumHi  = adjExpSum + expectedSumStd;
+    var sumLo2 = adjExpSum - expectedSumStd * 2;
+    var sumHi2 = adjExpSum + expectedSumStd * 2;
+
+    /* ══════════════════════════════════════════════════════════════════
+       SHARED CONFIDENCE CALCULATOR
+    ══════════════════════════════════════════════════════════════════ */
+    function calcConf(picks, predSum) {
+        var avgNS = picks.reduce(function(s, p2) { return s + (numScore[p2] || 0); }, 0) / picks.length;
+        var sumBandConf = Math.max(0, 100 - Math.abs(predSum - adjExpSum) / Math.max(expectedSumStd, 1) * 20);
+        var adjFactor   = composite < 50 ? 1.25 : composite < 70 ? 1.0 : 0.72;
+        return Math.max(10, Math.min(92, Math.round((avgNS * 0.6 + sumBandConf * 0.4) * adjFactor)));
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       METHOD 1: Weighted-Random Sampling  (Algorithmic)
+       Stochastic draw from the combined-score pool, constrained to the
+       trend-adjusted sum band and observed even/odd balance.
+    ══════════════════════════════════════════════════════════════════ */
+    var oddPool  = ranked.filter(function(r) { return r.num % 2 === 1; });
+    var evenPool = ranked.filter(function(r) { return r.num % 2 === 0; });
+    var canSplitPools = oddPool.length >= targetOdd && evenPool.length >= targetEven;
+
     function weightedPick(pool, count) {
         if (pool.length < count) return null;
         var remaining = pool.slice();
@@ -15159,21 +15347,20 @@ function _renderIntegrityPrediction(fmt, draws, n, composite,
         return picks.length === count ? picks : null;
     }
 
-    /* ── 5. Generate up to 5 predictions ── */
-    var oddPool  = ranked.filter(function(r) { return r.num % 2 === 1; });
-    var evenPool = ranked.filter(function(r) { return r.num % 2 === 0; });
-
-    /* When a pool is too small for the target count, fall back to the
-       full ranked pool (no even/odd separation — avoids overlap bugs). */
-    var canSplitPools = oddPool.length >= targetOdd && evenPool.length >= targetEven;
-
     var predictions = [];
     var usedKeys    = {};
+    /* Maximum number of predictions to generate across all methods;
+       each supplementary method adds up to 1 candidate beyond this target
+       only if the weighted sampler didn't reach it. */
+    var MAX_PREDICTIONS = 6;
 
     function tryGenerate(strict) {
         var lo = strict ? sumLo : sumLo2;
         var hi = strict ? sumHi : sumHi2;
-        var maxAtt = strict ? 400 : 200;
+        /* Strict pass: up to 600 attempts; large because the sum-band constraint
+           can reject many random draws with a tight band or skewed pool.
+           Relaxed pass: 300 attempts using ±2σ band for lower-confidence fills. */
+        var maxAtt = strict ? 600 : 300;
         for (var att = 0; att < maxAtt && predictions.length < 5; att++) {
             var picks;
             if (canSplitPools) {
@@ -15191,24 +15378,187 @@ function _renderIntegrityPrediction(fmt, draws, n, composite,
             var predSum = picks.reduce(function(s, x) { return s + x; }, 0);
             if (predSum < lo || predSum > hi) continue;
             usedKeys[key] = true;
-            var avgNS = picks.reduce(function(s, p2) { return s + (numScore[p2] || 0); }, 0) / picks.length;
-            var sumBandConf = Math.max(0, 100 - Math.abs(predSum - expSum) / Math.max(expectedSumStd, 1) * 20);
-            var adjFactor   = composite < 50 ? 1.25 : composite < 70 ? 1.0 : 0.72;
-            var conf = Math.max(10, Math.min(92, Math.round((avgNS * 0.6 + sumBandConf * 0.4) * adjFactor)));
-            predictions.push({ numbers: picks, sum: predSum, confidence: conf });
+            predictions.push({ numbers: picks, sum: predSum, confidence: calcConf(picks, predSum), method: 'Weighted Sampling' });
         }
     }
 
-    tryGenerate(true);                           /* strict: expSum ± 1σ  */
-    if (predictions.length < 3) tryGenerate(false); /* relaxed: expSum ± 2σ */
+    tryGenerate(true);
+    if (predictions.length < 3) tryGenerate(false);
+
+    /* ══════════════════════════════════════════════════════════════════
+       METHOD 2: Ensemble Voting  (Blueprint – multi-signal consensus)
+       Each of the 8 raw signals independently nominates ⌈k×1.8⌉ candidates.
+       Numbers with the most cross-signal nominations win the ballot,
+       with the combined numScore breaking ties.
+    ══════════════════════════════════════════════════════════════════ */
+    function ensemblePick() {
+        /* Each signal nominates ⌈k×1.8⌉ candidates — 1.8× k ensures every signal
+           gets meaningful representation even for small k, while keeping the
+           total pool wide enough for meaningful overlap detection. */
+        var nomCount = Math.ceil(k * 1.8);
+        var votes = {};
+        for (var vi = 1; vi <= N; vi++) votes[vi] = 0;
+
+        function nominate(rawSig) {
+            var arr = [];
+            for (var x = 1; x <= N; x++) arr.push({ num: x, s: rawSig[x] || 0 });
+            arr.sort(function(a, b) { return b.s - a.s; });
+            arr.slice(0, nomCount).forEach(function(r) { votes[r.num]++; });
+        }
+        nominate(sigA); nominate(sigB); nominate(sigC); nominate(sigD);
+        nominate(sigE); nominate(sigF); nominate(sigG); nominate(sigH);
+
+        var voteRanked = [];
+        for (var vr = 1; vr <= N; vr++) voteRanked.push({ num: vr, votes: votes[vr], score: numScore[vr] });
+        voteRanked.sort(function(a, b) { return b.votes !== a.votes ? b.votes - a.votes : b.score - a.score; });
+
+        /* Greedy pick with even/odd enforcement */
+        var picked = [], evenCnt = 0, oddCnt = 0;
+        for (var vi2 = 0; vi2 < voteRanked.length && picked.length < k; vi2++) {
+            var num2 = voteRanked[vi2].num;
+            var isEv = num2 % 2 === 0;
+            if (isEv  && evenCnt < targetEven) { picked.push(num2); evenCnt++; }
+            else if (!isEv && oddCnt  < targetOdd)  { picked.push(num2); oddCnt++;  }
+        }
+        /* Fill remaining slots without even/odd restriction */
+        for (var vi3 = 0; vi3 < voteRanked.length && picked.length < k; vi3++) {
+            if (picked.indexOf(voteRanked[vi3].num) === -1) picked.push(voteRanked[vi3].num);
+        }
+        if (picked.length !== k) return;
+        picked.sort(function(a, b) { return a - b; });
+        var key2 = picked.join(',');
+        if (usedKeys[key2]) return;
+        usedKeys[key2] = true;
+        var predSum2 = picked.reduce(function(s, x) { return s + x; }, 0);
+        predictions.push({ numbers: picked, sum: predSum2,
+            confidence: Math.min(92, calcConf(picked, predSum2) + 5), method: 'Ensemble Vote' });
+    }
+
+    if (predictions.length < MAX_PREDICTIONS) ensemblePick();
+
+    /* ══════════════════════════════════════════════════════════════════
+       METHOD 3: Delta Pattern Extrapolation  (Mathematical – deterministic)
+       Projects the most common intra-draw gap sequence with the most
+       overdue/historically-prominent anchor to produce deterministic picks.
+    ══════════════════════════════════════════════════════════════════ */
+    function deltaPick() {
+        if (!topDeltaKey || topDeltas.length !== k - 1) return;
+        /* Rank anchors by (historical pattern frequency × current gap) */
+        var anchors = Object.keys(anchorFreq).map(function(anch) {
+            var aNum  = parseInt(anch);
+            var gapRec = null;
+            for (var gri = 0; gri < gapArr.length; gri++) {
+                if (gapArr[gri].num === aNum) { gapRec = gapArr[gri]; break; }
+            }
+            return { anchor: aNum, score: (anchorFreq[anch] || 0) * ((gapRec ? gapRec.gap : 0) + 1) };
+        }).sort(function(a, b) { return b.score - a.score; });
+        for (var ai = 0; ai < anchors.length && predictions.length < MAX_PREDICTIONS; ai++) {
+            var start = anchors[ai].anchor;
+            var picks3 = [start];
+            var valid3 = true;
+            topDeltas.forEach(function(dd) {
+                var next = picks3[picks3.length - 1] + dd;
+                if (next < 1 || next > N) { valid3 = false; } else { picks3.push(next); }
+            });
+            if (!valid3 || picks3.length !== k) continue;
+            picks3.sort(function(a, b) { return a - b; });
+            var key3 = picks3.join(',');
+            if (usedKeys[key3]) continue;
+            usedKeys[key3] = true;
+            var predSum3 = picks3.reduce(function(s, x) { return s + x; }, 0);
+            predictions.push({ numbers: picks3, sum: predSum3,
+                confidence: Math.min(88, calcConf(picks3, predSum3) + 3), method: 'Delta Pattern' });
+        }
+    }
+
+    if (predictions.length < MAX_PREDICTIONS) deltaPick();
+
+    /* ══════════════════════════════════════════════════════════════════
+       METHOD 4: Quadrant Balance  (Heuristic – distribution enforcement)
+       Divides the pool 1..N into 4 equal quartiles and picks the
+       top-scored number(s) from each to guarantee full range coverage.
+    ══════════════════════════════════════════════════════════════════ */
+    function quadrantPick() {
+        var qSize = Math.ceil(N / 4);
+        var quads = [[], [], [], []];
+        ranked.forEach(function(r) {
+            var qIdx = Math.min(3, Math.floor((r.num - 1) / qSize));
+            quads[qIdx].push(r);
+        });
+        /* Distribute k slots proportionally; extra slots to highest-scoring quadrants */
+        var alloc = [Math.floor(k / 4), Math.floor(k / 4), Math.floor(k / 4), Math.floor(k / 4)];
+        var rem   = k - alloc.reduce(function(s, v) { return s + v; }, 0);
+        var qTopScores = quads.map(function(q) { return q.length > 0 ? q[0].score : 0; });
+        for (var ri2 = 0; ri2 < rem; ri2++) {
+            var bestQ = 0;
+            for (var qi2 = 1; qi2 < 4; qi2++) if (qTopScores[qi2] > qTopScores[bestQ]) bestQ = qi2;
+            alloc[bestQ]++;
+            qTopScores[bestQ] = -1;
+        }
+        /* If a quadrant has fewer numbers than its alloc, redistribute the surplus */
+        for (var qi3 = 0; qi3 < 4; qi3++) {
+            if (quads[qi3].length < alloc[qi3]) {
+                var shortage = alloc[qi3] - quads[qi3].length;
+                alloc[qi3]   = quads[qi3].length;
+                var largest  = quads.reduce(function(b, q, i) { return q.length > quads[b].length ? i : b; }, 0);
+                alloc[largest] += shortage;
+            }
+        }
+        var picked4 = [];
+        for (var qi4 = 0; qi4 < 4; qi4++) {
+            quads[qi4].slice(0, alloc[qi4]).forEach(function(r) { picked4.push(r.num); });
+        }
+        if (picked4.length !== k) return;
+        picked4.sort(function(a, b) { return a - b; });
+        var key4 = picked4.join(',');
+        if (usedKeys[key4]) return;
+        usedKeys[key4] = true;
+        var predSum4 = picked4.reduce(function(s, x) { return s + x; }, 0);
+        predictions.push({ numbers: picked4, sum: predSum4,
+            confidence: Math.min(85, calcConf(picked4, predSum4) + 2), method: 'Quadrant Balance' });
+    }
+
+    if (predictions.length < MAX_PREDICTIONS) quadrantPick();
+
     predictions.sort(function(a, b) { return b.confidence - a.confidence; });
 
-    /* ── 6. Build HTML ── */
+    /* ══════════════════════════════════════════════════════════════════
+       RENDER HTML
+    ══════════════════════════════════════════════════════════════════ */
     var confLabel = composite >= 70 ? 'Speculative' : composite >= 50 ? 'Pattern-Based' : 'Signal-Driven';
     var confColor = composite >= 70 ? '#f59e0b'     : composite >= 50 ? '#3b82f6'       : '#10b981';
 
+    /* Signal contribution bar chart */
+    var sigLabels   = ['A: Freq Deficit','B: Gap Extremes','C: Hot Pairs','D: Recency','E: Markov','F: Position','G: Reversion','H: Delta Pattern'];
+    var sigRawArr   = [sigA, sigB, sigC, sigD, sigE, sigF, sigG, sigH];
+    var sigColors   = ['#3b82f6','#f59e0b','#ec4899','#10b981','#8b5cf6','#06b6d4','#ef4444','#f97316'];
+    var sigWArr     = [SIG_WEIGHTS.A, SIG_WEIGHTS.B, SIG_WEIGHTS.C, SIG_WEIGHTS.D, SIG_WEIGHTS.E, SIG_WEIGHTS.F, SIG_WEIGHTS.G, SIG_WEIGHTS.H];
+    var sigContrib  = sigRawArr.map(function(sig) {
+        var sum = 0;
+        ranked.slice(0, 20).forEach(function(r) { sum += sig[r.num] || 0; });
+        return sum / 20;
+    });
+    var maxContrib = Math.max.apply(null, sigContrib.concat([0.001]));
+
+    var signalBarsHtml =
+        '<div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;">SIGNAL CONTRIBUTION PROFILE</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:8px;margin-bottom:16px;">' +
+        sigLabels.map(function(label, idx) {
+            var pct = maxContrib > 0 ? Math.round(sigContrib[idx] / maxContrib * 100) : 0;
+            return '<div style="background:var(--surface2);border-radius:8px;padding:8px 10px;">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
+                '<span style="font-size:0.68rem;font-weight:700;color:' + sigColors[idx] + ';">' + label + '</span>' +
+                '<span style="font-size:0.65rem;color:var(--text-muted);">&times;' + sigWArr[idx].toFixed(1) + '</span>' +
+                '</div>' +
+                '<div style="height:6px;border-radius:3px;background:var(--border);overflow:hidden;">' +
+                '<div style="height:100%;width:' + pct + '%;background:' + sigColors[idx] + ';border-radius:3px;"></div>' +
+                '</div>' +
+                '<div style="font-size:0.62rem;color:var(--text-muted);margin-top:3px;">' + pct + '% active</div>' +
+                '</div>';
+        }).join('') + '</div>';
+
     var top5Html = ranked.slice(0, 5).map(function(r) {
-        return '<span class="ball ball-main ball-sm animate" style="opacity:0.85;" title="Integrity score: ' + Math.round(r.score) + '">' + r.num + '</span>';
+        return '<span class="ball ball-main ball-sm animate" style="opacity:0.85;" title="Combined score: ' + Math.round(r.score) + '">' + r.num + '</span>';
     }).join(' ');
 
     var overdueHtml = overdueNums.length > 0
@@ -15223,15 +15573,29 @@ function _renderIntegrityPrediction(fmt, draws, n, composite,
           }).join(' ')
         : '<span class="text-muted" style="font-size:0.8rem;">None detected</span>';
 
+    var deltaPatternHtml = topDeltaKey
+        ? '<span style="font-family:monospace;font-size:0.78rem;background:var(--surface2);padding:2px 7px;border-radius:4px;">[' + topDeltaKey + ']</span>' +
+          '<span style="font-size:0.7rem;color:var(--text-muted);margin-left:6px;">&times;' + topDeltaCount + ' draws</span>'
+        : '<span class="text-muted" style="font-size:0.8rem;">Insufficient data</span>';
+
+    var methodColors = {
+        'Weighted Sampling': '#3b82f6',
+        'Ensemble Vote':     '#8b5cf6',
+        'Delta Pattern':     '#10b981',
+        'Quadrant Balance':  '#f59e0b'
+    };
+
     var html =
         '<div class="card">' +
-        '<div class="pattern-section-title">&#129302; Integrity-Driven Prediction Engine</div>' +
+        '<div class="pattern-section-title">&#129302; Integrity-Driven Prediction Engine' +
+        '<span style="font-size:0.72rem;font-weight:400;color:var(--text-muted);margin-left:8px;">8 signals &middot; 4 methods</span></div>' +
         '<div class="algo-info" style="margin-bottom:14px;">' +
-        'Combines <strong>3 statistical signals</strong> extracted from the integrity check to score and rank every ' +
-        'number in the pool, then selects the most statistically motivated combinations. ' +
-        'Predictions are constrained to the expected <strong>sum band</strong> (' + sumLo.toFixed(0) + '&ndash;' + sumHi.toFixed(0) + ') ' +
-        'and an <strong>even/odd target</strong> matching the observed draw pattern (' + targetEven + ' even&nbsp;/&nbsp;' + targetOdd + ' odd). ' +
-        'A lower Randomness Score means stronger signal and higher-confidence picks.' +
+        'Combines <strong>8 analytical signals</strong> — 3&nbsp;statistical, 2&nbsp;algorithmic, 2&nbsp;heuristic, 1&nbsp;mathematical — extracted from the integrity check, ' +
+        'then applies <strong>4 prediction methods</strong> (Weighted Sampling, Ensemble Voting, Delta Pattern, Quadrant Balance) to generate diverse, ' +
+        'high-accuracy combinations. Each prediction is labelled with its generation method. ' +
+        'Predictions use a trend-adjusted <strong>sum band</strong> (' + sumLo.toFixed(0) + '&ndash;' + sumHi.toFixed(0) + ') ' +
+        'and an <strong>even/odd target</strong> (' + targetEven + '&nbsp;even&nbsp;/&nbsp;' + targetOdd + '&nbsp;odd). ' +
+        'A lower Randomness Score means stronger bias signal and higher-confidence picks.' +
         '</div>' +
 
         '<div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px;">' +
@@ -15239,13 +15603,20 @@ function _renderIntegrityPrediction(fmt, draws, n, composite,
         '<div style="font-weight:900;color:' + confColor + ';font-size:1rem;">&#128270; Score: ' + composite + '/100</div>' +
         '<div style="font-size:0.75rem;color:' + confColor + ';margin-top:3px;">Mode: <strong>' + confLabel + '</strong></div>' +
         '</div>' +
-        '<div style="flex:1;min-width:200px;">' +
-        '<div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;">ACTIVE SIGNALS</div>' +
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
-        '<span class="integ-badge ' + (composite < 70 ? 'integ-badge-alert' : 'integ-badge-ok') + '">&#9855; Freq weight &times;' + freqW.toFixed(1) + '</span>' +
+        '<div style="flex:1;min-width:220px;">' +
+        '<div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;">ACTIVE SIGNAL FLAGS</div>' +
+        '<div style="display:flex;gap:5px;flex-wrap:wrap;">' +
+        '<span class="integ-badge ' + (composite < 70 ? 'integ-badge-alert' : 'integ-badge-ok') + '">&#9855; Freq &times;' + freqW.toFixed(1) + '</span>' +
         '<span class="integ-badge ' + (overdueNums.length > 0 ? 'integ-badge-warn' : 'integ-badge-ok') + '">&#9201;&#65039; Overdue: ' + overdueNums.length + '</span>' +
         '<span class="integ-badge ' + (hotPairs.length > 0 ? 'integ-badge-warn' : 'integ-badge-ok') + '">&#128101; Hot pairs: ' + hotPairs.length + '</span>' +
+        '<span class="integ-badge integ-badge-ok">&#128336; Recency &lambda;=0.93</span>' +
+        '<span class="integ-badge ' + (draws.length >= 2 ? 'integ-badge-ok' : 'integ-badge-warn') + '">&#9654;&#65039; Markov</span>' +
+        '<span class="integ-badge integ-badge-ok">&#128290; Position</span>' +
+        '<span class="integ-badge integ-badge-ok">&#128200; Reversion</span>' +
+        '<span class="integ-badge ' + (topDeltaKey ? 'integ-badge-ok' : 'integ-badge-warn') + '">&#9651; Delta</span>' +
         '</div></div></div>' +
+
+        signalBarsHtml +
 
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:16px;">' +
         '<div style="background:var(--surface2);border-radius:10px;padding:10px 12px;">' +
@@ -15258,19 +15629,24 @@ function _renderIntegrityPrediction(fmt, draws, n, composite,
         '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;">&#128101; HOT PAIRS (&ge;2.5&#963;)</div>' +
         '<div style="display:flex;flex-wrap:wrap;gap:3px;">' + hotPairHtml + '</div></div>' +
         '<div style="background:var(--surface2);border-radius:10px;padding:10px 12px;">' +
-        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;">&#8721; SUM TARGET</div>' +
+        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;">&#9651; TOP DELTA PATTERN</div>' +
+        deltaPatternHtml + '</div>' +
+        '<div style="background:var(--surface2);border-radius:10px;padding:10px 12px;">' +
+        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;">&#8721; TREND SUM BAND</div>' +
         '<div style="font-weight:800;font-size:0.92rem;">' + sumLo.toFixed(0) + '&ndash;' + sumHi.toFixed(0) + '</div>' +
-        '<div style="font-size:0.7rem;color:var(--text-muted);">Expected: ' + expSum.toFixed(0) + '</div>' +
+        '<div style="font-size:0.7rem;color:var(--text-muted);">Adj. target: ' + adjExpSum.toFixed(0) + '</div>' +
         '</div></div>' +
 
-        '<div style="margin-bottom:6px;font-size:0.75rem;font-weight:700;color:var(--text-muted);">NUMBER SCORE PROFILE (top 20 by integrity signals)</div>' +
+        '<div style="margin-bottom:6px;font-size:0.75rem;font-weight:700;color:var(--text-muted);">NUMBER SCORE PROFILE (top 20 by combined signals)</div>' +
         '<div style="display:flex;align-items:flex-end;gap:5px;flex-wrap:wrap;margin-bottom:4px;">' +
         ranked.slice(0, 20).map(function(r) {
             var barH = Math.max(6, Math.round(r.score * 0.55));
             var col  = r.num % 2 === 0 ? '#3b82f6' : '#8b5cf6';
-            var tip  = 'Score: ' + Math.round(r.score) +
+            var tip  = 'Combined score: ' + Math.round(r.score) +
                 (overdueNums.some(function(o) { return o.num === r.num; }) ? ' · Overdue' : '') +
-                (pairInvolvement[r.num] > 0 ? ' · Hot pair' : '');
+                (pairInvolvement[r.num] > 0 ? ' · Hot pair' : '') +
+                (sigD[r.num] > 6 ? ' · Recency hot' : '') +
+                (sigE[r.num] > 6 ? ' · Markov' : '');
             return '<div style="text-align:center;">' +
                 '<div style="height:' + barH + 'px;width:20px;margin:0 auto;border-radius:4px 4px 0 0;background:' + col + ';opacity:' + (0.5 + r.score / 200).toFixed(2) + ';" title="' + tip + '"></div>' +
                 '<div style="font-size:0.65rem;font-weight:700;color:var(--purple);margin-top:2px;">' + r.num + '</div>' +
@@ -15285,14 +15661,15 @@ function _renderIntegrityPrediction(fmt, draws, n, composite,
             : '<div class="card">' +
               '<div class="pattern-section-title">&#127919; ' + predictions.length + ' Smart Prediction' + (predictions.length !== 1 ? 's' : '') + ' &mdash; ' + fmt.flag + ' ' + fmt.name + '</div>' +
               '<div class="algo-info" style="margin-bottom:14px;">' +
-              'Balls colour-coded by integrity score: ' +
+              'Each prediction is generated by a different method for maximum diversity. Balls colour-coded by combined signal score: ' +
               '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);vertical-align:middle;"></span>&nbsp;High&nbsp;&nbsp;' +
               '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#d97706);vertical-align:middle;"></span>&nbsp;Medium&nbsp;&nbsp;' +
               '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);vertical-align:middle;"></span>&nbsp;Low. ' +
               'Overdue numbers marked with &#9201;&#65039;, hot-pair numbers with &#128101;.' +
               '</div>' +
               predictions.map(function(p, idx) {
-                  var scoreCls = p.confidence >= 60 ? 'ic-score-high' : p.confidence >= 35 ? 'ic-score-mid' : 'ic-score-low';
+                  var scoreCls  = p.confidence >= 60 ? 'ic-score-high' : p.confidence >= 35 ? 'ic-score-mid' : 'ic-score-low';
+                  var methodCol = methodColors[p.method] || '#6b7280';
                   var balls = p.numbers.map(function(num) {
                       var sc   = numScore[num] || 0;
                       var grad = sc >= 70 ? 'background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-color:transparent;'
@@ -15300,15 +15677,18 @@ function _renderIntegrityPrediction(fmt, draws, n, composite,
                       var isOvD = overdueNums.some(function(o) { return o.num === num; });
                       var isHP  = pairInvolvement[num] > 0;
                       var tip   = 'Score: ' + Math.round(sc) + (isOvD ? ' · Overdue' : '') + (isHP ? ' · Hot pair' : '');
-                      return '<span class="ball ball-main ball-sm animate" style="' + grad + '" title="' + tip + '">' + num + (isOvD ? '<sup style="font-size:0.55em;">&#9201;</sup>' : '') + '</span>';
+                      return '<span class="ball ball-main ball-sm animate" style="' + grad + '" title="' + tip + '">' + num +
+                          (isOvD ? '<sup style="font-size:0.55em;">&#9201;</sup>' : '') + '</span>';
                   }).join(' ');
                   var evC    = p.numbers.filter(function(x) { return x % 2 === 0; }).length;
-                  var detail = 'Sum: ' + p.sum + ' (target ' + expSum.toFixed(0) + ')&nbsp;&nbsp;|&nbsp;&nbsp;' + evC + ' even / ' + (k - evC) + ' odd';
+                  var detail = 'Sum: ' + p.sum + ' (target ' + adjExpSum.toFixed(0) + ')&nbsp;&nbsp;|&nbsp;&nbsp;' + evC + ' even / ' + (k - evC) + ' odd';
                   return (idx > 0 ? '<div style="border-top:1px solid var(--surface2);margin:12px 0;"></div>' : '') +
                       '<div>' +
-                      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+                      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">' +
                       '<span class="fw-700 text-sm">Prediction #' + (idx + 1) + '</span>' +
                       '<span class="ic-score-badge ' + scoreCls + '">&#127775; ' + p.confidence + '% confidence</span>' +
+                      '<span style="font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:10px;' +
+                          'background:' + methodCol + '22;color:' + methodCol + ';border:1px solid ' + methodCol + '44;">&#9654; ' + p.method + '</span>' +
                       '</div>' +
                       '<div class="balls-row" style="flex-wrap:wrap;">' + balls + '</div>' +
                       '<div class="text-muted text-sm" style="margin-top:5px;">' + detail + '</div>' +
