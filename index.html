@@ -2304,6 +2304,7 @@
             <button class="integ-mini-tab" id="integ-tab-2" onclick="switchIntegSub(2)">&#128257; Sequential Tests</button>
             <button class="integ-mini-tab" id="integ-tab-3" onclick="switchIntegSub(3)">&#128336; Temporal / Cluster</button>
             <button class="integ-mini-tab" id="integ-tab-4" onclick="switchIntegSub(4)">&#127754; Heatmap &amp; Pairs</button>
+            <button class="integ-mini-tab" id="integ-tab-5" onclick="switchIntegSub(5)">&#129302; Smart Prediction</button>
         </div>
 
         <!-- Sub-tab 0: Overview -->
@@ -2324,6 +2325,9 @@
 
         <!-- Sub-tab 4: Heatmap & Pairs -->
         <div id="integ-sub-4" style="display:none;"></div>
+
+        <!-- Sub-tab 5: Smart Prediction -->
+        <div id="integ-sub-5" style="display:none;"></div>
     </section>
 
 <!-- SAVE TICKET MODAL -->
@@ -14357,14 +14361,14 @@ function initIntegrityTab() {
 }
 
 function switchIntegSub(idx) {
-    [0,1,2,3,4].forEach(function(i) {
+    [0,1,2,3,4,5].forEach(function(i) {
         document.getElementById('integ-sub-' + i).style.display = i === idx ? 'block' : 'none';
         document.getElementById('integ-tab-' + i).classList.toggle('active', i === idx);
     });
 }
 
 function clearIntegrityCheck() {
-    [0,1,2,3,4].forEach(function(i) {
+    [0,1,2,3,4,5].forEach(function(i) {
         var el = document.getElementById('integ-sub-' + i);
         if (el) el.innerHTML = '';
     });
@@ -14633,6 +14637,12 @@ function runIntegrityCheck() {
         dupCount, nearDupCount, s_dup, n);
     _renderIntegrityTemporal(fmt, draws, clusterData, expSum);
     _renderIntegrityHeatmap(fmt, N, freq, total, expected1, pairFreq, hotPairs, expPairFreq, pairMean, pairStd);
+    _renderIntegrityPrediction(fmt, draws, n, composite,
+        freq, total, expected1,
+        expSum, expectedSumStd, meanSum,
+        meanEven, k, N,
+        gapArr, expMaxGap, overdueNums,
+        hotPairs, scores);
 
     document.getElementById('integ-sub-tabs').style.display = 'flex';
     switchIntegSub(0);
@@ -15062,7 +15072,274 @@ function _renderIntegrityHeatmap(fmt, N, freq, total, expected1, pairFreq, hotPa
 
     out.innerHTML = html;
 }
-</script>
+
+/* ── Integrity-Aware Intelligent Prediction ───────────────────────── */
+/* Uses all three statistical signals from the integrity check to score
+   every number in the pool and generate sum-band & even/odd constrained
+   ticket predictions.
+   Signals:
+     A) Frequency deficit   – under-drawn numbers score higher
+     B) Gap extremes        – overdue numbers score higher
+     C) Hot-pair involvement – numbers in ≥2.5σ pairs get a bonus
+   Confidence is scaled by the composite randomness score: low composite
+   (more bias detected) yields higher-confidence, pattern-based picks;
+   high composite (near-random) marks predictions as speculative. */
+function _renderIntegrityPrediction(fmt, draws, n, composite,
+    freq, total, expected1,
+    expSum, expectedSumStd, meanSum,
+    meanEven, k, N,
+    gapArr, expMaxGap, overdueNums,
+    hotPairs, scores) {
+
+    var out = document.getElementById('integ-sub-5');
+    if (!out) return;
+
+    /* ── 1. Score every number using integrity signals ── */
+    var numScore = {};
+    for (var ni = 1; ni <= N; ni++) numScore[ni] = 0;
+
+    /* Signal A: Frequency deficit
+       Weight increases as composite score drops (stronger bias = more signal). */
+    var freqW = composite < 50 ? 2.5 : composite < 70 ? 1.5 : 0.8;
+    for (var na = 1; na <= N; na++) {
+        var deficit = expected1 - (freq[na] || 0);
+        if (deficit > 0) numScore[na] += freqW * (deficit / expected1) * 10;
+    }
+
+    /* Signal B: Gap extremes – numbers absent longer than expected get a boost */
+    gapArr.forEach(function(g) {
+        if (g.gap > expMaxGap) {
+            numScore[g.num] += Math.min(3.0, (g.gap - expMaxGap) / expMaxGap) * 4;
+        }
+    });
+
+    /* Signal C: Hot-pair involvement – numbers appearing in ≥2.5σ pairs */
+    var pairInvolvement = {};
+    for (var np = 1; np <= N; np++) pairInvolvement[np] = 0;
+    hotPairs.slice(0, 10).forEach(function(hp) {
+        hp.pair.split('-').map(Number).forEach(function(p) {
+            if (p >= 1 && p <= N) pairInvolvement[p]++;
+        });
+    });
+    for (var nc = 1; nc <= N; nc++) {
+        if (pairInvolvement[nc] > 0) numScore[nc] += Math.min(pairInvolvement[nc], 3) * 1.5;
+    }
+
+    /* ── 2. Normalise scores to 0–100 and rank ── */
+    var maxSc = 0;
+    for (var nm = 1; nm <= N; nm++) if (numScore[nm] > maxSc) maxSc = numScore[nm];
+    if (maxSc > 0) for (var nr = 1; nr <= N; nr++) numScore[nr] = numScore[nr] / maxSc * 100;
+
+    var ranked = [];
+    for (var nk = 1; nk <= N; nk++) ranked.push({ num: nk, score: numScore[nk] });
+    ranked.sort(function(a, b) { return b.score - a.score; });
+
+    /* ── 3. Structural targets derived from integrity data ── */
+    var targetEven = Math.max(0, Math.min(k, Math.round(meanEven)));
+    var targetOdd  = k - targetEven;
+    var sumLo  = expSum - expectedSumStd;
+    var sumHi  = expSum + expectedSumStd;
+    var sumLo2 = expSum - expectedSumStd * 2;  /* relaxed constraint */
+    var sumHi2 = expSum + expectedSumStd * 2;
+
+    /* ── 4. Weighted-random sampling helper ── */
+    function weightedPick(pool, count) {
+        if (pool.length < count) return null;
+        var remaining = pool.slice();
+        var picks = [];
+        while (picks.length < count && remaining.length > 0) {
+            var totalW = 0;
+            for (var wi = 0; wi < remaining.length; wi++) totalW += remaining[wi].score + 1;
+            var rnd = Math.random() * totalW, cum = 0;
+            for (var ri = 0; ri < remaining.length; ri++) {
+                cum += remaining[ri].score + 1;
+                if (rnd <= cum) { picks.push(remaining[ri].num); remaining.splice(ri, 1); break; }
+            }
+        }
+        return picks.length === count ? picks : null;
+    }
+
+    /* ── 5. Generate up to 5 predictions ── */
+    var oddPool  = ranked.filter(function(r) { return r.num % 2 === 1; });
+    var evenPool = ranked.filter(function(r) { return r.num % 2 === 0; });
+
+    /* When a pool is too small for the target count, fall back to the
+       full ranked pool (no even/odd separation — avoids overlap bugs). */
+    var canSplitPools = oddPool.length >= targetOdd && evenPool.length >= targetEven;
+
+    var predictions = [];
+    var usedKeys    = {};
+
+    function tryGenerate(strict) {
+        var lo = strict ? sumLo : sumLo2;
+        var hi = strict ? sumHi : sumHi2;
+        var maxAtt = strict ? 400 : 200;
+        for (var att = 0; att < maxAtt && predictions.length < 5; att++) {
+            var picks;
+            if (canSplitPools) {
+                var oNums = weightedPick(oddPool,  targetOdd);
+                var eNums = weightedPick(evenPool, targetEven);
+                if (!oNums || !eNums) break;
+                picks = oNums.concat(eNums).sort(function(a, b) { return a - b; });
+            } else {
+                var allNums = weightedPick(ranked, k);
+                if (!allNums) break;
+                picks = allNums.sort(function(a, b) { return a - b; });
+            }
+            var key = picks.join(',');
+            if (usedKeys[key]) continue;
+            var predSum = picks.reduce(function(s, x) { return s + x; }, 0);
+            if (predSum < lo || predSum > hi) continue;
+            usedKeys[key] = true;
+            var avgNS = picks.reduce(function(s, p2) { return s + (numScore[p2] || 0); }, 0) / picks.length;
+            var sumBandConf = Math.max(0, 100 - Math.abs(predSum - expSum) / Math.max(expectedSumStd, 1) * 20);
+            var adjFactor   = composite < 50 ? 1.25 : composite < 70 ? 1.0 : 0.72;
+            var conf = Math.max(10, Math.min(92, Math.round((avgNS * 0.6 + sumBandConf * 0.4) * adjFactor)));
+            predictions.push({ numbers: picks, sum: predSum, confidence: conf });
+        }
+    }
+
+    tryGenerate(true);                           /* strict: expSum ± 1σ  */
+    if (predictions.length < 3) tryGenerate(false); /* relaxed: expSum ± 2σ */
+    predictions.sort(function(a, b) { return b.confidence - a.confidence; });
+
+    /* ── 6. Build HTML ── */
+    var confLabel = composite >= 70 ? 'Speculative' : composite >= 50 ? 'Pattern-Based' : 'Signal-Driven';
+    var confColor = composite >= 70 ? '#f59e0b'     : composite >= 50 ? '#3b82f6'       : '#10b981';
+
+    var top5Html = ranked.slice(0, 5).map(function(r) {
+        return '<span class="ball ball-main ball-sm animate" style="opacity:0.85;" title="Integrity score: ' + Math.round(r.score) + '">' + r.num + '</span>';
+    }).join(' ');
+
+    var overdueHtml = overdueNums.length > 0
+        ? overdueNums.slice(0, 5).map(function(g) {
+            return '<span class="ball ball-power ball-sm" title="Gap: ' + g.gap + ' draws">' + g.num + '</span>';
+          }).join(' ')
+        : '<span class="text-muted" style="font-size:0.8rem;">None detected</span>';
+
+    var hotPairHtml = hotPairs.length > 0
+        ? hotPairs.slice(0, 5).map(function(hp) {
+            return '<span class="integ-pair-chip hot">' + hp.pair + ' &times;' + hp.count + '</span>';
+          }).join(' ')
+        : '<span class="text-muted" style="font-size:0.8rem;">None detected</span>';
+
+    var html =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#129302; Integrity-Driven Prediction Engine</div>' +
+        '<div class="algo-info" style="margin-bottom:14px;">' +
+        'Combines <strong>3 statistical signals</strong> extracted from the integrity check to score and rank every ' +
+        'number in the pool, then selects the most statistically motivated combinations. ' +
+        'Predictions are constrained to the expected <strong>sum band</strong> (' + sumLo.toFixed(0) + '&ndash;' + sumHi.toFixed(0) + ') ' +
+        'and an <strong>even/odd target</strong> matching the observed draw pattern (' + targetEven + ' even&nbsp;/&nbsp;' + targetOdd + ' odd). ' +
+        'A lower Randomness Score means stronger signal and higher-confidence picks.' +
+        '</div>' +
+
+        '<div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px;">' +
+        '<div style="background:' + confColor + '1a;border:2px solid ' + confColor + '55;border-radius:12px;padding:10px 18px;flex-shrink:0;">' +
+        '<div style="font-weight:900;color:' + confColor + ';font-size:1rem;">&#128270; Score: ' + composite + '/100</div>' +
+        '<div style="font-size:0.75rem;color:' + confColor + ';margin-top:3px;">Mode: <strong>' + confLabel + '</strong></div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:200px;">' +
+        '<div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;">ACTIVE SIGNALS</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+        '<span class="integ-badge ' + (composite < 70 ? 'integ-badge-alert' : 'integ-badge-ok') + '">&#9855; Freq weight &times;' + freqW.toFixed(1) + '</span>' +
+        '<span class="integ-badge ' + (overdueNums.length > 0 ? 'integ-badge-warn' : 'integ-badge-ok') + '">&#9201;&#65039; Overdue: ' + overdueNums.length + '</span>' +
+        '<span class="integ-badge ' + (hotPairs.length > 0 ? 'integ-badge-warn' : 'integ-badge-ok') + '">&#128101; Hot pairs: ' + hotPairs.length + '</span>' +
+        '</div></div></div>' +
+
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:16px;">' +
+        '<div style="background:var(--surface2);border-radius:10px;padding:10px 12px;">' +
+        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;">&#128200; TOP SCORED NUMBERS</div>' +
+        top5Html + '</div>' +
+        '<div style="background:var(--surface2);border-radius:10px;padding:10px 12px;">' +
+        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;">&#9201;&#65039; OVERDUE NUMBERS</div>' +
+        overdueHtml + '</div>' +
+        '<div style="background:var(--surface2);border-radius:10px;padding:10px 12px;">' +
+        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;">&#128101; HOT PAIRS (&ge;2.5&#963;)</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:3px;">' + hotPairHtml + '</div></div>' +
+        '<div style="background:var(--surface2);border-radius:10px;padding:10px 12px;">' +
+        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;">&#8721; SUM TARGET</div>' +
+        '<div style="font-weight:800;font-size:0.92rem;">' + sumLo.toFixed(0) + '&ndash;' + sumHi.toFixed(0) + '</div>' +
+        '<div style="font-size:0.7rem;color:var(--text-muted);">Expected: ' + expSum.toFixed(0) + '</div>' +
+        '</div></div>' +
+
+        '<div style="margin-bottom:6px;font-size:0.75rem;font-weight:700;color:var(--text-muted);">NUMBER SCORE PROFILE (top 20 by integrity signals)</div>' +
+        '<div style="display:flex;align-items:flex-end;gap:5px;flex-wrap:wrap;margin-bottom:4px;">' +
+        ranked.slice(0, 20).map(function(r) {
+            var barH = Math.max(6, Math.round(r.score * 0.55));
+            var col  = r.num % 2 === 0 ? '#3b82f6' : '#8b5cf6';
+            var tip  = 'Score: ' + Math.round(r.score) +
+                (overdueNums.some(function(o) { return o.num === r.num; }) ? ' · Overdue' : '') +
+                (pairInvolvement[r.num] > 0 ? ' · Hot pair' : '');
+            return '<div style="text-align:center;">' +
+                '<div style="height:' + barH + 'px;width:20px;margin:0 auto;border-radius:4px 4px 0 0;background:' + col + ';opacity:' + (0.5 + r.score / 200).toFixed(2) + ';" title="' + tip + '"></div>' +
+                '<div style="font-size:0.65rem;font-weight:700;color:var(--purple);margin-top:2px;">' + r.num + '</div>' +
+                '</div>';
+        }).join('') +
+        '</div>' +
+        '<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:0;">&#128309; = even &nbsp; &#128994; = odd</div>' +
+        '</div>' +
+
+        (predictions.length === 0
+            ? '<div class="card"><p class="text-muted text-sm text-center" style="padding:20px 0;">Could not build valid predictions. Add more draw history for ' + fmt.flag + ' ' + fmt.name + '.</p></div>'
+            : '<div class="card">' +
+              '<div class="pattern-section-title">&#127919; ' + predictions.length + ' Smart Prediction' + (predictions.length !== 1 ? 's' : '') + ' &mdash; ' + fmt.flag + ' ' + fmt.name + '</div>' +
+              '<div class="algo-info" style="margin-bottom:14px;">' +
+              'Balls colour-coded by integrity score: ' +
+              '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);vertical-align:middle;"></span>&nbsp;High&nbsp;&nbsp;' +
+              '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#d97706);vertical-align:middle;"></span>&nbsp;Medium&nbsp;&nbsp;' +
+              '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);vertical-align:middle;"></span>&nbsp;Low. ' +
+              'Overdue numbers marked with &#9201;&#65039;, hot-pair numbers with &#128101;.' +
+              '</div>' +
+              predictions.map(function(p, idx) {
+                  var scoreCls = p.confidence >= 60 ? 'ic-score-high' : p.confidence >= 35 ? 'ic-score-mid' : 'ic-score-low';
+                  var balls = p.numbers.map(function(num) {
+                      var sc   = numScore[num] || 0;
+                      var grad = sc >= 70 ? 'background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-color:transparent;'
+                               : sc >= 35 ? 'background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-color:transparent;' : '';
+                      var isOvD = overdueNums.some(function(o) { return o.num === num; });
+                      var isHP  = pairInvolvement[num] > 0;
+                      var tip   = 'Score: ' + Math.round(sc) + (isOvD ? ' · Overdue' : '') + (isHP ? ' · Hot pair' : '');
+                      return '<span class="ball ball-main ball-sm animate" style="' + grad + '" title="' + tip + '">' + num + (isOvD ? '<sup style="font-size:0.55em;">&#9201;</sup>' : '') + '</span>';
+                  }).join(' ');
+                  var evC    = p.numbers.filter(function(x) { return x % 2 === 0; }).length;
+                  var detail = 'Sum: ' + p.sum + ' (target ' + expSum.toFixed(0) + ')&nbsp;&nbsp;|&nbsp;&nbsp;' + evC + ' even / ' + (k - evC) + ' odd';
+                  return (idx > 0 ? '<div style="border-top:1px solid var(--surface2);margin:12px 0;"></div>' : '') +
+                      '<div>' +
+                      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+                      '<span class="fw-700 text-sm">Prediction #' + (idx + 1) + '</span>' +
+                      '<span class="ic-score-badge ' + scoreCls + '">&#127775; ' + p.confidence + '% confidence</span>' +
+                      '</div>' +
+                      '<div class="balls-row" style="flex-wrap:wrap;">' + balls + '</div>' +
+                      '<div class="text-muted text-sm" style="margin-top:5px;">' + detail + '</div>' +
+                      '</div>';
+              }).join('') +
+              '<div style="border-top:1px solid var(--surface2);margin-top:16px;padding-top:14px;">' +
+              '<div class="btn-row">' +
+              '<button class="btn btn-primary" onclick="_integSavePredictions()">&#128190; Save All ' + predictions.length + ' to Tickets</button>' +
+              '</div></div>' +
+              '</div>');
+
+    out.innerHTML = html;
+
+    /* Store for the save helper */
+    window._integLastPredictions = predictions.map(function(p) {
+        return { formatId: fmt.id, main: p.numbers.slice(), bonus: [] };
+    });
+}
+
+/* Save integrity predictions to the Tickets tab */
+function _integSavePredictions() {
+    if (!window._integLastPredictions || !window._integLastPredictions.length) {
+        showToast('No integrity predictions to save. Run the Integrity Check first.', 'error');
+        return;
+    }
+    window._integLastPredictions.forEach(function(p) {
+        addTicket(p.formatId, p.main, p.bonus, '', 'Integrity Prediction');
+    });
+    showToast(window._integLastPredictions.length + ' integrity prediction' +
+        (window._integLastPredictions.length !== 1 ? 's' : '') + ' saved to tickets!', 'success');
+}
     // Register the PWA service worker
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
