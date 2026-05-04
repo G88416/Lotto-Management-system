@@ -15676,10 +15676,14 @@ function _integRunAllMethods(st) {
     var canSplitPools = freeTargetEven !== -1 && freeTargetOdd !== -1 &&
         oddFreePool.length >= freeTargetOdd && evenFreePool.length >= freeTargetEven;
 
-    /* Append locked numbers to a free pick and sort/dedup */
+    /* Append locked numbers to a free pick and sort/dedup (O(n) via object lookup) */
     function addLocked(freePicks) {
-        var all = freePicks.concat(lockedNums).sort(function(a, b) { return a - b; });
-        return all.filter(function(v, i) { return all.indexOf(v) === i; });
+        var seen = {};
+        var merged = [];
+        freePicks.concat(lockedNums).forEach(function(v) {
+            if (!seen[v]) { seen[v] = true; merged.push(v); }
+        });
+        return merged.sort(function(a, b) { return a - b; });
     }
 
     function calcConf(picks, predSum) {
