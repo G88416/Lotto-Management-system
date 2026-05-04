@@ -639,6 +639,42 @@
         .integ-pred-card:hover { box-shadow:0 6px 22px var(--shadow); }
         .integ-explain-panel { overflow:hidden; max-height:0; transition:max-height 0.35s ease; }
         .integ-explain-panel.open { max-height:800px; }
+        /* ── Mode Controls, Presets & Constraint Chips ─────────────────────── */
+        .integ-mode-pills { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+        .integ-mode-pill { padding:5px 14px; border-radius:20px; border:1.5px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:0.78rem; font-weight:700; cursor:pointer; transition:all 0.15s; display:inline-flex; align-items:center; gap:5px; }
+        .integ-mode-pill:hover { border-color:var(--purple); color:var(--purple); }
+        .integ-mode-pill.active { background:var(--accent-grad); color:#fff; border-color:transparent; box-shadow:0 2px 10px rgba(139,92,246,0.3); }
+        .integ-mode-pill.mode-lock.active { background:linear-gradient(135deg,#10b981,#059669); box-shadow:0 2px 10px rgba(16,185,129,0.4); }
+        .integ-mode-pill.mode-exclude.active { background:linear-gradient(135deg,#ef4444,#dc2626); box-shadow:0 2px 10px rgba(239,68,68,0.4); }
+        .integ-mode-pill.mode-pick.active { background:linear-gradient(135deg,#3b82f6,#2563eb); box-shadow:0 2px 10px rgba(59,130,246,0.4); }
+        .integ-preset-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+        .integ-preset-btn { padding:4px 11px; border-radius:14px; border:1.5px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:0.72rem; font-weight:700; cursor:pointer; transition:all 0.15s; }
+        .integ-preset-btn:hover { border-color:var(--purple); color:var(--purple); transform:translateY(-1px); }
+        .integ-constraint-chip { display:inline-flex; align-items:center; gap:4px; border-radius:10px; padding:3px 9px; font-size:0.72rem; font-weight:700; margin:2px; cursor:pointer; transition:opacity 0.15s; }
+        .integ-constraint-chip:hover { opacity:0.72; }
+        .integ-lock-chip { background:rgba(16,185,129,0.15); border:1px solid #10b981; color:#10b981; }
+        .integ-exclude-chip { background:rgba(239,68,68,0.12); border:1px solid #ef4444; color:#ef4444; }
+        .integ-ns-cell.cell-excluded { opacity:0.25; filter:grayscale(0.7); }
+        .integ-pick-slots { display:flex; flex-wrap:wrap; gap:5px; margin:10px 0; min-height:46px; align-items:center; }
+        .integ-pick-slot-empty { display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; border:2px dashed var(--border); color:var(--text-muted); font-size:0.72rem; font-weight:700; }
+        .integ-pick-slot-filled { display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#3b82f6,#2563eb); color:#fff; font-size:0.82rem; font-weight:800; cursor:pointer; border:2px solid transparent; transition:transform 0.15s,box-shadow 0.15s; }
+        .integ-pick-slot-filled:hover { transform:scale(1.12); box-shadow:0 4px 12px rgba(59,130,246,0.45); }
+        .integ-pick-score-box { background:var(--surface); border-radius:10px; padding:10px 14px; border:1.5px solid var(--border); margin-top:8px; }
+        .integ-wizard-q { padding:12px 0 6px; border-bottom:1px solid var(--border); margin-bottom:10px; }
+        .integ-wizard-options { display:flex; gap:7px; flex-wrap:wrap; margin-top:8px; }
+        .integ-wizard-option { padding:7px 14px; border-radius:14px; border:1.5px solid var(--border); background:var(--surface2); color:var(--text); font-size:0.78rem; font-weight:600; cursor:pointer; transition:all 0.15s; text-align:left; }
+        .integ-wizard-option:hover { border-color:var(--purple); color:var(--purple); transform:translateY(-1px); }
+        .integ-wizard-option.wiz-selected { background:var(--accent-grad); color:#fff; border-color:transparent; box-shadow:0 2px 10px rgba(139,92,246,0.3); }
+        .integ-wizard-progress { display:flex; gap:5px; margin-bottom:14px; align-items:center; }
+        .integ-wizard-dot { width:9px; height:9px; border-radius:50%; background:var(--border); transition:background 0.2s; }
+        .integ-wizard-dot.wiz-done { background:var(--purple); }
+        .integ-wizard-dot.wiz-active { background:var(--purple); box-shadow:0 0 0 3px rgba(139,92,246,0.3); }
+        .integ-date-chip { display:inline-flex; align-items:center; gap:4px; border-radius:10px; padding:4px 12px; font-size:0.75rem; font-weight:700; margin:3px; cursor:pointer; border:1.5px solid var(--border); background:var(--surface2); color:var(--text-muted); transition:all 0.15s; }
+        .integ-date-chip:hover { border-color:var(--purple); color:var(--purple); }
+        .integ-date-chip.active { background:var(--accent-grad); color:#fff; border-color:transparent; box-shadow:0 2px 8px rgba(139,92,246,0.3); }
+        .integ-method-chip { display:inline-flex; align-items:center; gap:5px; border-radius:12px; padding:5px 13px; font-size:0.75rem; font-weight:700; margin:3px; cursor:pointer; border:1.5px solid var(--border); background:var(--surface2); color:var(--text-muted); transition:all 0.15s; }
+        .integ-method-chip:hover { border-color:var(--purple); }
+        .integ-method-chip.active { color:#fff; border-color:transparent; }
     </style>
     <!-- Firebase SDK v10 (compat build – no bundler required) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -15566,7 +15602,14 @@ function _renderIntegrityPrediction(fmt, draws, n, composite,
         freqW: freqW,
         SIG_WEIGHTS: { A: SIG_WEIGHTS.A, B: SIG_WEIGHTS.B, C: SIG_WEIGHTS.C, D: SIG_WEIGHTS.D,
                        E: SIG_WEIGHTS.E, F: SIG_WEIGHTS.F, G: SIG_WEIGHTS.G, H: SIG_WEIGHTS.H },
-        predictions: predictions
+        predictions: predictions,
+        /* Interactive controls */
+        interactMode: 'info',
+        lockedNums: [], excludedNums: [], pickerNums: [],
+        predCount: 6, evenOddOverride: 'auto',
+        activeMethods: ['Weighted Sampling', 'Ensemble Vote', 'Delta Pattern', 'Quadrant Balance'],
+        predictForDate: null,
+        wizardAnswers: {}, wizardStep: 0
     };
 
     _integRenderUI();
@@ -15581,12 +15624,11 @@ function _renderIntegrityPrediction(fmt, draws, n, composite,
    INTERACTIVE INTEGRITY PREDICTION — HELPER FUNCTIONS
 ══════════════════════════════════════════════════════════════════ */
 
-/* Re-run all 4 prediction methods with the current numScore/ranked in st */
+/* Re-run all 4 prediction methods with constraint & control support */
 function _integRunAllMethods(st) {
     var N = st.N, k = st.k;
     var adjExpSum = st.adjExpSum, expectedSumStd = st.expectedSumStd;
     var sumLo = st.sumLo, sumHi = st.sumHi, sumLo2 = st.sumLo2, sumHi2 = st.sumHi2;
-    var targetEven = st.targetEven, targetOdd = st.targetOdd;
     var composite = st.composite;
     var numScore = st.numScore, ranked = st.ranked;
     var sigA = st.sigA, sigB = st.sigB, sigC = st.sigC, sigD = st.sigD;
@@ -15594,16 +15636,58 @@ function _integRunAllMethods(st) {
     var topDeltaKey = st.topDeltaKey, topDeltas = st.topDeltas;
     var anchorFreq  = st.anchorFreq,  gapArr    = st.gapArr;
 
+    /* ── Constraint & control resolution ── */
+    var lockedNums   = (st.lockedNums   || []).filter(function(n) { return n >= 1 && n <= N; });
+    var excludedNums = (st.excludedNums || []).filter(function(n) { return n >= 1 && n <= N; });
+    var MAX_PREDICTIONS = Math.max(3, Math.min(10, st.predCount || 6));
+    var activeMethods = st.activeMethods || ['Weighted Sampling','Ensemble Vote','Delta Pattern','Quadrant Balance'];
+
+    /* Resolve even/odd target (may be overridden by user) */
+    var targetEven = st.targetEven, targetOdd = st.targetOdd;
+    var eoOverride = st.evenOddOverride || 'auto';
+    if (eoOverride === 'balanced') {
+        targetEven = Math.round(k / 2); targetOdd = k - targetEven;
+    } else if (eoOverride === 'moreeven') {
+        targetEven = Math.min(k, Math.round(k / 2) + 1); targetOdd = k - targetEven;
+    } else if (eoOverride === 'moreodd') {
+        targetEven = Math.max(0, Math.round(k / 2) - 1); targetOdd = k - targetEven;
+    } else if (eoOverride === 'any') {
+        targetEven = -1; targetOdd = -1;   /* sentinel: skip enforcement */
+    }
+
+    /* Free pool: excludes both locked and excluded numbers */
+    var freeRanked = ranked.filter(function(r) {
+        return excludedNums.indexOf(r.num) === -1 && lockedNums.indexOf(r.num) === -1;
+    });
+    var freeSlotsNeeded = k - lockedNums.length;
+    if (freeSlotsNeeded < 0) { lockedNums = lockedNums.slice(0, k); freeSlotsNeeded = 0; }
+
+    /* Effective even/odd targets for free slots */
+    var lockedEven = lockedNums.filter(function(n) { return n % 2 === 0; }).length;
+    var lockedOdd  = lockedNums.filter(function(n) { return n % 2 === 1; }).length;
+    var freeTargetEven = targetEven === -1 ? -1 : Math.max(0, targetEven - lockedEven);
+    var freeTargetOdd  = targetOdd  === -1 ? -1 : Math.max(0, targetOdd  - lockedOdd);
+    if (freeTargetEven !== -1 && freeTargetEven + freeTargetOdd !== freeSlotsNeeded) {
+        freeTargetEven = -1; freeTargetOdd = -1;
+    }
+
+    var oddFreePool  = freeRanked.filter(function(r) { return r.num % 2 === 1; });
+    var evenFreePool = freeRanked.filter(function(r) { return r.num % 2 === 0; });
+    var canSplitPools = freeTargetEven !== -1 && freeTargetOdd !== -1 &&
+        oddFreePool.length >= freeTargetOdd && evenFreePool.length >= freeTargetEven;
+
+    /* Append locked numbers to a free pick and sort/dedup */
+    function addLocked(freePicks) {
+        var all = freePicks.concat(lockedNums).sort(function(a, b) { return a - b; });
+        return all.filter(function(v, i) { return all.indexOf(v) === i; });
+    }
+
     function calcConf(picks, predSum) {
         var avgNS = picks.reduce(function(s, p2) { return s + (numScore[p2] || 0); }, 0) / picks.length;
         var sumBandConf = Math.max(0, 100 - Math.abs(predSum - adjExpSum) / Math.max(expectedSumStd, 1) * 20);
         var adjFactor   = composite < 50 ? 1.25 : composite < 70 ? 1.0 : 0.72;
         return Math.max(10, Math.min(92, Math.round((avgNS * 0.6 + sumBandConf * 0.4) * adjFactor)));
     }
-
-    var oddPool  = ranked.filter(function(r) { return r.num % 2 === 1; });
-    var evenPool = ranked.filter(function(r) { return r.num % 2 === 0; });
-    var canSplitPools = oddPool.length >= targetOdd && evenPool.length >= targetEven;
 
     function weightedPick(pool, count) {
         if (pool.length < count) return null;
@@ -15623,143 +15707,162 @@ function _integRunAllMethods(st) {
 
     var predictions = [];
     var usedKeys    = {};
-    var MAX_PREDICTIONS = 6;
 
-    function tryGenerate(strict) {
-        var lo = strict ? sumLo : sumLo2;
-        var hi = strict ? sumHi : sumHi2;
-        var maxAtt = strict ? 600 : 300;
-        for (var att = 0; att < maxAtt && predictions.length < 5; att++) {
-            var picks;
-            if (canSplitPools) {
-                var oNums = weightedPick(oddPool,  targetOdd);
-                var eNums = weightedPick(evenPool, targetEven);
-                if (!oNums || !eNums) break;
-                picks = oNums.concat(eNums).sort(function(a, b) { return a - b; });
-            } else {
-                var allNums = weightedPick(ranked, k);
-                if (!allNums) break;
-                picks = allNums.sort(function(a, b) { return a - b; });
+    /* METHOD 1: Weighted-Random Sampling */
+    if (activeMethods.indexOf('Weighted Sampling') !== -1) {
+        function tryGenerate(strict) {
+            var lo = strict ? sumLo : sumLo2;
+            var hi = strict ? sumHi : sumHi2;
+            var maxAtt = strict ? 600 : 300;
+            for (var att = 0; att < maxAtt && predictions.length < Math.min(5, MAX_PREDICTIONS); att++) {
+                var freePicks;
+                if (canSplitPools) {
+                    var oNums = weightedPick(oddFreePool,  freeTargetOdd);
+                    var eNums = weightedPick(evenFreePool, freeTargetEven);
+                    if (!oNums || !eNums) break;
+                    freePicks = oNums.concat(eNums);
+                } else {
+                    freePicks = weightedPick(freeRanked, freeSlotsNeeded);
+                    if (!freePicks) break;
+                }
+                var picks = addLocked(freePicks);
+                if (picks.length !== k) continue;
+                var key = picks.join(',');
+                if (usedKeys[key]) continue;
+                var predSum = picks.reduce(function(s, x) { return s + x; }, 0);
+                if (predSum < lo || predSum > hi) continue;
+                usedKeys[key] = true;
+                predictions.push({ numbers: picks, sum: predSum, confidence: calcConf(picks, predSum), method: 'Weighted Sampling' });
             }
-            var key = picks.join(',');
-            if (usedKeys[key]) continue;
-            var predSum = picks.reduce(function(s, x) { return s + x; }, 0);
-            if (predSum < lo || predSum > hi) continue;
-            usedKeys[key] = true;
-            predictions.push({ numbers: picks, sum: predSum, confidence: calcConf(picks, predSum), method: 'Weighted Sampling' });
         }
+        tryGenerate(true);
+        if (predictions.length < 3) tryGenerate(false);
     }
 
-    tryGenerate(true);
-    if (predictions.length < 3) tryGenerate(false);
-
-    function ensemblePick() {
+    /* METHOD 2: Ensemble Voting */
+    if (activeMethods.indexOf('Ensemble Vote') !== -1 && predictions.length < MAX_PREDICTIONS) {
         var nomCount = Math.ceil(k * 1.8);
         var votes = {};
         for (var vi = 1; vi <= N; vi++) votes[vi] = 0;
         function nominate(rawSig) {
             var arr = [];
-            for (var x = 1; x <= N; x++) arr.push({ num: x, s: rawSig[x] || 0 });
+            for (var x = 1; x <= N; x++) {
+                if (excludedNums.indexOf(x) !== -1 || lockedNums.indexOf(x) !== -1) continue;
+                arr.push({ num: x, s: rawSig[x] || 0 });
+            }
             arr.sort(function(a, b) { return b.s - a.s; });
             arr.slice(0, nomCount).forEach(function(r) { votes[r.num]++; });
         }
         nominate(sigA); nominate(sigB); nominate(sigC); nominate(sigD);
         nominate(sigE); nominate(sigF); nominate(sigG); nominate(sigH);
         var voteRanked = [];
-        for (var vr = 1; vr <= N; vr++) voteRanked.push({ num: vr, votes: votes[vr], score: numScore[vr] });
+        for (var vr = 1; vr <= N; vr++) {
+            if (excludedNums.indexOf(vr) !== -1 || lockedNums.indexOf(vr) !== -1) continue;
+            voteRanked.push({ num: vr, votes: votes[vr], score: numScore[vr] });
+        }
         voteRanked.sort(function(a, b) { return b.votes !== a.votes ? b.votes - a.votes : b.score - a.score; });
-        var picked = [], evenCnt = 0, oddCnt = 0;
-        for (var vi2 = 0; vi2 < voteRanked.length && picked.length < k; vi2++) {
-            var num2 = voteRanked[vi2].num;
-            var isEv = num2 % 2 === 0;
-            if (isEv  && evenCnt < targetEven) { picked.push(num2); evenCnt++; }
-            else if (!isEv && oddCnt < targetOdd)  { picked.push(num2); oddCnt++;  }
-        }
-        for (var vi3 = 0; vi3 < voteRanked.length && picked.length < k; vi3++) {
-            if (picked.indexOf(voteRanked[vi3].num) === -1) picked.push(voteRanked[vi3].num);
-        }
-        if (picked.length !== k) return;
-        picked.sort(function(a, b) { return a - b; });
-        var key2 = picked.join(',');
-        if (usedKeys[key2]) return;
-        usedKeys[key2] = true;
-        var predSum2 = picked.reduce(function(s, x) { return s + x; }, 0);
-        predictions.push({ numbers: picked, sum: predSum2,
-            confidence: Math.min(92, calcConf(picked, predSum2) + 5), method: 'Ensemble Vote' });
-    }
-
-    if (predictions.length < MAX_PREDICTIONS) ensemblePick();
-
-    function deltaPick() {
-        if (!topDeltaKey || topDeltas.length !== k - 1) return;
-        var anchors = Object.keys(anchorFreq).map(function(anch) {
-            var aNum  = parseInt(anch);
-            var gapRec = null;
-            for (var gri = 0; gri < gapArr.length; gri++) {
-                if (gapArr[gri].num === aNum) { gapRec = gapArr[gri]; break; }
+        var freePicked2 = [], evenCnt2 = 0, oddCnt2 = 0;
+        if (canSplitPools) {
+            for (var vi2 = 0; vi2 < voteRanked.length && freePicked2.length < freeSlotsNeeded; vi2++) {
+                var num2 = voteRanked[vi2].num;
+                var isEv2 = num2 % 2 === 0;
+                if (isEv2 && evenCnt2 < freeTargetEven) { freePicked2.push(num2); evenCnt2++; }
+                else if (!isEv2 && oddCnt2 < freeTargetOdd)  { freePicked2.push(num2); oddCnt2++;  }
             }
-            return { anchor: aNum, score: (anchorFreq[anch] || 0) * ((gapRec ? gapRec.gap : 0) + 1) };
-        }).sort(function(a, b) { return b.score - a.score; });
-        for (var ai = 0; ai < anchors.length && predictions.length < MAX_PREDICTIONS; ai++) {
-            var start  = anchors[ai].anchor;
-            var picks3 = [start];
-            var valid3 = true;
-            topDeltas.forEach(function(dd) {
-                var next = picks3[picks3.length - 1] + dd;
-                if (next < 1 || next > N) { valid3 = false; } else { picks3.push(next); }
-            });
-            if (!valid3 || picks3.length !== k) continue;
-            picks3.sort(function(a, b) { return a - b; });
-            var key3 = picks3.join(',');
-            if (usedKeys[key3]) continue;
-            usedKeys[key3] = true;
-            var predSum3 = picks3.reduce(function(s, x) { return s + x; }, 0);
-            predictions.push({ numbers: picks3, sum: predSum3,
-                confidence: Math.min(88, calcConf(picks3, predSum3) + 3), method: 'Delta Pattern' });
+        }
+        for (var vi3 = 0; vi3 < voteRanked.length && freePicked2.length < freeSlotsNeeded; vi3++) {
+            if (freePicked2.indexOf(voteRanked[vi3].num) === -1) freePicked2.push(voteRanked[vi3].num);
+        }
+        if (freePicked2.length === freeSlotsNeeded) {
+            var picked2 = addLocked(freePicked2);
+            if (picked2.length === k) {
+                var key2 = picked2.join(',');
+                if (!usedKeys[key2]) {
+                    usedKeys[key2] = true;
+                    var predSum2 = picked2.reduce(function(s, x) { return s + x; }, 0);
+                    predictions.push({ numbers: picked2, sum: predSum2,
+                        confidence: Math.min(92, calcConf(picked2, predSum2) + 5), method: 'Ensemble Vote' });
+                }
+            }
         }
     }
 
-    if (predictions.length < MAX_PREDICTIONS) deltaPick();
+    /* METHOD 3: Delta Pattern Extrapolation */
+    if (activeMethods.indexOf('Delta Pattern') !== -1 && predictions.length < MAX_PREDICTIONS) {
+        if (topDeltaKey && topDeltas.length === k - 1) {
+            var anchors3 = Object.keys(anchorFreq).map(function(anch) {
+                var aNum  = parseInt(anch);
+                var gapRec = null;
+                for (var gri = 0; gri < gapArr.length; gri++) {
+                    if (gapArr[gri].num === aNum) { gapRec = gapArr[gri]; break; }
+                }
+                return { anchor: aNum, score: (anchorFreq[anch] || 0) * ((gapRec ? gapRec.gap : 0) + 1) };
+            }).sort(function(a, b) { return b.score - a.score; });
+            for (var ai = 0; ai < anchors3.length && predictions.length < MAX_PREDICTIONS; ai++) {
+                var start3 = anchors3[ai].anchor;
+                var picks3 = [start3];
+                var valid3 = true;
+                topDeltas.forEach(function(dd) {
+                    var next = picks3[picks3.length - 1] + dd;
+                    if (next < 1 || next > N) { valid3 = false; } else { picks3.push(next); }
+                });
+                if (!valid3 || picks3.length !== k) continue;
+                if (picks3.some(function(x) { return excludedNums.indexOf(x) !== -1; })) continue;
+                if (lockedNums.length > 0 && !lockedNums.every(function(x) { return picks3.indexOf(x) !== -1; })) continue;
+                picks3.sort(function(a, b) { return a - b; });
+                var key3 = picks3.join(',');
+                if (usedKeys[key3]) continue;
+                usedKeys[key3] = true;
+                var predSum3 = picks3.reduce(function(s, x) { return s + x; }, 0);
+                predictions.push({ numbers: picks3, sum: predSum3,
+                    confidence: Math.min(88, calcConf(picks3, predSum3) + 3), method: 'Delta Pattern' });
+            }
+        }
+    }
 
-    function quadrantPick() {
+    /* METHOD 4: Quadrant Balance */
+    if (activeMethods.indexOf('Quadrant Balance') !== -1 && predictions.length < MAX_PREDICTIONS) {
         var qSize = Math.ceil(N / 4);
         var quads = [[], [], [], []];
-        ranked.forEach(function(r) {
+        freeRanked.forEach(function(r) {
             var qIdx = Math.min(3, Math.floor((r.num - 1) / qSize));
             quads[qIdx].push(r);
         });
-        var alloc = [Math.floor(k / 4), Math.floor(k / 4), Math.floor(k / 4), Math.floor(k / 4)];
-        var rem   = k - alloc.reduce(function(s, v) { return s + v; }, 0);
-        var qTopScores = quads.map(function(q) { return q.length > 0 ? q[0].score : 0; });
-        for (var ri2 = 0; ri2 < rem; ri2++) {
-            var bestQ = 0;
-            for (var qi2 = 1; qi2 < 4; qi2++) if (qTopScores[qi2] > qTopScores[bestQ]) bestQ = qi2;
-            alloc[bestQ]++;
-            qTopScores[bestQ] = -1;
+        var alloc4 = [Math.floor(freeSlotsNeeded / 4), Math.floor(freeSlotsNeeded / 4),
+                      Math.floor(freeSlotsNeeded / 4), Math.floor(freeSlotsNeeded / 4)];
+        var rem4   = freeSlotsNeeded - alloc4.reduce(function(s, v) { return s + v; }, 0);
+        var qTS4   = quads.map(function(q) { return q.length > 0 ? q[0].score : 0; });
+        for (var ri2 = 0; ri2 < rem4; ri2++) {
+            var bestQ4 = 0;
+            for (var qi2 = 1; qi2 < 4; qi2++) if (qTS4[qi2] > qTS4[bestQ4]) bestQ4 = qi2;
+            alloc4[bestQ4]++; qTS4[bestQ4] = -1;
         }
         for (var qi3 = 0; qi3 < 4; qi3++) {
-            if (quads[qi3].length < alloc[qi3]) {
-                var shortage = alloc[qi3] - quads[qi3].length;
-                alloc[qi3]   = quads[qi3].length;
-                var largest  = quads.reduce(function(b, q, i) { return q.length > quads[b].length ? i : b; }, 0);
-                alloc[largest] += shortage;
+            if (quads[qi3].length < alloc4[qi3]) {
+                var shortage4 = alloc4[qi3] - quads[qi3].length;
+                alloc4[qi3] = quads[qi3].length;
+                var largest4 = quads.reduce(function(b, q, i) { return q.length > quads[b].length ? i : b; }, 0);
+                alloc4[largest4] += shortage4;
             }
         }
-        var picked4 = [];
+        var freePicked4 = [];
         for (var qi4 = 0; qi4 < 4; qi4++) {
-            quads[qi4].slice(0, alloc[qi4]).forEach(function(r) { picked4.push(r.num); });
+            quads[qi4].slice(0, alloc4[qi4]).forEach(function(r) { freePicked4.push(r.num); });
         }
-        if (picked4.length !== k) return;
-        picked4.sort(function(a, b) { return a - b; });
-        var key4 = picked4.join(',');
-        if (usedKeys[key4]) return;
-        usedKeys[key4] = true;
-        var predSum4 = picked4.reduce(function(s, x) { return s + x; }, 0);
-        predictions.push({ numbers: picked4, sum: predSum4,
-            confidence: Math.min(85, calcConf(picked4, predSum4) + 2), method: 'Quadrant Balance' });
+        if (freePicked4.length === freeSlotsNeeded) {
+            var picked4 = addLocked(freePicked4);
+            if (picked4.length === k) {
+                var key4 = picked4.join(',');
+                if (!usedKeys[key4]) {
+                    usedKeys[key4] = true;
+                    var predSum4 = picked4.reduce(function(s, x) { return s + x; }, 0);
+                    predictions.push({ numbers: picked4, sum: predSum4,
+                        confidence: Math.min(85, calcConf(picked4, predSum4) + 2), method: 'Quadrant Balance' });
+                }
+            }
+        }
     }
 
-    if (predictions.length < MAX_PREDICTIONS) quadrantPick();
     predictions.sort(function(a, b) { return b.confidence - a.confidence; });
     return predictions;
 }
@@ -15768,37 +15871,70 @@ function _integRunAllMethods(st) {
 function _integBuildNumGrid(st) {
     var N = st.N, numScore = st.numScore, overdueNums = st.overdueNums;
     var pairInvolvement = st.pairInvolvement;
+    var lockedNums   = st.lockedNums   || [];
+    var excludedNums = st.excludedNums || [];
+    var pickerNums   = st.pickerNums   || [];
+    var interactMode = st.interactMode || 'info';
     var predNums = {};
     st.predictions.forEach(function(p) { p.numbers.forEach(function(x) { predNums[x] = true; }); });
 
+    var modeHints = {
+        'info':    ' — click for signal breakdown',
+        'lock':    ' — click to lock/unlock',
+        'exclude': ' — click to exclude/include',
+        'pick':    ' — click to add/remove from your ticket'
+    };
+
     var html = '';
     for (var n = 1; n <= N; n++) {
-        var sc       = numScore[n] || 0;
-        var isInPred = !!predNums[n];
+        var sc        = numScore[n] || 0;
+        var isInPred  = !!predNums[n];
         var isOverdue = overdueNums.some(function(o) { return o.num === n; });
         var isHotPair = (pairInvolvement[n] || 0) > 0;
-        var bg = sc >= 70 ? 'linear-gradient(135deg,#10b981,#059669)'
-               : sc >= 40 ? 'linear-gradient(135deg,#f59e0b,#d97706)'
-               : sc >= 20 ? 'linear-gradient(135deg,rgba(59,130,246,0.72),rgba(29,78,216,0.72))'
-               : 'var(--surface2)';
-        var tc  = sc >= 20 ? '#fff' : 'var(--text)';
-        var stc = sc >= 20 ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)';
-        var borderCss = isInPred
+        var isLocked  = lockedNums.indexOf(n) !== -1;
+        var isExcluded = excludedNums.indexOf(n) !== -1;
+        var isPicked  = pickerNums.indexOf(n) !== -1;
+
+        var bg = isLocked  ? 'linear-gradient(135deg,#10b981,#059669)'
+            : isPicked ? 'linear-gradient(135deg,#3b82f6,#2563eb)'
+            : sc >= 70  ? 'linear-gradient(135deg,#10b981,#059669)'
+            : sc >= 40  ? 'linear-gradient(135deg,#f59e0b,#d97706)'
+            : sc >= 20  ? 'linear-gradient(135deg,rgba(59,130,246,0.72),rgba(29,78,216,0.72))'
+            : 'var(--surface2)';
+        var tc  = (isLocked || isPicked || sc >= 20) ? '#fff' : 'var(--text)';
+        var stc = (isLocked || isPicked || sc >= 20) ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)';
+        var borderCss = isLocked
+            ? 'border:2.5px solid #fff;box-shadow:0 0 0 2.5px #10b981,0 0 10px rgba(16,185,129,0.5);'
+            : isPicked
+            ? 'border:2.5px solid #fff;box-shadow:0 0 0 2.5px #3b82f6,0 0 10px rgba(59,130,246,0.4);'
+            : isInPred
             ? 'border:2.5px solid #fff;box-shadow:0 0 0 2px #059669;'
             : 'border:2px solid transparent;';
-        var badges = (isOverdue ? '&#9201;' : '') + (isHotPair ? '&#128101;' : '');
-        var tip = '#' + n + ' Score: ' + Math.round(sc) +
-            (isInPred  ? ' | In prediction'  : '') +
-            (isOverdue ? ' | Overdue'        : '') +
-            (isHotPair ? ' | Hot pair'       : '') +
-            ' — click for signal breakdown';
+
+        var badges = '';
+        if (isLocked)  badges += '&#128274;';
+        if (isPicked)  badges += '&#10003;';
+        if (!isLocked && !isPicked) {
+            badges += (isOverdue ? '&#9201;' : '') + (isHotPair ? '&#128101;' : '');
+        }
+
+        var tip = '#' + n + ' Score:' + Math.round(sc) +
+            (isLocked   ? ' | LOCKED'        : '') +
+            (isExcluded ? ' | EXCLUDED'      : '') +
+            (isPicked   ? ' | Your pick'     : '') +
+            (isInPred   ? ' | In prediction' : '') +
+            (isOverdue  ? ' | Overdue'       : '') +
+            (isHotPair  ? ' | Hot pair'      : '') +
+            (modeHints[interactMode] || '');
+
+        var extraClass = 'integ-ns-cell' + (isExcluded ? ' cell-excluded' : '');
         html +=
-            '<div class="integ-ns-cell" ' +
+            '<div class="' + extraClass + '" ' +
             'style="background:' + bg + ';' + borderCss + '" ' +
-            'onclick="_integShowBreakdown(' + n + ')" ' +
+            'onclick="_integNumClick(' + n + ')" ' +
             'title="' + tip + '">' +
             '<span class="integ-ns-num" style="color:' + tc + ';">' + n + '</span>' +
-            (badges ? '<div style="font-size:0.55rem;line-height:1.3;color:' + stc + ';">' + badges + '</div>' : '') +
+            (badges ? '<div style="font-size:0.5rem;line-height:1.2;color:' + stc + ';">' + badges + '</div>' : '') +
             '<span class="integ-ns-score" style="color:' + stc + ';">' + Math.round(sc) + '</span>' +
             '</div>';
     }
@@ -15910,6 +16046,14 @@ function _integBuildPredictionsHtml(st) {
             'Sum: ' + p.sum + ' (target ' + adjExpSum.toFixed(0) + ')&nbsp;&nbsp;|&nbsp;&nbsp;' +
             evC + ' even / ' + (k - evC) + ' odd' +
             '</div>' +
+            (st.predictForDate ? (function() {
+                var dObj = new Date(st.predictForDate + 'T00:00:00');
+                var today = new Date(); today.setHours(0,0,0,0);
+                var diff  = Math.round((dObj - today) / 86400000);
+                var dLabel = dObj.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+                return '<div style="font-size:0.68rem;color:var(--purple);margin-top:3px;font-weight:700;">&#128197; Predicted for: ' + dLabel +
+                    (diff >= 0 ? ' (' + (diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : diff + ' days away') + ')' : '') + '</div>';
+            })() : '') +
             /* Action row */
             '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">' +
             '<button class="btn btn-sm" id="integ-explain-btn-' + idx + '" ' +
@@ -15964,6 +16108,7 @@ function _integRenderUI() {
     var overdueNums = st.overdueNums, hotPairs = st.hotPairs;
     var adjExpSum  = st.adjExpSum, sumLo = st.sumLo, sumHi = st.sumHi;
     var targetEven = st.targetEven, targetOdd = st.targetOdd;
+    var k = st.k;
     var numScore   = st.numScore, ranked = st.ranked;
     var pairInvolvement = st.pairInvolvement;
     var topDeltaKey = st.topDeltaKey, topDeltaCount = st.topDeltaCount;
@@ -16026,6 +16171,128 @@ function _integRenderUI() {
         '<span class="integ-badge integ-badge-ok">&#128200; Reversion</span>' +
         '<span class="integ-badge ' + (topDeltaKey ? 'integ-badge-ok' : 'integ-badge-warn') + '">&#9651; Delta</span>' +
         '</div></div></div></div>';
+
+    /* ── Section: Smart Setup Wizard ── */
+    var wizardHtml = '<div class="card" id="integ-wizard-card">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="_integToggleWizard()">' +
+        '<div class="pattern-section-title" style="margin:0;">&#129504; Smart Setup Wizard' +
+        '<span style="font-size:0.72rem;font-weight:400;color:var(--text-muted);margin-left:8px;">Answer questions to auto-configure the engine</span></div>' +
+        '<span id="integ-wizard-toggle-icon" style="font-size:1.1rem;transition:transform 0.2s;">&#9650;</span>' +
+        '</div>' +
+        '<div id="integ-wizard-body">' +
+        _integBuildWizardHtml(st) +
+        '</div></div>';
+
+    /* ── Section: Intelligent Controls ── */
+    var activeMethods = st.activeMethods || ['Weighted Sampling','Ensemble Vote','Delta Pattern','Quadrant Balance'];
+    var predictForDate = st.predictForDate || null;
+    var upcomingDates  = _integGetUpcomingDrawDates(fmt, 5);
+    var methodDefs = [
+        { name:'Weighted Sampling', color:'#3b82f6', icon:'&#9881;' },
+        { name:'Ensemble Vote',     color:'#8b5cf6', icon:'&#127775;' },
+        { name:'Delta Pattern',     color:'#10b981', icon:'&#9651;' },
+        { name:'Quadrant Balance',  color:'#f59e0b', icon:'&#128300;' }
+    ];
+    var controlsHtml =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#127922; Intelligent Controls</div>' +
+
+        /* — Interaction Mode — */
+        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:5px;">INTERACTION MODE</div>' +
+        '<div class="integ-mode-pills">' +
+        '<button class="integ-mode-pill' + ((!st.interactMode || st.interactMode==='info') ? ' active' : '') + '" id="integ-mode-info" onclick="_integSetMode(\'info\')" title="Click numbers to see signal breakdown">&#8505;&#65039; Info</button>' +
+        '<button class="integ-mode-pill mode-lock' + (st.interactMode==='lock' ? ' active' : '') + '" id="integ-mode-lock" onclick="_integSetMode(\'lock\')" title="Click numbers to lock into predictions">&#128274; Lock</button>' +
+        '<button class="integ-mode-pill mode-exclude' + (st.interactMode==='exclude' ? ' active' : '') + '" id="integ-mode-exclude" onclick="_integSetMode(\'exclude\')" title="Click numbers to ban from predictions">&#128683; Exclude</button>' +
+        '<button class="integ-mode-pill mode-pick' + (st.interactMode==='pick' ? ' active' : '') + '" id="integ-mode-pick" onclick="_integSetMode(\'pick\')" title="Click numbers to build a custom ticket">&#9999;&#65039; Custom Pick</button>' +
+        '</div>' +
+        '<div id="integ-mode-hint" style="font-size:0.72rem;color:var(--purple);font-weight:600;background:var(--surface2);border-radius:6px;padding:4px 10px;margin-bottom:12px;">' +
+        (st.interactMode==='lock' ? '&#128274; Lock mode — click numbers to force them into every regenerated prediction.' :
+         st.interactMode==='exclude' ? '&#128683; Exclude mode — click numbers to ban them from all predictions.' :
+         st.interactMode==='pick' ? '&#9999; Custom Pick — click numbers from the grid to build your own ticket.' :
+         '&#8505; Info mode — click any number to see its per-signal breakdown.') +
+        '</div>' +
+
+        /* — Scenario Presets — */
+        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:5px;">SIGNAL PRESETS</div>' +
+        '<div class="integ-preset-row">' +
+        '<button class="integ-preset-btn" onclick="_integApplyPreset(\'default\')">&#8635; Default</button>' +
+        '<button class="integ-preset-btn" onclick="_integApplyPreset(\'overdue\')">&#9201;&#65039; Overdue Focus</button>' +
+        '<button class="integ-preset-btn" onclick="_integApplyPreset(\'hotstreak\')">&#128308; Hot Streak</button>' +
+        '<button class="integ-preset-btn" onclick="_integApplyPreset(\'balanced\')">&#9878;&#65039; Balanced</button>' +
+        '<button class="integ-preset-btn" onclick="_integApplyPreset(\'pattern\')">&#9651; Pattern Mode</button>' +
+        '</div>' +
+
+        /* — Method Selection — */
+        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:5px;">ACTIVE PREDICTION METHODS</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:12px;">' +
+        methodDefs.map(function(m) {
+            var isActive = activeMethods.indexOf(m.name) !== -1;
+            return '<button class="integ-method-chip' + (isActive ? ' active' : '') + '" ' +
+                'style="' + (isActive ? 'background:' + m.color + ';' : '') + '" ' +
+                'onclick="_integToggleMethod(\'' + m.name + '\')" title="Toggle ' + m.name + ' method">' +
+                m.icon + ' ' + m.name + '</button>';
+        }).join('') +
+        '</div>' +
+
+        /* — Draw Date Selection — */
+        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:5px;">PREDICT FOR DRAW DATE</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;margin-bottom:4px;">' +
+        upcomingDates.map(function(d) {
+            var dObj = new Date(d + 'T00:00:00');
+            var label = dObj.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
+            var isActive = d === predictForDate;
+            return '<button class="integ-date-chip' + (isActive ? ' active' : '') + '" onclick="_integSetDate(\'' + d + '\')">' +
+                '&#128197; ' + label + '</button>';
+        }).join('') +
+        '<span style="color:var(--text-muted);font-size:0.7rem;margin-left:4px;">or</span>' +
+        '<input type="date" id="integ-date-custom" value="' + (predictForDate || '') + '" ' +
+            'style="border:1.5px solid var(--border);border-radius:8px;padding:4px 8px;background:var(--surface2);color:var(--text);font-size:0.75rem;margin-left:4px;" ' +
+            'onchange="_integSetDate(this.value)">' +
+        '</div>' +
+        '<div id="integ-date-label" style="font-size:0.72rem;color:var(--purple);min-height:16px;margin-bottom:10px;">' +
+        (predictForDate ? '&#128197; Predicting for draw on ' + new Date(predictForDate + 'T00:00:00').toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : '') +
+        '</div>' +
+
+        /* — Prediction Count & Even/Odd — */
+        '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">' +
+        '<div><div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;">PREDICTIONS TO GENERATE</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<input type="range" id="integ-pred-count" min="3" max="10" step="1" value="' + (st.predCount || 6) + '" ' +
+            'style="width:100px;accent-color:var(--purple);" ' +
+            'oninput="var d=document.getElementById(\'integ-pred-count-val\');if(d)d.textContent=this.value;var s=window._integState;if(s)s.predCount=parseInt(this.value);">' +
+        '<span id="integ-pred-count-val" style="font-weight:800;font-size:0.88rem;color:var(--purple);min-width:14px;">' + (st.predCount || 6) + '</span>' +
+        '</div></div>' +
+        '<div><div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;">EVEN/ODD TARGET</div>' +
+        '<select id="integ-eo-override" style="border:1.5px solid var(--border);border-radius:8px;padding:4px 9px;background:var(--surface2);color:var(--text);font-size:0.78rem;" ' +
+            'onchange="var s=window._integState;if(s)s.evenOddOverride=this.value;">' +
+        '<option value="auto"' + (st.evenOddOverride==='auto'||!st.evenOddOverride ? ' selected' : '') + '>Auto (' + targetEven + 'E/' + targetOdd + 'O)</option>' +
+        '<option value="balanced"' + (st.evenOddOverride==='balanced' ? ' selected' : '') + '>Balanced</option>' +
+        '<option value="moreeven"' + (st.evenOddOverride==='moreeven' ? ' selected' : '') + '>More Even</option>' +
+        '<option value="moreodd"' + (st.evenOddOverride==='moreodd' ? ' selected' : '') + '>More Odd</option>' +
+        '<option value="any"' + (st.evenOddOverride==='any' ? ' selected' : '') + '>Any</option>' +
+        '</select>' +
+        '</div></div>' +
+
+        /* — Constraints — */
+        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:5px;">ACTIVE CONSTRAINTS</div>' +
+        '<div id="integ-constraint-chips" style="display:flex;flex-wrap:wrap;gap:3px;min-height:24px;align-items:center;">' +
+        ((st.lockedNums||[]).length === 0 && (st.excludedNums||[]).length === 0
+            ? '<span style="font-size:0.72rem;color:var(--text-muted);">None — use Lock or Exclude mode to constrain numbers.</span>'
+            : (st.lockedNums||[]).map(function(n){return '<span class="integ-constraint-chip integ-lock-chip" onclick="_integToggleLock('+n+')" title="Click to unlock">&#128274; '+n+' &#10006;</span>';}).join('')+
+              (st.excludedNums||[]).map(function(n){return '<span class="integ-constraint-chip integ-exclude-chip" onclick="_integToggleExclude('+n+')" title="Click to un-exclude">&#128683; '+n+' &#10006;</span>';}).join('')
+        ) +
+        '</div>' +
+        ((st.lockedNums||[]).length > 0 || (st.excludedNums||[]).length > 0
+            ? '<button class="btn btn-sm" style="margin-top:7px;font-size:0.7rem;" onclick="_integClearConstraints()">&#10006; Clear All Constraints</button>'
+            : '') +
+        '</div>';
+
+    /* ── Section: Custom Ticket Builder ── */
+    var pickerHtml = '<div class="card">' +
+        '<div class="pattern-section-title">&#9999;&#65039; Custom Ticket Builder' +
+        '<span style="font-size:0.72rem;font-weight:400;color:var(--text-muted);margin-left:8px;">Switch to Custom Pick mode, then click ' + (st.k) + ' numbers from the grid</span></div>' +
+        '<div id="integ-pick-panel">' + _integBuildPickerHtml(st) + '</div>' +
+        '</div>';
 
     /* ── Section 2: Signal Weight Sliders ── */
     var slidersHtml =
@@ -16172,7 +16439,7 @@ function _integRenderUI() {
         '<button class="btn btn-sm" onclick="_integHideBreakdown()">&#10006; Close</button>' +
         '</div></div>';
 
-    out.innerHTML = headerHtml + slidersHtml + contextHtml + numGridHtml + barChartHtml + predictionsHtml + popupHtml;
+    out.innerHTML = headerHtml + wizardHtml + controlsHtml + slidersHtml + contextHtml + numGridHtml + pickerHtml + barChartHtml + predictionsHtml + popupHtml;
 }
 
 /* Show signal breakdown popup for a clicked number */
@@ -16379,6 +16646,12 @@ function _integRegenerate() {
     st.ranked      = ranked;
     st.SIG_WEIGHTS = newWeights;
 
+    /* Read even/odd override, prediction count, active methods from UI */
+    var countEl = document.getElementById('integ-pred-count');
+    if (countEl) st.predCount = parseInt(countEl.value) || 6;
+    var eoSel = document.getElementById('integ-eo-override');
+    if (eoSel) st.evenOddOverride = eoSel.value;
+
     /* 5. Re-run prediction methods */
     st.predictions = _integRunAllMethods(st);
 
@@ -16411,7 +16684,10 @@ function _integRegenerate() {
     var wrapper = document.getElementById('integ-predictions-wrapper');
     if (wrapper) wrapper.innerHTML = _integBuildPredictionsHtml(st);
 
-    showToast('Predictions regenerated with new signal weights!', 'success');
+    var constraintInfo = '';
+    if ((st.lockedNums  || []).length > 0) constraintInfo += (st.lockedNums.length)  + ' locked';
+    if ((st.excludedNums|| []).length > 0) constraintInfo += (constraintInfo ? ', ' : '') + (st.excludedNums.length) + ' excluded';
+    showToast('Predictions regenerated' + (constraintInfo ? ' (' + constraintInfo + ')' : '') + '!', 'success');
 }
 
 /* Save integrity predictions to the Tickets tab */
@@ -16425,6 +16701,580 @@ function _integSavePredictions() {
     });
     showToast(window._integLastPredictions.length + ' integrity prediction' +
         (window._integLastPredictions.length !== 1 ? 's' : '') + ' saved to tickets!', 'success');
+}
+/* ══════════════════════════════════════════════════════════════════
+   INTERACTIVE INTEGRITY PREDICTION — EXTENDED HELPER FUNCTIONS
+══════════════════════════════════════════════════════════════════ */
+
+/* WIZARD QUESTIONS DEFINITION */
+var _INTEG_WIZARD_QS = [
+    {
+        id: 'philosophy', icon: '&#129504;',
+        q: 'What is your prediction philosophy?',
+        hint: 'Shapes how the engine weighs statistical vs pattern signals.',
+        opts: [
+            { label: '&#128202; Pure statistics',   val: 'stat',     desc: 'Frequency balance & distribution' },
+            { label: '&#128257; I believe in patterns', val: 'pattern', desc: 'Delta gap & Markov sequences' },
+            { label: '&#128308; Hot streaks win',    val: 'hot',      desc: 'Recency & hot-pair emphasis' },
+            { label: '&#9201;&#65039; Overdue numbers', val: 'overdue', desc: 'Gap extremes & reversion' },
+            { label: '&#9878;&#65039; Balanced approach', val: 'balanced', desc: 'Equal weight all signals' }
+        ]
+    },
+    {
+        id: 'confidence', icon: '&#128200;',
+        q: 'How would you rate your draw history quality?',
+        hint: 'More draws produce more reliable signal extraction.',
+        opts: [
+            { label: '&#128170; Strong — 100+ draws', val: 'high' },
+            { label: '&#128077; Moderate — 50 to 100', val: 'medium' },
+            { label: '&#9888;&#65039; Limited — under 50', val: 'low' }
+        ]
+    },
+    {
+        id: 'evenodd', icon: '&#128290;',
+        q: 'How do you prefer even/odd distribution in your picks?',
+        hint: 'The engine auto-detects historical balance; you can override it.',
+        opts: [
+            { label: '&#128200; Follow history (auto)', val: 'auto' },
+            { label: '&#10133; More even numbers', val: 'moreeven' },
+            { label: '&#10134; More odd numbers', val: 'moreodd' },
+            { label: '&#9878;&#65039; Perfectly balanced', val: 'balanced' },
+            { label: '&#127922; No preference', val: 'any' }
+        ]
+    },
+    {
+        id: 'risk', icon: '&#127919;',
+        q: 'What is your risk appetite for this prediction?',
+        hint: 'Higher risk = more aggressive anomaly-driven emphasis.',
+        opts: [
+            { label: '&#128737;&#65039; Conservative — safe picks', val: 'low' },
+            { label: '&#9889; Moderate — calculated risk',   val: 'medium' },
+            { label: '&#128640; Aggressive — high variance', val: 'high' }
+        ]
+    },
+    {
+        id: 'count', icon: '&#127915;',
+        q: 'How many ticket predictions do you want generated?',
+        hint: 'More predictions = more probability coverage.',
+        opts: [
+            { label: '3 predictions', val: '3' },
+            { label: '5 predictions', val: '5' },
+            { label: '7 predictions', val: '7' },
+            { label: '10 predictions', val: '10' }
+        ]
+    },
+    {
+        id: 'nudge', icon: '&#128161;',
+        q: 'Do you have intuitions about specific numbers?',
+        hint: 'You can lock numbers to force them in, or exclude numbers you distrust.',
+        opts: [
+            { label: '&#128274; Yes — I want to lock specific numbers', val: 'lock' },
+            { label: '&#128683; Yes — I want to exclude some numbers', val: 'exclude' },
+            { label: '&#127922; No — let the engine decide fully', val: 'none' }
+        ]
+    }
+];
+
+/* Build the wizard HTML based on current wizard state */
+function _integBuildWizardHtml(st) {
+    var step    = st.wizardStep || 0;
+    var answers = st.wizardAnswers || {};
+    var total   = _INTEG_WIZARD_QS.length;
+    var done    = step >= total;
+
+    /* Progress dots */
+    var dots = '';
+    for (var di = 0; di < total; di++) {
+        dots += '<div class="integ-wizard-dot' + (di < step ? ' wiz-done' : di === step ? ' wiz-active' : '') + '"></div>';
+    }
+
+    if (done) {
+        /* All answered — show summary and Apply button */
+        var summaryRows = _INTEG_WIZARD_QS.map(function(q) {
+            var ans = answers[q.id];
+            var optLabel = '';
+            q.opts.forEach(function(o) { if (o.val === ans) optLabel = o.label; });
+            return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">' +
+                '<span style="font-size:0.7rem;color:var(--text-muted);min-width:110px;">' + q.icon + ' ' + q.id.charAt(0).toUpperCase() + q.id.slice(1) + '</span>' +
+                '<span style="font-size:0.75rem;font-weight:700;">' + (optLabel || ans || '—') + '</span>' +
+                '</div>';
+        }).join('');
+        return '<div style="margin-bottom:10px;">' +
+            '<div class="integ-wizard-progress">' + dots + '</div>' +
+            '<div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;">YOUR ANSWERS</div>' +
+            summaryRows +
+            '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">' +
+            '<button class="btn btn-primary" onclick="_integApplyWizardAnswers()">&#9989; Apply &amp; Generate</button>' +
+            '<button class="btn btn-sm" onclick="_integResetWizard()">&#8635; Retake Wizard</button>' +
+            '</div></div>';
+    }
+
+    var q = _INTEG_WIZARD_QS[step];
+    var optsHtml = q.opts.map(function(o) {
+        var sel = (answers[q.id] === o.val) ? ' wiz-selected' : '';
+        return '<button class="integ-wizard-option' + sel + '" onclick="_integSelectAnswer(\'' + q.id + '\',\'' + o.val + '\')">' +
+            o.label + (o.desc ? '<div style="font-size:0.65rem;opacity:0.8;margin-top:2px;">' + o.desc + '</div>' : '') +
+            '</button>';
+    }).join('');
+
+    return '<div class="integ-wizard-progress">' + dots + '</div>' +
+        '<div class="integ-wizard-q">' +
+        '<div style="font-size:0.82rem;font-weight:800;">' + q.icon + ' Q' + (step + 1) + '/' + total + ': ' + q.q + '</div>' +
+        '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:3px;">' + q.hint + '</div>' +
+        '<div class="integ-wizard-options">' + optsHtml + '</div>' +
+        '</div>' +
+        (step > 0 ? '<button class="btn btn-sm" style="margin-top:8px;font-size:0.7rem;" onclick="_integWizardBack()">&#8592; Back</button>' : '');
+}
+
+/* Refresh wizard panel only */
+function _integRefreshWizard() {
+    var st  = window._integState;
+    var el  = document.getElementById('integ-wizard-body');
+    if (st && el) el.innerHTML = _integBuildWizardHtml(st);
+}
+
+/* Toggle wizard collapsed/expanded */
+function _integToggleWizard() {
+    var body = document.getElementById('integ-wizard-body');
+    var icon = document.getElementById('integ-wizard-toggle-icon');
+    if (!body) return;
+    var hidden = body.style.display === 'none';
+    body.style.display = hidden ? '' : 'none';
+    if (icon) icon.style.transform = hidden ? '' : 'rotate(180deg)';
+}
+
+/* Select an answer for wizard question and advance */
+function _integSelectAnswer(qId, val) {
+    var st = window._integState;
+    if (!st) return;
+    if (!st.wizardAnswers) st.wizardAnswers = {};
+    st.wizardAnswers[qId] = val;
+    st.wizardStep = Math.min((st.wizardStep || 0) + 1, _INTEG_WIZARD_QS.length);
+    _integRefreshWizard();
+}
+
+/* Go back one wizard step */
+function _integWizardBack() {
+    var st = window._integState;
+    if (!st) return;
+    st.wizardStep = Math.max(0, (st.wizardStep || 1) - 1);
+    _integRefreshWizard();
+}
+
+/* Reset wizard to beginning */
+function _integResetWizard() {
+    var st = window._integState;
+    if (!st) return;
+    st.wizardAnswers = {};
+    st.wizardStep = 0;
+    _integRefreshWizard();
+}
+
+/* Apply wizard answers to engine configuration */
+function _integApplyWizardAnswers() {
+    var st = window._integState;
+    if (!st) return;
+    var a = st.wizardAnswers || {};
+
+    /* — Philosophy → signal preset — */
+    var philosophyPreset = {
+        'stat':     { A:2.5, B:0.8, C:0.8, D:1.2, E:1.5, F:1.5, G:0.8, H:0.9 },
+        'pattern':  { A:0.8, B:1.0, C:0.8, D:0.8, E:1.8, F:1.8, G:0.8, H:4.0 },
+        'hot':      { A:0.5, B:0.5, C:2.5, D:3.5, E:2.5, F:1.0, G:0.3, H:1.0 },
+        'overdue':  { A:0.8, B:3.5, C:0.5, D:0.5, E:0.5, F:0.5, G:3.0, H:0.8 },
+        'balanced': { A:1.5, B:1.5, C:1.5, D:1.5, E:1.5, F:1.5, G:1.5, H:1.5 }
+    };
+    var weights = philosophyPreset[a.philosophy] || { A:1.8, B:1.4, C:1.2, D:1.6, E:1.5, F:1.0, G:1.3, H:1.2 };
+
+    /* — Confidence → amplify/dampen signals — */
+    var confMult = a.confidence === 'low' ? 0.85 : a.confidence === 'high' ? 1.1 : 1.0;
+    ['A','B','C','D','E','F','G','H'].forEach(function(s) { weights[s] = Math.min(5, weights[s] * confMult); });
+
+    /* — Risk → skew towards anomalous signals — */
+    if (a.risk === 'high') {
+        weights.B = Math.min(5, weights.B * 1.4);
+        weights.G = Math.min(5, weights.G * 1.4);
+        weights.D = Math.min(5, weights.D * 1.2);
+    } else if (a.risk === 'low') {
+        weights.A = Math.min(5, weights.A * 1.3);
+        weights.F = Math.min(5, weights.F * 1.3);
+    }
+
+    /* — Apply weights to sliders — */
+    ['A','B','C','D','E','F','G','H'].forEach(function(sig) {
+        var slider  = document.getElementById('integ-sig-slider-' + sig);
+        var display = document.getElementById('integ-sig-val-' + sig);
+        if (slider)  slider.value = weights[sig].toFixed(1);
+        if (display) display.innerHTML = '&times;' + parseFloat(weights[sig]).toFixed(1);
+    });
+    st.SIG_WEIGHTS = weights;
+
+    /* — Even/Odd override — */
+    if (a.evenodd && a.evenodd !== 'auto') {
+        st.evenOddOverride = a.evenodd;
+        var eoSel = document.getElementById('integ-eo-override');
+        if (eoSel) eoSel.value = a.evenodd;
+    }
+
+    /* — Prediction count — */
+    if (a.count) {
+        var cnt = parseInt(a.count) || 6;
+        st.predCount = cnt;
+        var countEl = document.getElementById('integ-pred-count');
+        var countDisp = document.getElementById('integ-pred-count-val');
+        if (countEl)  countEl.value = cnt;
+        if (countDisp) countDisp.textContent = cnt;
+    }
+
+    /* — Nudge → switch mode — */
+    if (a.nudge === 'lock')    { _integSetMode('lock');    showToast('Wizard applied! Now click numbers in the grid to lock them.', 'success'); }
+    else if (a.nudge === 'exclude') { _integSetMode('exclude'); showToast('Wizard applied! Now click numbers in the grid to exclude them.', 'success'); }
+    else {
+        _integRegenerate();
+        showToast('Wizard applied and predictions regenerated!', 'success');
+    }
+}
+
+/* Compute upcoming draw dates for a format */
+function _integGetUpcomingDrawDates(fmt, count) {
+    var days  = (fmt && fmt.drawDays) ? fmt.drawDays : [3, 6];
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var dates = [];
+    var cursor = new Date(today);
+    var limit  = 120;
+    while (dates.length < count && limit-- > 0) {
+        cursor.setDate(cursor.getDate() + 1);
+        if (days.indexOf(cursor.getDay()) !== -1) {
+            var y = cursor.getFullYear();
+            var m = String(cursor.getMonth() + 1).padStart(2, '0');
+            var d = String(cursor.getDate()).padStart(2, '0');
+            dates.push(y + '-' + m + '-' + d);
+        }
+    }
+    return dates;
+}
+
+/* Set the predicted draw date and refresh UI */
+function _integSetDate(dateStr) {
+    var st = window._integState;
+    if (!st) return;
+    st.predictForDate = dateStr || null;
+    /* Update date chip active states */
+    document.querySelectorAll('.integ-date-chip').forEach(function(el) {
+        el.classList.toggle('active', el.getAttribute('onclick') === '_integSetDate(\'' + dateStr + '\')');
+    });
+    /* Update custom date input */
+    var cust = document.getElementById('integ-date-custom');
+    if (cust && dateStr) cust.value = dateStr;
+    /* Update label */
+    var label = document.getElementById('integ-date-label');
+    if (label) {
+        if (dateStr) {
+            var dObj  = new Date(dateStr + 'T00:00:00');
+            var today2 = new Date(); today2.setHours(0,0,0,0);
+            var diff  = Math.round((dObj - today2) / 86400000);
+            var dFmt  = dObj.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+            label.innerHTML = '&#128197; Predicting for draw on <strong>' + dFmt + '</strong>' +
+                (diff >= 0 ? ' (' + (diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : diff + ' days away') + ')' : '');
+            label.style.color = 'var(--purple)';
+        } else {
+            label.innerHTML = '';
+        }
+    }
+    /* Refresh prediction cards to show/hide date badges */
+    var wrapper = document.getElementById('integ-predictions-wrapper');
+    if (wrapper) wrapper.innerHTML = _integBuildPredictionsHtml(st);
+}
+
+/* Toggle a prediction method on/off */
+function _integToggleMethod(methodName) {
+    var st = window._integState;
+    if (!st) return;
+    if (!st.activeMethods) st.activeMethods = ['Weighted Sampling','Ensemble Vote','Delta Pattern','Quadrant Balance'];
+    var idx = st.activeMethods.indexOf(methodName);
+    if (idx !== -1) {
+        if (st.activeMethods.length <= 1) { showToast('At least one method must remain active.', 'error'); return; }
+        st.activeMethods.splice(idx, 1);
+    } else {
+        st.activeMethods.push(methodName);
+    }
+    /* Refresh method chips */
+    var methodColors = { 'Weighted Sampling':'#3b82f6','Ensemble Vote':'#8b5cf6','Delta Pattern':'#10b981','Quadrant Balance':'#f59e0b' };
+    document.querySelectorAll('.integ-method-chip').forEach(function(el) {
+        var onclick = el.getAttribute('onclick') || '';
+        var match   = onclick.match(/_integToggleMethod\('([^']+)'\)/);
+        if (match) {
+            var name   = match[1];
+            var active = st.activeMethods.indexOf(name) !== -1;
+            el.classList.toggle('active', active);
+            el.style.background = active ? (methodColors[name] || 'var(--purple)') : '';
+        }
+    });
+    showToast(st.activeMethods.indexOf(methodName) !== -1
+        ? methodName + ' method enabled.'
+        : methodName + ' method disabled.', 'success');
+}
+
+/* Set the interaction mode */
+function _integSetMode(mode) {
+    var st = window._integState;
+    if (!st) return;
+    st.interactMode = mode;
+    ['info','lock','exclude','pick'].forEach(function(m) {
+        var el = document.getElementById('integ-mode-' + m);
+        if (el) el.classList.toggle('active', m === mode);
+    });
+    var hints = {
+        'info':    '&#8505; Info mode — click any number to see its per-signal breakdown.',
+        'lock':    '&#128274; Lock mode — click numbers to force them into every regenerated prediction.',
+        'exclude': '&#128683; Exclude mode — click numbers to ban them from all predictions.',
+        'pick':    '&#9999; Custom Pick — click numbers from the grid to build your own ticket.'
+    };
+    var hintEl = document.getElementById('integ-mode-hint');
+    if (hintEl) hintEl.innerHTML = hints[mode] || '';
+    var gridEl = document.getElementById('integ-num-score-grid');
+    if (gridEl) gridEl.innerHTML = _integBuildNumGrid(st);
+}
+
+/* Mode-aware click handler for number grid cells */
+function _integNumClick(n) {
+    var st = window._integState;
+    if (!st) return;
+    var mode = st.interactMode || 'info';
+    if      (mode === 'info')    { _integShowBreakdown(n); }
+    else if (mode === 'lock')    { _integToggleLock(n); }
+    else if (mode === 'exclude') { _integToggleExclude(n); }
+    else if (mode === 'pick')    { _integTogglePick(n); }
+}
+
+/* Toggle lock state */
+function _integToggleLock(n) {
+    var st = window._integState;
+    if (!st) return;
+    if (!st.lockedNums)  st.lockedNums  = [];
+    if (!st.excludedNums) st.excludedNums = [];
+    var lockIdx = st.lockedNums.indexOf(n);
+    if (lockIdx !== -1) {
+        st.lockedNums.splice(lockIdx, 1);
+        showToast('Number ' + n + ' unlocked.', 'success');
+    } else {
+        if (st.lockedNums.length >= st.k - 1) {
+            showToast('Cannot lock more than ' + (st.k - 1) + ' numbers (need at least 1 free slot).', 'error');
+            return;
+        }
+        st.lockedNums.push(n);
+        var exIdx = st.excludedNums.indexOf(n);
+        if (exIdx !== -1) st.excludedNums.splice(exIdx, 1);
+        showToast('Number ' + n + ' locked \uD83D\uDD12', 'success');
+    }
+    _integUpdateConstraintChips();
+    var gridEl = document.getElementById('integ-num-score-grid');
+    if (gridEl) gridEl.innerHTML = _integBuildNumGrid(st);
+}
+
+/* Toggle exclude state */
+function _integToggleExclude(n) {
+    var st = window._integState;
+    if (!st) return;
+    if (!st.excludedNums) st.excludedNums = [];
+    if (!st.lockedNums)   st.lockedNums   = [];
+    var exIdx = st.excludedNums.indexOf(n);
+    if (exIdx !== -1) {
+        st.excludedNums.splice(exIdx, 1);
+        showToast('Number ' + n + ' un-excluded.', 'success');
+    } else {
+        st.excludedNums.push(n);
+        var lockIdx = st.lockedNums.indexOf(n);
+        if (lockIdx !== -1) st.lockedNums.splice(lockIdx, 1);
+        showToast('Number ' + n + ' excluded \uD83D\uDEAB', 'success');
+    }
+    _integUpdateConstraintChips();
+    var gridEl = document.getElementById('integ-num-score-grid');
+    if (gridEl) gridEl.innerHTML = _integBuildNumGrid(st);
+}
+
+/* Toggle pick state for custom ticket builder */
+function _integTogglePick(n) {
+    var st = window._integState;
+    if (!st) return;
+    if (!st.pickerNums)  st.pickerNums  = [];
+    if ((st.excludedNums || []).indexOf(n) !== -1) {
+        showToast('Number ' + n + ' is excluded. Switch to Exclude mode to un-exclude it first.', 'error');
+        return;
+    }
+    var idx = st.pickerNums.indexOf(n);
+    if (idx !== -1) {
+        st.pickerNums.splice(idx, 1);
+    } else {
+        if (st.pickerNums.length >= st.k) {
+            showToast('Already have ' + st.k + ' numbers selected. Click a filled ball to remove it.', 'error');
+            return;
+        }
+        st.pickerNums.push(n);
+    }
+    var gridEl = document.getElementById('integ-num-score-grid');
+    if (gridEl) gridEl.innerHTML = _integBuildNumGrid(st);
+    _integUpdatePickerScore();
+}
+
+/* Build the custom picker panel HTML */
+function _integBuildPickerHtml(st) {
+    var k = st.k;
+    var picks = (st.pickerNums || []).slice().sort(function(a, b) { return a - b; });
+    var inPickMode = (st.interactMode === 'pick');
+
+    var slotsHtml = '';
+    for (var i = 0; i < k; i++) {
+        if (i < picks.length) {
+            slotsHtml += '<span class="integ-pick-slot-filled" title="Click to remove #' + picks[i] + '" ' +
+                'onclick="_integTogglePick(' + picks[i] + ')">' + picks[i] + '</span>';
+        } else {
+            slotsHtml += '<span class="integ-pick-slot-empty">' + (i + 1) + '</span>';
+        }
+    }
+
+    var scoreHtml = '';
+    if (picks.length === k) {
+        var sum    = picks.reduce(function(s, x) { return s + x; }, 0);
+        var evC    = picks.filter(function(x) { return x % 2 === 0; }).length;
+        var avgSc  = picks.reduce(function(s, x) { return s + (st.numScore[x] || 0); }, 0) / k;
+        var sbConf = Math.max(0, 100 - Math.abs(sum - st.adjExpSum) / Math.max(st.expectedSumStd, 1) * 20);
+        var adj    = st.composite < 50 ? 1.25 : st.composite < 70 ? 1.0 : 0.72;
+        var conf   = Math.max(10, Math.min(92, Math.round((avgSc * 0.6 + sbConf * 0.4) * adj)));
+        var cc     = conf >= 60 ? '#10b981' : conf >= 35 ? '#f59e0b' : '#94a3b8';
+        var inBand = sum >= st.sumLo && sum <= st.sumHi;
+        scoreHtml =
+            '<div class="integ-pick-score-box">' +
+            '<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;margin-bottom:10px;">' +
+            '<div><div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Confidence</div>' +
+            '<div style="font-weight:900;font-size:1.15rem;color:' + cc + ';">' + conf + '%</div></div>' +
+            '<div><div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Sum</div>' +
+            '<div style="font-weight:800;color:' + (inBand ? '#10b981' : '#f59e0b') + ';">' +
+            sum + (inBand ? ' &#10003;' : ' <span style="font-size:0.7rem;">(target ' + Math.round(st.adjExpSum) + ')</span>') + '</div></div>' +
+            '<div><div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Even/Odd</div>' +
+            '<div style="font-weight:800;">' + evC + '&nbsp;/&nbsp;' + (k - evC) + '</div></div>' +
+            '<div><div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">Avg Signal Score</div>' +
+            '<div style="font-weight:800;">' + Math.round(avgSc) + '/100</div></div>' +
+            '</div>' +
+            '<div style="display:flex;gap:7px;flex-wrap:wrap;">' +
+            '<button class="btn btn-primary btn-sm" onclick="_integSaveCustomPick()">&#128190; Save to Tickets</button>' +
+            '<button class="btn btn-sm" onclick="_integCopyCustomPick()">&#128203; Copy</button>' +
+            '<button class="btn btn-sm" onclick="_integClearPicker()">&#10006; Clear</button>' +
+            '</div></div>';
+    } else if (inPickMode) {
+        var rem = k - picks.length;
+        scoreHtml = '<div style="font-size:0.78rem;color:var(--text-muted);padding:4px 0;">Pick <strong>' + rem + '</strong> more number' + (rem !== 1 ? 's' : '') + ' from the grid above.</div>';
+    } else {
+        scoreHtml = '<div style="font-size:0.78rem;color:var(--text-muted);padding:4px 0;">Switch to <strong>&#9999;&#65039; Custom Pick</strong> mode in the Intelligent Controls above, then click numbers from the grid to build your ticket.</div>';
+    }
+
+    return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+        '<div style="font-weight:800;font-size:0.85rem;">Your Custom Ticket ' +
+        '<span style="color:var(--text-muted);font-weight:400;font-size:0.75rem;">(' + picks.length + '/' + k + ' picked)</span></div>' +
+        (picks.length > 0 ? '<button class="btn btn-sm" style="font-size:0.7rem;padding:3px 8px;" onclick="_integClearPicker()">&#10006; Clear</button>' : '') +
+        '</div>' +
+        '<div class="integ-pick-slots">' + slotsHtml + '</div>' +
+        scoreHtml;
+}
+
+/* Update picker panel display */
+function _integUpdatePickerScore() {
+    var st = window._integState;
+    if (!st) return;
+    var panel = document.getElementById('integ-pick-panel');
+    if (panel) panel.innerHTML = _integBuildPickerHtml(st);
+}
+
+/* Save custom pick to Tickets */
+function _integSaveCustomPick() {
+    var st = window._integState;
+    if (!st || !st.pickerNums || st.pickerNums.length !== st.k) {
+        showToast('Pick exactly ' + (st ? st.k : '?') + ' numbers first.', 'error');
+        return;
+    }
+    var picks = st.pickerNums.slice().sort(function(a, b) { return a - b; });
+    addTicket(st.fmt.id, picks, [], '', 'Custom Integrity Pick');
+    showToast('Custom pick saved to Tickets!', 'success');
+}
+
+/* Copy custom pick to clipboard */
+function _integCopyCustomPick() {
+    var st = window._integState;
+    if (!st || !st.pickerNums || st.pickerNums.length === 0) return;
+    var picks = st.pickerNums.slice().sort(function(a, b) { return a - b; });
+    var text  = picks.join(', ');
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function() { showToast('Custom pick copied!', 'success'); })
+            .catch(function() { showToast('Copy: ' + text, 'success'); });
+    } else { showToast('Numbers: ' + text, 'success'); }
+}
+
+/* Clear custom picker selections */
+function _integClearPicker() {
+    var st = window._integState;
+    if (!st) return;
+    st.pickerNums = [];
+    _integUpdatePickerScore();
+    var gridEl = document.getElementById('integ-num-score-grid');
+    if (gridEl) gridEl.innerHTML = _integBuildNumGrid(st);
+}
+
+/* Clear all locks and exclusions */
+function _integClearConstraints() {
+    var st = window._integState;
+    if (!st) return;
+    st.lockedNums  = [];
+    st.excludedNums = [];
+    _integUpdateConstraintChips();
+    var gridEl = document.getElementById('integ-num-score-grid');
+    if (gridEl) gridEl.innerHTML = _integBuildNumGrid(st);
+    showToast('All constraints cleared.', 'success');
+}
+
+/* Update constraint chips display */
+function _integUpdateConstraintChips() {
+    var st = window._integState;
+    if (!st) return;
+    var locked   = st.lockedNums   || [];
+    var excluded = st.excludedNums || [];
+    var el = document.getElementById('integ-constraint-chips');
+    if (!el) return;
+    if (locked.length === 0 && excluded.length === 0) {
+        el.innerHTML = '<span style="font-size:0.72rem;color:var(--text-muted);">None — use Lock or Exclude mode to constrain numbers.</span>';
+        var clearBtn = document.getElementById('integ-clear-constraints-btn');
+        if (clearBtn) clearBtn.style.display = 'none';
+        return;
+    }
+    el.innerHTML =
+        locked.map(function(n) {
+            return '<span class="integ-constraint-chip integ-lock-chip" onclick="_integToggleLock(' + n + ')" title="Click to unlock">&#128274; ' + n + ' &#10006;</span>';
+        }).join('') +
+        excluded.map(function(n) {
+            return '<span class="integ-constraint-chip integ-exclude-chip" onclick="_integToggleExclude(' + n + ')" title="Click to un-exclude">&#128683; ' + n + ' &#10006;</span>';
+        }).join('');
+    var clearBtn = document.getElementById('integ-clear-constraints-btn');
+    if (clearBtn) clearBtn.style.display = '';
+}
+
+/* Apply a signal weight preset */
+function _integApplyPreset(name) {
+    var presets = {
+        'default':   { A:1.8, B:1.4, C:1.2, D:1.6, E:1.5, F:1.0, G:1.3, H:1.2 },
+        'overdue':   { A:0.8, B:3.5, C:0.5, D:0.5, E:0.5, F:0.5, G:3.0, H:0.8 },
+        'hotstreak': { A:0.5, B:0.5, C:2.5, D:3.5, E:2.5, F:1.0, G:0.3, H:1.2 },
+        'balanced':  { A:1.5, B:1.5, C:1.5, D:1.5, E:1.5, F:1.5, G:1.5, H:1.5 },
+        'pattern':   { A:0.8, B:1.0, C:0.8, D:0.8, E:1.2, F:1.5, G:0.8, H:4.0 }
+    };
+    var wts = presets[name];
+    if (!wts) return;
+    ['A','B','C','D','E','F','G','H'].forEach(function(sig) {
+        var s = document.getElementById('integ-sig-slider-' + sig);
+        var d = document.getElementById('integ-sig-val-' + sig);
+        if (s) s.value = wts[sig];
+        if (d) d.innerHTML = '&times;' + wts[sig].toFixed(1);
+    });
+    var labels = { 'default':'Default','overdue':'Overdue Focus','hotstreak':'Hot Streak','balanced':'Balanced','pattern':'Pattern Mode' };
+    showToast('Preset "' + (labels[name] || name) + '" applied — click Regenerate to run.', 'success');
 }
     // Register the PWA service worker
     if ('serviceWorker' in navigator) {
