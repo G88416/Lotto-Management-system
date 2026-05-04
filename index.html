@@ -16165,7 +16165,8 @@ function _integRenderUI() {
     /* ── Breakdown Popup ── */
     var popupHtml =
         '<div class="integ-breakdown-overlay" id="integ-breakdown-overlay" onclick="_integHideBreakdown()"></div>' +
-        '<div class="integ-breakdown-popup" id="integ-breakdown-popup">' +
+        '<div class="integ-breakdown-popup" id="integ-breakdown-popup" role="dialog" ' +
+        'aria-modal="true" aria-labelledby="integ-breakdown-title">' +
         '<div id="integ-breakdown-content"></div>' +
         '<div style="text-align:right;margin-top:14px;">' +
         '<button class="btn btn-sm" onclick="_integHideBreakdown()">&#10006; Close</button>' +
@@ -16221,7 +16222,7 @@ function _integShowBreakdown(num) {
     var html =
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">' +
         '<div>' +
-        '<div style="font-size:1.1rem;font-weight:900;">Number <span style="color:var(--purple);">' + num + '</span></div>' +
+        '<div style="font-size:1.1rem;font-weight:900;" id="integ-breakdown-title">Number <span style="color:var(--purple);">' + num + '</span></div>' +
         '<div style="font-size:0.75rem;color:var(--text-muted);">Combined score: <strong>' + Math.round(sc) + '/100</strong>' +
             (isOvD ? '&nbsp; &#9201; Overdue' : '') +
             (isHP  ? '&nbsp; &#128101; Hot pair' : '') + '</div>' +
@@ -16282,6 +16283,10 @@ function _integCopyPrediction(idx) {
     if (!st || !st.predictions || !st.predictions[idx]) return;
     var p    = st.predictions[idx];
     var text = p.numbers.join(', ') + ' (' + p.method + ', ' + p.confidence + '% confidence)';
+    if (!window.isSecureContext) {
+        _integFallbackCopy(text, idx);
+        return;
+    }
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function() {
             showToast('Prediction #' + (idx + 1) + ' copied to clipboard!', 'success');
@@ -16337,11 +16342,11 @@ function _integRegenerate() {
     var totalSW    = 0;
     ['A','B','C','D','E','F','G','H'].forEach(function(sig) {
         var slider      = document.getElementById('integ-sig-slider-' + sig);
-        newWeights[sig] = slider ? Math.max(0, parseFloat(slider.value) || 0) : st.SIG_WEIGHTS[sig];
+        newWeights[sig] = slider ? Math.max(0, parseFloat(slider.value) || 0) : Math.max(0, st.SIG_WEIGHTS[sig] || 0);
         totalSW        += newWeights[sig];
     });
-    if (totalSW === 0) {
-        showToast('All weights are zero. Set at least one signal weight above 0.', 'error');
+    if (totalSW <= 0 || isNaN(totalSW)) {
+        showToast('All weights are zero or invalid. Set at least one signal weight above 0.', 'error');
         return;
     }
 
