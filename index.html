@@ -100,6 +100,31 @@
         .btn-purple:hover { transform:translateY(-2px); box-shadow:0 10px 28px rgba(124,58,237,0.45); }
         .btn-sm { padding: 7px 14px; font-size: 0.82rem; border-radius: 9px; }
         .btn-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+        .ai-fab { position: fixed; right: 22px; bottom: 22px; width: 58px; height: 58px; border-radius: 50%; border:none; background: var(--accent-grad); color:#fff; font-size:1.6rem; box-shadow: 0 10px 30px rgba(139,92,246,0.45); cursor:pointer; z-index: 9998; }
+        .ai-fab:hover { transform: translateY(-2px) scale(1.03); }
+        .ai-hero-card { background: var(--accent-grad); color:#fff; border-radius:18px; padding:18px; margin-bottom:16px; box-shadow: 0 8px 24px rgba(139,92,246,0.25); }
+        .ai-chip-row { display:flex; flex-wrap:wrap; gap:10px; }
+        .ai-chip { border:none; border-radius:999px; padding:10px 14px; font-weight:700; font-size:0.85rem; background: var(--surface2); color:var(--text); cursor:pointer; border:1px solid var(--border); }
+        .ai-chip:hover { border-color: var(--purple); color: var(--purple); }
+        .ai-chat-window { min-height:180px; max-height:330px; overflow:auto; border:1px solid var(--border); border-radius:14px; padding:14px; background: var(--surface2); }
+        .ai-msg { border-radius:12px; padding:10px 12px; margin-bottom:10px; font-size:0.88rem; line-height:1.4; }
+        .ai-msg.user { background: rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.3); }
+        .ai-msg.assistant { background: var(--surface); border:1px solid var(--border); }
+        .ai-thinking { display:none; align-items:center; gap:10px; font-size:0.86rem; color:var(--text-muted); margin-top:10px; }
+        .ai-thinking-balls { display:flex; gap:5px; }
+        .ai-thinking-balls span { width:8px; height:8px; border-radius:50%; background:var(--purple); animation: pulse 1s infinite; }
+        .ai-thinking-balls span:nth-child(2) { animation-delay: 0.2s; }
+        .ai-thinking-balls span:nth-child(3) { animation-delay: 0.4s; }
+        .ai-result-line { background: var(--surface2); border:1px solid var(--border); border-radius:13px; padding:10px; margin-bottom:10px; }
+        .ai-confidence-wrap { background: var(--surface2); border-radius:999px; height:12px; overflow:hidden; border:1px solid var(--border); }
+        .ai-confidence-bar { height:100%; background: linear-gradient(90deg,#22c55e,#06b6d4,#8b5cf6); }
+        .ai-number-ball { display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:50%; color:#fff; font-weight:800; margin:3px; }
+        .ai-num-hot { background:#ef4444; }
+        .ai-num-cold { background:#3b82f6; }
+        .ai-num-overdue { background:#8b5cf6; }
+        .ai-num-strong { background:#16a34a; }
+        .ai-history-item { border:1px solid var(--border); border-radius:12px; padding:10px; margin-bottom:10px; background: var(--surface2); }
+        .ai-context-badge { display:none; margin-top:10px; font-size:0.78rem; font-weight:700; color:#7c3aed; background: rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.25); border-radius:999px; padding:6px 12px; }
         .format-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 14px; margin-bottom: 26px; }
         .format-card { border: 2.5px solid var(--border); border-radius: 18px; padding: 18px 14px; cursor: pointer; text-align: center; background: var(--surface); transition: all 0.25s; position: relative; overflow: hidden; }
         .format-card::before { content: ''; position: absolute; inset: 0; background: var(--accent-grad); opacity: 0; transition: opacity 0.25s; }
@@ -733,6 +758,7 @@
         <button class="tab-btn" onclick="switchTab('tetragematrn')">&#129504; Intelligent Generator</button>
         <button class="tab-btn" onclick="switchTab('prngml')">&#129302; PRNG ML</button>
         <button class="tab-btn" onclick="switchTab('integrity')">&#128270; Integrity Check</button>
+        <button class="tab-btn" onclick="switchTab('aiadvisor')">&#10024; AI Advisor</button>
     </nav>
 
     <!-- QUICK PICK -->
@@ -1435,6 +1461,7 @@
                     <select id="pattern-format" onchange="runPatternDetector()"></select>
                 </div>
                 <button class="btn btn-primary" onclick="runPatternDetector()" style="margin-top:24px;">&#128200; Analyse Patterns</button>
+                <button class="btn btn-secondary" onclick="openAiAdvisorWithContext('patterns')" style="margin-top:24px;">&#10024; Get AI Insights</button>
             </div>
             <div class="algo-info">
                 <strong>Algorithm:</strong> Analyses the last 15 recorded draw results for the chosen lottery. Detects hot/cold numbers, even/odd balance, number range distribution, pair frequency, and sum-range trends to generate data-driven suggestions.
@@ -1618,6 +1645,7 @@
                 </div>
                 <div class="btn-row">
                     <button class="btn btn-primary"   onclick="runMatrixLab()">&#9889; Generate Combinations</button>
+                    <button class="btn btn-secondary" onclick="openAiAdvisorWithContext('combimatrix')">&#10024; Ask AI to Analyze</button>
                     <button class="btn btn-success"   onclick="saveMatrixResults()">&#128190; Save All to Tickets</button>
                     <button class="btn btn-secondary" onclick="toggleMatrixEnhancer()">&#128260; Enhancer</button>
                     <button class="btn btn-secondary" onclick="clearMatrixResults()">&#128465;&#65039; Clear</button>
@@ -1815,6 +1843,9 @@
         <div class="section-title">&#128207; Lotto Gap Analyser</div>
         <div class="algo-info" style="margin-bottom:20px;">
             Dedicated gap analysis engine &mdash; three views in one: <strong>Number Overdue</strong> tracks how many draws have passed since each number last appeared, <strong>Delta Analysis</strong> measures the spacing between consecutive numbers within draws, and <strong>Gap Generator</strong> builds ticket combinations using overdue and delta patterns from your saved draw history.
+        </div>
+        <div class="btn-row" style="margin-top:-6px;margin-bottom:14px;">
+            <button class="btn btn-secondary" onclick="openAiAdvisorWithContext('lottogap')">&#10024; Get AI Insights</button>
         </div>
 
         <!-- Sub-navigation -->
@@ -2241,6 +2272,7 @@
             </div>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="runIntelligentGenerator()">&#9889; Generate Intelligent Predictions</button>
+                <button class="btn btn-secondary" onclick="openAiAdvisorWithContext('intelligent')">&#10024; Ask AI Insights</button>
                 <button class="btn btn-secondary" onclick="clearIntelligentGenerator()">&#10006; Clear</button>
             </div>
         </div>
@@ -2390,6 +2422,64 @@
         <!-- Sub-tab 5: Smart Prediction -->
         <div id="integ-sub-5" style="display:none;"></div>
     </section>
+
+    <!-- AI ADVISOR -->
+    <section id="sec-aiadvisor" class="section">
+        <div class="section-title">&#10024; AI Advisor</div>
+        <div class="card">
+            <div class="grid-2">
+                <div>
+                    <label>Current Lottery</label>
+                    <select id="ai-format"></select>
+                </div>
+                <div class="text-sm text-muted" style="display:flex;align-items:flex-end;">Smart recommendations from your draws, tickets, and active analysis context.</div>
+            </div>
+            <div class="ai-hero-card">
+                <div style="font-size:1.1rem;font-weight:800;">&#129302; How can I help you today?</div>
+                <div id="ai-context-badge" class="ai-context-badge"></div>
+            </div>
+            <div class="ai-chip-row">
+                <button class="ai-chip" onclick="runAiQuickAction('best')">&#127919; Best Numbers Right Now</button>
+                <button class="ai-chip" onclick="runAiQuickAction('tickets')">&#128202; Analyze My Tickets</button>
+                <button class="ai-chip" onclick="runAiQuickAction('hotcold')">&#128293; Hot &amp; Cold Deep Analysis</button>
+                <button class="ai-chip" onclick="runAiQuickAction('overdue')">&#9201;&#65039; Overdue Numbers Strategy</button>
+                <button class="ai-chip" onclick="runAiQuickAction('balanced')">&#129504; Suggest 5 Balanced Combinations</button>
+                <button class="ai-chip" onclick="runAiQuickAction('budget')">&#128176; Budget-Friendly Strategy</button>
+                <button class="ai-chip" onclick="runAiQuickAction('pattern')">&#128269; Explain This Draw Pattern</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="pattern-section-title">&#127919; AI Verdict</div>
+            <div id="ai-thinking" class="ai-thinking">
+                <div class="ai-thinking-balls"><span></span><span></span><span></span></div>
+                <span>Thinking&hellip; spinning lotto balls</span>
+            </div>
+            <div id="ai-results">
+                <p class="text-muted text-sm text-center" style="padding:20px 0;">Tap a quick action or ask a question in chat.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="pattern-section-title">&#128172; Chat with AI Advisor</div>
+            <div id="ai-chat-log" class="ai-chat-window">
+                <div class="ai-msg assistant">Hi! Ask me about best numbers, overdue picks, ticket balance, or budget strategy.</div>
+            </div>
+            <div class="grid-2" style="margin-top:12px;">
+                <input type="text" id="ai-chat-input" placeholder="Type your question... e.g. What should I play for Saturday?" />
+                <button class="btn btn-primary" onclick="submitAiChat()">&#10148; Ask AI</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="pattern-section-title">&#128214; History</div>
+            <div id="ai-history-list">
+                <p class="text-muted text-sm text-center" style="padding:14px 0;">No AI conversations yet.</p>
+            </div>
+        </div>
+    </section>
+
+    <button class="ai-fab" title="Open AI Advisor" onclick="openAiAdvisorWithContext('floating')">&#10024;</button>
 
 <!-- SAVE TICKET MODAL -->
 <div class="modal-backdrop" id="save-modal">
@@ -2689,7 +2779,8 @@ let state = {
     manualPicked:         [],
     manualBonusPicked:    [],
     manualBonusPhase:     false,
-    customFormats:        []
+    customFormats:        [],
+    aiAdvisorHistory:     []
 };
 
 /* Returns all formats: built-in + user-created custom formats */
@@ -2772,6 +2863,7 @@ function syncToFirestore() {
             seedHistory:       state.seedHistory,
             customFormats:     state.customFormats     || [],
             savedPatternDraws: state.savedPatternDraws || [],
+            aiAdvisorHistory:  state.aiAdvisorHistory  || [],
             updatedAt:         firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true }).then(function() {
             updateSyncStatus('synced');
@@ -2797,6 +2889,7 @@ function loadFromFirestore() {
             if (Array.isArray(d.seedHistory))      state.seedHistory    = d.seedHistory;
             if (Array.isArray(d.customFormats))    state.customFormats  = d.customFormats;
             if (Array.isArray(d.savedPatternDraws)) state.savedPatternDraws = d.savedPatternDraws;
+            if (Array.isArray(d.aiAdvisorHistory)) state.aiAdvisorHistory = d.aiAdvisorHistory;
             /* Back-fill localStorage with the freshly loaded cloud state */
             try {
                 localStorage.setItem('lotto_state', JSON.stringify({
@@ -2804,7 +2897,8 @@ function loadFromFirestore() {
                     customDraws:state.customDraws, reverseHistory:state.reverseHistory,
                     seedHistory:state.seedHistory, recentDraws:state.recentDraws,
                     savedPatternDraws:state.savedPatternDraws,
-                    customFormats:state.customFormats
+                    customFormats:state.customFormats,
+                    aiAdvisorHistory:state.aiAdvisorHistory
                 }));
             } catch(e) {}
             /* Rebuild format dropdowns now that customFormats may have changed. */
@@ -2849,7 +2943,8 @@ function setupRealtimeListeners() {
                     customDraws:state.customDraws, reverseHistory:state.reverseHistory,
                     seedHistory:state.seedHistory, recentDraws:state.recentDraws,
                     savedPatternDraws:state.savedPatternDraws,
-                    customFormats:state.customFormats
+                    customFormats:state.customFormats,
+                    aiAdvisorHistory:state.aiAdvisorHistory
                 }));
             } catch(e) {}
             if (document.getElementById('sec-livedraws').classList.contains('active')) renderLiveDraws();
@@ -2880,7 +2975,8 @@ function persist() {
             customDraws: state.customDraws, reverseHistory: state.reverseHistory,
             seedHistory: state.seedHistory, recentDraws: state.recentDraws,
             savedPatternDraws: state.savedPatternDraws,
-            customFormats: state.customFormats
+            customFormats: state.customFormats,
+            aiAdvisorHistory: state.aiAdvisorHistory
         }));
     } catch(e) {}
     syncToFirestore();
@@ -2900,6 +2996,7 @@ function loadPersisted() {
         state.seedHistory       = d.seedHistory       || [];
         state.savedPatternDraws = d.savedPatternDraws || [];
         state.customFormats     = d.customFormats     || [];
+        state.aiAdvisorHistory  = d.aiAdvisorHistory  || [];
     } catch(e) {}
 }
 
@@ -2954,7 +3051,7 @@ function purgeOrphanedDataManual() {
     }
 }
 
-var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern','intelligentcanvas','tetragematrn','prngml','integrity'];
+var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern','intelligentcanvas','tetragematrn','prngml','integrity','aiadvisor'];
 
 function switchTab(key) {
     TAB_KEYS.forEach(function(k, i) {
@@ -2976,6 +3073,330 @@ function switchTab(key) {
     if (key === 'tetragematrn')      { initIntelligentGeneratorTab(); }
     if (key === 'prngml')            { initPrngMlTab(); }
     if (key === 'integrity')         { initIntegrityTab(); }
+    if (key === 'aiadvisor')         { initAiAdvisorTab(); }
+}
+
+var _aiAdvisorLastReq = null;
+var _aiAdvisorLastResult = null;
+
+function initAiAdvisorTab() {
+    var sel = document.getElementById('ai-format');
+    if (!sel) return;
+    var prev = sel.value;
+    sel.innerHTML = getAllFormats().map(function(f) {
+        return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>';
+    }).join('');
+    if (prev && Array.from(sel.options).some(function(o) { return o.value === prev; })) sel.value = prev;
+    if (!sel.value && sel.options.length) sel.value = sel.options[0].value;
+    renderAiHistory();
+}
+
+function _getAiFmt() {
+    var sel = document.getElementById('ai-format');
+    var fmtId = sel && sel.value ? sel.value : '';
+    return getAllFormats().find(function(f) { return f.id === fmtId; }) || getAllFormats()[0];
+}
+
+function _aiPostMessage(text, role) {
+    var log = document.getElementById('ai-chat-log');
+    if (!log) return;
+    var div = document.createElement('div');
+    div.className = 'ai-msg ' + role;
+    div.textContent = text;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+}
+
+function _aiThinking(show) {
+    var el = document.getElementById('ai-thinking');
+    if (el) el.style.display = show ? 'flex' : 'none';
+}
+
+function _aiClassifyNum(num, hot, cold, overdue, strong) {
+    if (strong.indexOf(num) > -1) return 'ai-num-strong';
+    if (overdue.indexOf(num) > -1) return 'ai-num-overdue';
+    if (hot.indexOf(num) > -1) return 'ai-num-hot';
+    if (cold.indexOf(num) > -1) return 'ai-num-cold';
+    return 'ai-num-strong';
+}
+
+function _aiExtractData(fmt) {
+    var draws = getCombinedDrawsForFormat(fmt.id);
+    var freq = {};
+    var gap = {};
+    var i, n;
+    for (n = 1; n <= fmt.mainMax; n++) { freq[n] = 0; gap[n] = draws.length + 1; }
+    draws.forEach(function(d) {
+        (d.numbers || []).forEach(function(x) { if (freq[x] !== undefined) freq[x]++; });
+    });
+    for (n = 1; n <= fmt.mainMax; n++) {
+        for (i = draws.length - 1; i >= 0; i--) {
+            var arr = (draws[i] && draws[i].numbers) ? draws[i].numbers : [];
+            if (arr.indexOf(n) > -1) { gap[n] = (draws.length - 1) - i; break; }
+        }
+    }
+    return { draws: draws, freq: freq, gap: gap };
+}
+
+function _aiTopNumbers(fmt, data) {
+    var maxFreq = 1, n;
+    for (n = 1; n <= fmt.mainMax; n++) if (data.freq[n] > maxFreq) maxFreq = data.freq[n];
+    var nums = [];
+    for (n = 1; n <= fmt.mainMax; n++) {
+        var freqNorm = data.freq[n] / maxFreq;
+        var gapNorm  = data.gap[n] / Math.max(1, data.draws.length + 1);
+        var score = freqNorm * 0.56 + gapNorm * 0.44 + ((n % 7) * 0.001);
+        nums.push({ n: n, score: score });
+    }
+    nums.sort(function(a,b){ return b.score - a.score; });
+    return nums;
+}
+
+function _aiGenerateLine(fmt, topNums) {
+    var line = [];
+    var attempts = 0;
+    while (line.length < fmt.mainCount && attempts < 600) {
+        var idx = Math.floor(Math.random() * Math.min(18, topNums.length));
+        var num = topNums[idx].n;
+        if (line.indexOf(num) === -1) line.push(num);
+        attempts++;
+    }
+    line.sort(function(a,b){ return a-b; });
+    return line;
+}
+
+function _aiBuildInsight(mode, promptText) {
+    var fmt = _getAiFmt();
+    if (!fmt) return null;
+    var data = _aiExtractData(fmt);
+    var top = _aiTopNumbers(fmt, data);
+    var strongestCount = Math.min(fmt.mainCount + 1, 7);
+    var strongest = top.slice(0, strongestCount).map(function(x){ return x.n; });
+    var freqRank = Object.keys(data.freq).map(Number).sort(function(a,b){ return data.freq[b] - data.freq[a]; });
+    var hot = freqRank.slice(0, Math.max(6, fmt.mainCount));
+    var cold = freqRank.slice(-Math.max(6, fmt.mainCount)).reverse();
+    var overdue = Object.keys(data.gap).map(Number).sort(function(a,b){ return data.gap[b] - data.gap[a]; }).slice(0, Math.max(6, fmt.mainCount));
+    var lines = [];
+    for (var i = 0; i < (mode === 'balanced' ? 5 : 4); i++) lines.push(_aiGenerateLine(fmt, top));
+    var topLine = lines[0] || [];
+    var sum = topLine.reduce(function(s, x){ return s + x; }, 0);
+    var confidence = Math.max(35, Math.min(89, 35 + data.draws.length));
+    var meter = confidence >= 75 ? 'High' : (confidence >= 50 ? 'Medium' : 'Low');
+    var why = [];
+    if (overdue.length >= 2) why.push('Numbers ' + overdue.slice(0,2).join(' and ') + ' are highly overdue (' + data.gap[overdue[0]] + '+ and ' + data.gap[overdue[1]] + '+ draws).');
+    if (topLine.length) why.push('Top combination has balanced spread with sum = ' + sum + '.');
+    if (hot.length) why.push('Hot momentum includes ' + hot.slice(0,3).join(', ') + ' from recent draw frequency.');
+    if (mode === 'tickets') {
+        var mine = state.tickets.filter(function(t){ return t.formatId === fmt.id; }).slice(0, 20);
+        if (!mine.length) why.push('You currently have no saved tickets for this lottery, so AI is using historical draw structure.');
+        else {
+            var lowHeavy = 0;
+            mine.forEach(function(t){
+                var lowCount = (t.main || []).filter(function(x){ return x <= Math.floor(fmt.mainMax / 2); }).length;
+                if (lowCount > Math.ceil(fmt.mainCount / 2)) lowHeavy++;
+            });
+            if (lowHeavy > Math.floor(mine.length / 2)) why.push('Your saved tickets skew low; add 2 numbers above ' + Math.floor(fmt.mainMax * 0.65) + ' for better range balance.');
+        }
+    }
+    if (mode === 'budget') why.push('Budget strategy: split spend into 60% balanced lines and 40% overdue-driven lines.');
+    if (mode === 'pattern') why.push('Pattern lens: maintain odd/even near half-split and avoid clustering more than 2 consecutive numbers.');
+
+    return {
+        prompt: promptText,
+        mode: mode,
+        fmt: fmt,
+        confidence: confidence,
+        meter: meter,
+        strongest: strongest,
+        lines: lines,
+        why: why,
+        hot: hot,
+        cold: cold,
+        overdue: overdue
+    };
+}
+
+function _renderAiResult(result) {
+    var el = document.getElementById('ai-results');
+    if (!el || !result) return;
+    var topStrong = result.strongest.slice(0, result.fmt.mainCount);
+    var balls = result.strongest.map(function(n) {
+        var cls = _aiClassifyNum(n, result.hot, result.cold, result.overdue, topStrong);
+        return '<span class="ai-number-ball ' + cls + '">' + n + '</span>';
+    }).join('');
+    var linesHtml = result.lines.map(function(line, idx) {
+        return '<div class="ai-result-line"><div class="text-sm fw-700" style="margin-bottom:6px;">Line ' + (idx + 1) + '</div>' +
+            line.map(function(n){ return '<span class="ai-number-ball ai-num-strong" style="width:34px;height:34px;font-size:0.88rem;">' + n + '</span>'; }).join('') + '</div>';
+    }).join('');
+    var whyHtml = result.why.map(function(w){ return '<li>' + w + '</li>'; }).join('');
+    el.innerHTML =
+        '<div class="card" style="padding:18px;margin-bottom:0;">' +
+            '<div class="flex justify-between items-center flex-wrap gap-10 mb-14">' +
+                '<div class="fw-800">&#129504; AI Verdict for ' + result.fmt.flag + ' ' + result.fmt.name + '</div>' +
+                '<div class="text-sm text-muted">' + result.meter + ' - Statistical (' + result.confidence + '%)</div>' +
+            '</div>' +
+            '<div class="ai-confidence-wrap mb-14"><div class="ai-confidence-bar" style="width:' + result.confidence + '%;"></div></div>' +
+            '<div class="mb-14"><div class="text-sm fw-700" style="margin-bottom:6px;">Strongest Numbers</div>' + balls + '</div>' +
+            '<div class="mb-14"><div class="text-sm fw-700" style="margin-bottom:6px;">Suggested Lines</div>' + linesHtml + '</div>' +
+            '<div class="mb-14"><div class="text-sm fw-700" style="margin-bottom:6px;">Why these numbers?</div><ul style="padding-left:18px;">' + whyHtml + '</ul></div>' +
+            '<div class="btn-row">' +
+                '<button class="btn btn-success btn-sm" onclick="saveAiTopLineToTickets()">&#128190; Save to My Tickets</button>' +
+                '<button class="btn btn-secondary btn-sm" onclick="wheelAiTopLine()">&#127921; Wheel These Numbers</button>' +
+                '<button class="btn btn-secondary btn-sm" onclick="refineAiResult()">&#129302; Ask AI to Refine</button>' +
+                '<button class="btn btn-primary btn-sm" onclick="regenerateAiResult()">&#9851; Generate More</button>' +
+                '<button class="btn btn-secondary btn-sm" onclick="regenerateAiResult()">Regenerate</button>' +
+                '<button class="btn btn-secondary btn-sm" onclick="copyAiResult()">Copy</button>' +
+            '</div>' +
+        '</div>';
+}
+
+function _pushAiHistory(result) {
+    if (!result) return;
+    state.aiAdvisorHistory = state.aiAdvisorHistory || [];
+    state.aiAdvisorHistory.unshift({
+        id: Date.now() + Math.random(),
+        ts: new Date().toISOString(),
+        fmtId: result.fmt.id,
+        prompt: result.prompt,
+        summary: 'Strongest: ' + result.strongest.slice(0, result.fmt.mainCount).join(', ')
+    });
+    if (state.aiAdvisorHistory.length > 40) state.aiAdvisorHistory = state.aiAdvisorHistory.slice(0, 40);
+    persist();
+    renderAiHistory();
+}
+
+function renderAiHistory() {
+    var el = document.getElementById('ai-history-list');
+    if (!el) return;
+    var items = (state.aiAdvisorHistory || []).slice(0, 10);
+    if (!items.length) {
+        el.innerHTML = '<p class="text-muted text-sm text-center" style="padding:14px 0;">No AI conversations yet.</p>';
+        return;
+    }
+    el.innerHTML = items.map(function(h) {
+        var dt = new Date(h.ts);
+        return '<div class="ai-history-item">' +
+            '<div class="text-sm fw-700">' + (h.prompt || 'AI insight') + '</div>' +
+            '<div class="text-sm text-muted" style="margin-top:4px;">' + (h.summary || '') + '</div>' +
+            '<div class="text-sm text-muted" style="margin-top:4px;">' + dt.toLocaleString() + '</div>' +
+        '</div>';
+    }).join('');
+}
+
+function runAiQuickAction(mode) {
+    var prompts = {
+        best: 'Best numbers right now',
+        tickets: 'Analyze my tickets',
+        hotcold: 'Hot and cold deep analysis',
+        overdue: 'Overdue numbers strategy',
+        balanced: 'Suggest balanced combinations',
+        budget: 'Budget-friendly strategy',
+        pattern: 'Explain this draw pattern'
+    };
+    _runAiAdvisor(mode, prompts[mode] || 'AI analysis');
+}
+
+function _runAiAdvisor(mode, promptText) {
+    _aiAdvisorLastReq = { mode: mode, prompt: promptText };
+    _aiThinking(true);
+    setTimeout(function() {
+        var result = _aiBuildInsight(mode, promptText);
+        _aiThinking(false);
+        if (!result) return;
+        _aiAdvisorLastResult = result;
+        _renderAiResult(result);
+        _aiPostMessage(promptText, 'user');
+        _aiPostMessage('Done. I prepared strongest numbers, suggested lines, and reasoning for ' + result.fmt.name + '.', 'assistant');
+        _pushAiHistory(result);
+    }, 750);
+}
+
+function submitAiChat() {
+    var input = document.getElementById('ai-chat-input');
+    if (!input) return;
+    var text = (input.value || '').trim();
+    if (!text) { showToast('Type a question first', 'error'); return; }
+    input.value = '';
+    _runAiAdvisor('chat', text);
+}
+
+function openAiAdvisorWithContext(source) {
+    switchTab('aiadvisor');
+    initAiAdvisorTab();
+    var sel = document.getElementById('ai-format');
+    if (source === 'patterns') {
+        var pSel = document.getElementById('pattern-format');
+        if (sel && pSel && pSel.value) sel.value = pSel.value;
+    } else if (source === 'lottogap') {
+        var gSel = document.getElementById('gap-format');
+        if (sel && gSel && gSel.value) sel.value = gSel.value;
+    } else if (source === 'combimatrix') {
+        var mSel = document.getElementById('matrix-format');
+        if (sel && mSel && mSel.value) sel.value = mSel.value;
+    } else if (source === 'intelligent') {
+        var iSel = document.getElementById('icg-format');
+        if (sel && iSel && iSel.value) sel.value = iSel.value;
+    }
+    var badge = document.getElementById('ai-context-badge');
+    if (badge) {
+        var txt = {
+            patterns: 'Context loaded from Pattern Detector',
+            lottogap: 'Context loaded from Lotto Gap Analyser',
+            combimatrix: 'Context loaded from Combi-Matrix Lab',
+            intelligent: 'Context loaded from Intelligent Predictions',
+            floating: 'Quick access from anywhere'
+        }[source] || '';
+        if (txt) { badge.style.display = 'inline-flex'; badge.textContent = txt; } else badge.style.display = 'none';
+    }
+    if (source === 'combimatrix' && typeof _matrixResults !== 'undefined' && _matrixResults.length) {
+        _runAiAdvisor('chat', 'Analyze current Combi-Matrix output and suggest improvements');
+    } else if (source === 'patterns' || source === 'lottogap' || source === 'intelligent') {
+        _runAiAdvisor('pattern', 'Give contextual AI insights for this tool');
+    }
+}
+
+function saveAiTopLineToTickets() {
+    if (!_aiAdvisorLastResult || !_aiAdvisorLastResult.lines || !_aiAdvisorLastResult.lines.length) {
+        showToast('No AI line to save yet', 'error');
+        return;
+    }
+    addTicket(_aiAdvisorLastResult.fmt.id, _aiAdvisorLastResult.lines[0], [], '', 'AI Advisor');
+    showToast('AI line saved to My Tickets', 'success');
+}
+
+function wheelAiTopLine() {
+    if (!_aiAdvisorLastResult || !_aiAdvisorLastResult.lines || !_aiAdvisorLastResult.lines.length) {
+        showToast('Generate AI numbers first', 'error');
+        return;
+    }
+    switchTab('stats');
+    showToast('Opened Wheeling. Use AI line: ' + _aiAdvisorLastResult.lines[0].join(', '), 'info');
+}
+
+function refineAiResult() {
+    var input = document.getElementById('ai-chat-input');
+    if (!input || !_aiAdvisorLastResult) return;
+    input.value = 'Refine the previous recommendation for higher odd/even balance and lower risk.';
+    input.focus();
+}
+
+function regenerateAiResult() {
+    if (!_aiAdvisorLastReq) return;
+    _runAiAdvisor(_aiAdvisorLastReq.mode, _aiAdvisorLastReq.prompt + ' (regenerate)');
+}
+
+function copyAiResult() {
+    if (!_aiAdvisorLastResult) { showToast('No AI response to copy yet', 'error'); return; }
+    var txt =
+        'AI Recommendation for ' + _aiAdvisorLastResult.fmt.name + '\n' +
+        'Strongest Numbers: ' + _aiAdvisorLastResult.strongest.join(', ') + '\n' +
+        'Top Combination: ' + (_aiAdvisorLastResult.lines[0] || []).join(' - ') + '\n' +
+        'Why: ' + _aiAdvisorLastResult.why.join(' | ');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function() { showToast('AI response copied', 'success'); });
+    } else {
+        showToast('Clipboard not available in this browser', 'error');
+    }
 }
 
 function switchSeedSub(idx) {
@@ -2998,7 +3419,7 @@ function buildFormatGrids() {
                 '<div class="jackpot">' + f.jackpot + '</div></div>';
         }).join('');
     });
-    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter','gap-format','gap-delta-format','gap-gen-format','gap-freq-format','digitpattern-format','ic-format','ml-wheel-format','integrity-format'].forEach(function(id) {
+    ['reverse-format','seed-lotto-format','add-draw-format','pattern-format','comb-format','matrix-format','matrix-predict-format','wheel-format-filter','predict-format-filter','gap-format','gap-delta-format','gap-gen-format','gap-freq-format','digitpattern-format','ic-format','ml-wheel-format','integrity-format','ai-format'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = getAllFormats().map(function(f) { return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>'; }).join('');
     });
@@ -13238,6 +13659,15 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('custom-format-modal').addEventListener('click', function(e) {
         if (e.target === this) closeCustomFormatModal();
     });
+    var aiInput = document.getElementById('ai-chat-input');
+    if (aiInput) {
+        aiInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                submitAiChat();
+            }
+        });
+    }
     /* Initialise Firebase sync after the rest of the app is ready */
     initFirebase();
 });
