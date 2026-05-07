@@ -123,6 +123,7 @@
         .ai-num-cold { background:#3b82f6; }
         .ai-num-overdue { background:#8b5cf6; }
         .ai-num-strong { background:#16a34a; }
+        .ai-num-neutral { background:#64748b; }
         .ai-history-item { border:1px solid var(--border); border-radius:12px; padding:10px; margin-bottom:10px; background: var(--surface2); }
         .ai-context-badge { display:none; margin-top:10px; font-size:0.78rem; font-weight:700; color:#7c3aed; background: rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.25); border-radius:999px; padding:6px 12px; }
         .format-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 14px; margin-bottom: 26px; }
@@ -3078,6 +3079,8 @@ function switchTab(key) {
 
 var _aiAdvisorLastReq = null;
 var _aiAdvisorLastResult = null;
+var _aiHistorySeq = 0;
+var AI_HISTORY_LIMIT = 40;
 
 function initAiAdvisorTab() {
     var sel = document.getElementById('ai-format');
@@ -3117,7 +3120,7 @@ function _aiClassifyNum(num, hot, cold, overdue, strong) {
     if (overdue.indexOf(num) > -1) return 'ai-num-overdue';
     if (hot.indexOf(num) > -1) return 'ai-num-hot';
     if (cold.indexOf(num) > -1) return 'ai-num-cold';
-    return 'ai-num-strong';
+    return 'ai-num-neutral';
 }
 
 function _aiExtractData(fmt) {
@@ -3139,13 +3142,16 @@ function _aiExtractData(fmt) {
 }
 
 function _aiTopNumbers(fmt, data) {
+    var AI_FREQ_WEIGHT = 0.56;
+    var AI_GAP_WEIGHT  = 0.44;
+    var AI_TIEBREAKER_MOD = 7;
     var maxFreq = 1, n;
     for (n = 1; n <= fmt.mainMax; n++) if (data.freq[n] > maxFreq) maxFreq = data.freq[n];
     var nums = [];
     for (n = 1; n <= fmt.mainMax; n++) {
         var freqNorm = data.freq[n] / maxFreq;
         var gapNorm  = data.gap[n] / Math.max(1, data.draws.length + 1);
-        var score = freqNorm * 0.56 + gapNorm * 0.44 + ((n % 7) * 0.001);
+        var score = freqNorm * AI_FREQ_WEIGHT + gapNorm * AI_GAP_WEIGHT + ((n % AI_TIEBREAKER_MOD) * 0.001);
         nums.push({ n: n, score: score });
     }
     nums.sort(function(a,b){ return b.score - a.score; });
@@ -3191,11 +3197,12 @@ function _aiBuildInsight(mode, promptText) {
         if (!mine.length) why.push('You currently have no saved tickets for this lottery, so AI is using historical draw structure.');
         else {
             var lowHeavy = 0;
+            var highTarget = Math.max(2, Math.round(fmt.mainCount / 3));
             mine.forEach(function(t){
                 var lowCount = (t.main || []).filter(function(x){ return x <= Math.floor(fmt.mainMax / 2); }).length;
                 if (lowCount > Math.ceil(fmt.mainCount / 2)) lowHeavy++;
             });
-            if (lowHeavy > Math.floor(mine.length / 2)) why.push('Your saved tickets skew low; add 2 numbers above ' + Math.floor(fmt.mainMax * 0.65) + ' for better range balance.');
+            if (lowHeavy > Math.floor(mine.length / 2)) why.push('Your saved tickets skew low; add at least ' + highTarget + ' numbers above ' + Math.floor(fmt.mainMax * 0.65) + ' for better range balance.');
         }
     }
     if (mode === 'budget') why.push('Budget strategy: split spend into 60% balanced lines and 40% overdue-driven lines.');
@@ -3243,7 +3250,7 @@ function _renderAiResult(result) {
                 '<button class="btn btn-success btn-sm" onclick="saveAiTopLineToTickets()">&#128190; Save to My Tickets</button>' +
                 '<button class="btn btn-secondary btn-sm" onclick="wheelAiTopLine()">&#127921; Wheel These Numbers</button>' +
                 '<button class="btn btn-secondary btn-sm" onclick="refineAiResult()">&#129302; Ask AI to Refine</button>' +
-                '<button class="btn btn-primary btn-sm" onclick="regenerateAiResult()">&#9851; Generate More</button>' +
+                '<button class="btn btn-primary btn-sm" onclick="generateMoreAiLines()">&#9851; Generate More</button>' +
                 '<button class="btn btn-secondary btn-sm" onclick="regenerateAiResult()">Regenerate</button>' +
                 '<button class="btn btn-secondary btn-sm" onclick="copyAiResult()">Copy</button>' +
             '</div>' +
@@ -3253,14 +3260,15 @@ function _renderAiResult(result) {
 function _pushAiHistory(result) {
     if (!result) return;
     state.aiAdvisorHistory = state.aiAdvisorHistory || [];
+    _aiHistorySeq += 1;
     state.aiAdvisorHistory.unshift({
-        id: Date.now() + Math.random(),
+        id: String(Date.now()) + '-' + String(_aiHistorySeq),
         ts: new Date().toISOString(),
         fmtId: result.fmt.id,
         prompt: result.prompt,
         summary: 'Strongest: ' + result.strongest.slice(0, result.fmt.mainCount).join(', ')
     });
-    if (state.aiAdvisorHistory.length > 40) state.aiAdvisorHistory = state.aiAdvisorHistory.slice(0, 40);
+    if (state.aiAdvisorHistory.length > AI_HISTORY_LIMIT) state.aiAdvisorHistory = state.aiAdvisorHistory.slice(0, AI_HISTORY_LIMIT);
     persist();
     renderAiHistory();
 }
@@ -3383,6 +3391,11 @@ function refineAiResult() {
 function regenerateAiResult() {
     if (!_aiAdvisorLastReq) return;
     _runAiAdvisor(_aiAdvisorLastReq.mode, _aiAdvisorLastReq.prompt + ' (regenerate)');
+}
+
+function generateMoreAiLines() {
+    if (!_aiAdvisorLastReq) return;
+    _runAiAdvisor('balanced', 'Generate more balanced combinations for the current lottery');
 }
 
 function copyAiResult() {
