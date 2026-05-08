@@ -231,11 +231,22 @@
         .auth-chip.guest { background:rgba(245,158,11,0.22); }
         .auth-portal { display:none; }
         .auth-portal p { line-height:1.5; }
+        .auth-lock-message { display:none; border-left:4px solid var(--amber); background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(139,92,246,0.08)); }
         .auth-status { display:none; margin-top:14px; padding:12px 14px; border-radius:12px; border:1px solid var(--border); font-size:0.88rem; font-weight:600; }
         .auth-status.info { display:block; background:var(--surface2); color:var(--text-muted); border-color:var(--border); }
         .auth-status.success { display:block; background:#f0fdf4; color:var(--green); border-color:#86efac; }
         .auth-status.error { display:block; background:#fef2f2; color:var(--red); border-color:#fca5a5; }
         .auth-helper { margin-top:14px; font-size:0.84rem; color:var(--text-muted); }
+        body:not(.auth-ready) .app-container > .auth-portal,
+        body:not(.auth-ready) .app-container > .auth-lock-message,
+        body.auth-locked .app-container > .auth-portal,
+        body.auth-locked .app-container > .auth-lock-message { display:block; }
+        body:not(.auth-ready) .app-container > .tab-nav,
+        body:not(.auth-ready) .app-container > .section,
+        body.auth-locked .app-container > .tab-nav,
+        body.auth-locked .app-container > .section { display:none !important; }
+        body:not(.auth-ready) .header-stat,
+        body.auth-locked .header-stat { display:none; }
         .draw-result-card { background: var(--surface); border-radius: 18px; border: 1px solid var(--border); padding: 18px 20px; margin-bottom: 12px; box-shadow: 0 4px 14px var(--shadow); }
         .draw-result-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
         .draw-result-date { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
@@ -775,9 +786,12 @@
         <div class="btn-row">
             <button class="btn btn-primary" onclick="loginWithEmailPassword()">&#128274; Log In</button>
             <button class="btn btn-success" onclick="signUpWithEmailPassword()">&#10133; Sign Up</button>
-            <button class="btn btn-secondary" onclick="signInAsGuest()">&#128100; Continue as Guest</button>
         </div>
-        <p class="auth-helper">Use sign up to create a permanent account. Guest mode keeps Firebase sync available, and guest accounts can be upgraded by signing up from the same device.</p>
+        <p class="auth-helper">Sign in or create an account to unlock the lotto system and sync your data across devices.</p>
+    </div>
+    <div id="auth-lock-message" class="card auth-lock-message">
+        <div id="auth-lock-title" class="section-title">&#128274; Login Required</div>
+        <p id="auth-lock-copy" class="text-muted">Please sign in with your account before using the lotto system.</p>
     </div>
     <nav class="tab-nav">
         <button class="tab-btn active" onclick="switchTab('quickpick')">&#127920; Quick Pick</button>
@@ -2875,7 +2889,7 @@ function clearAuthInputs() {
 
 function focusAuthPortal() {
     var portal = document.getElementById('auth-portal');
-    if (!portal || !fbConfigReady || fbCurrentUser) return;
+    if (!portal || !fbConfigReady || isAppUnlocked(fbCurrentUser)) return;
     portal.style.display = 'block';
     if (typeof portal.scrollIntoView === 'function') {
         portal.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2884,21 +2898,44 @@ function focusAuthPortal() {
     if (emailEl) emailEl.focus();
 }
 
+function isAppUnlocked(user) {
+    return user && !user.isAnonymous;
+}
+
+function setAppLockState(unlocked) {
+    var lockMessage = document.getElementById('auth-lock-message');
+    var lockCopy = document.getElementById('auth-lock-copy');
+    if (document.body) {
+        document.body.classList.add('auth-ready');
+        document.body.classList.toggle('auth-locked', !unlocked);
+    }
+    if (lockMessage) {
+        lockMessage.style.display = unlocked ? 'none' : 'block';
+    }
+    if (lockCopy) {
+        lockCopy.textContent = fbConfigReady
+            ? 'Please sign in with your account before using the lotto system.'
+            : 'Configure Firebase Authentication before the lotto system can be unlocked.';
+    }
+}
+
 function updateAuthUi(user) {
     var portal = document.getElementById('auth-portal');
     var chip = document.getElementById('auth-user-chip');
     var signInBtn = document.getElementById('auth-manage-btn');
     var signOutBtn = document.getElementById('auth-signout-btn');
-    if (portal) portal.style.display = (!user && fbConfigReady) ? 'block' : 'none';
-    if (signInBtn) signInBtn.style.display = (!user && fbConfigReady) ? 'inline-flex' : 'none';
+    var unlocked = isAppUnlocked(user);
+    setAppLockState(unlocked);
+    if (portal) portal.style.display = (!unlocked && fbConfigReady) ? 'block' : 'none';
+    if (signInBtn) signInBtn.style.display = (!unlocked && fbConfigReady) ? 'inline-flex' : 'none';
     if (signOutBtn) {
-        signOutBtn.style.display = user ? 'inline-flex' : 'none';
-        signOutBtn.textContent = user && user.isAnonymous ? '\u{1F6AA} Exit Guest' : '\u{1F682} Sign Out';
+        signOutBtn.style.display = unlocked ? 'inline-flex' : 'none';
+        signOutBtn.textContent = '\u{1F682} Sign Out';
     }
     if (chip) {
-        chip.style.display = user ? 'inline-flex' : 'none';
-        chip.className = 'auth-chip' + (user && user.isAnonymous ? ' guest' : '');
-        chip.textContent = user ? (user.isAnonymous ? '\u{1F464} Guest Session' : '\u{2709}\uFE0F ' + (user.email || 'Signed In')) : '';
+        chip.style.display = unlocked ? 'inline-flex' : 'none';
+        chip.className = 'auth-chip';
+        chip.textContent = unlocked ? ('\u{2709}\uFE0F ' + ((user && user.email) || 'Signed In')) : '';
     }
     if (user) setAuthStatus('', 'info');
 }
@@ -3297,6 +3334,11 @@ function purgeOrphanedDataManual() {
 var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern','intelligentcanvas','tetragematrn','prngml','integrity','aiadvisor'];
 
 function switchTab(key) {
+    if (!isAppUnlocked(fbCurrentUser)) {
+        setAuthStatus('Please sign in to access the lotto system.', 'info');
+        focusAuthPortal();
+        return;
+    }
     TAB_KEYS.forEach(function(k, i) {
         var sec = document.getElementById('sec-' + k);
         var btn = document.querySelectorAll('.tab-nav > .tab-btn')[i];
