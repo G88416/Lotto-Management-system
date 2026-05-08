@@ -1,6 +1,6 @@
 {
-  "name": "Bophelong Lotto Management System",
-  "short_name": "Bophelong Lotto",
+  "name": "LottoCanvas Workstation",
+  "short_name": "LottoCanvas Workstation",
   "description": "Manage lottery tickets, draws, and pattern analysis for multiple lottery formats.",
   "start_url": "./index.html",
   "scope": "./",

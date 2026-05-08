@@ -1,4 +1,4 @@
-# Bophelong Lotto Management System
+# LottoCanvas Workstation
 
 Advanced multi-format lottery management tool with real-time cloud sync powered by **Firebase**.
 

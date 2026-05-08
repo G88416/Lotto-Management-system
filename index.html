@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Bophelong Lotto Management System</title>
+    <title>LottoCanvas Workstation</title>
 
     <!-- PWA / Web App Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -12,7 +12,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Bophelong Lotto">
+    <meta name="apple-mobile-web-app-title" content="LottoCanvas Workstation">
 
     <!-- Theme colour for browser chrome -->
     <meta name="theme-color" content="#8b5cf6" media="(prefers-color-scheme: light)">
@@ -58,7 +58,7 @@
         body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background 0.3s, color 0.3s; }
         .app-header { background: var(--accent-grad); padding: 18px 30px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(139,92,246,0.35); position: sticky; top: 0; z-index: 100; }
         .app-header .brand { display: flex; align-items: center; gap: 14px; }
-        .app-header .brand .logo { font-size: 2.2rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+        .app-header .brand .logo { width: 52px; height: 52px; border-radius: 12px; object-fit: cover; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
         .app-header .brand h1 { color: #fff; font-size: 1.45rem; font-weight: 800; line-height: 1.2; }
         .app-header .brand p { color: rgba(255,255,255,0.82); font-size: 0.82rem; }
         .header-controls { display: flex; align-items: center; gap: 12px; }
@@ -714,9 +714,9 @@
 
 <header class="app-header">
     <div class="brand">
-        <span class="logo">&#127967;</span>
+        <img class="logo" src="https://github.com/user-attachments/assets/9aae77eb-adde-4954-8674-dc5eb629f7b1" alt="LottoCanvas Workstation logo">
         <div>
-            <h1>Bophelong Lotto Management</h1>
+            <h1>LottoCanvas Workstation</h1>
             <p>Advanced Multi-Format Lottery Engine</p>
         </div>
     </div>

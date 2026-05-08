@@ -1,6 +1,6 @@
-# Packaging Guide — Bophelong Lotto Management System
+# Packaging Guide — LottoCanvas Workstation
 
-This document explains how to build and distribute the Bophelong Lotto app as a
+This document explains how to build and distribute the LottoCanvas Workstation app as a
 **macOS desktop app** (via Electron) and as an **iOS installable app** (via PWA
 or Capacitor).
 
@@ -58,8 +58,8 @@ npm run dist
 ```
 
 Output is placed in the `dist/` directory:
-- `dist/Bophelong Lotto-1.0.0-arm64.dmg` — Apple Silicon installer
-- `dist/Bophelong Lotto-1.0.0-x64.dmg` — Intel installer
+- `dist/LottoCanvas Workstation-1.0.0-arm64.dmg` — Apple Silicon installer
+- `dist/LottoCanvas Workstation-1.0.0-x64.dmg` — Intel installer
 
 ### Code signing & notarisation (required for distribution outside direct download)
 To distribute on the **Mac App Store** or to pass Gatekeeper without a warning:
@@ -106,7 +106,7 @@ npm install
 npm install @capacitor/core @capacitor/cli @capacitor/ios @capacitor/splash-screen
 
 # 2. Initialise Capacitor (first time only)
-npx cap init "Bophelong Lotto" "com.g88416.bophelong" --web-dir .
+npx cap init "LottoCanvas Workstation" "com.g88416.bophelong" --web-dir .
 
 # 3. Add the iOS platform
 npx cap add ios

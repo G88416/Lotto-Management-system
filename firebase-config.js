@@ -1,5 +1,5 @@
 /**
- * Firebase Configuration for Bophelong Lotto Management System
+ * Firebase Configuration for LottoCanvas Workstation
  *
  * Setup Instructions:
  * 1. Go to https://console.firebase.google.com/ and create (or select) a project.
