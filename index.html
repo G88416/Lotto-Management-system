@@ -2892,7 +2892,7 @@ function focusAuthPortal() {
 }
 
 function isAppUnlocked(user) {
-    return !!(user && !user.isAnonymous);
+    return user != null && !user.isAnonymous;
 }
 
 function setAppLockState(unlocked) {
@@ -2928,7 +2928,7 @@ function updateAuthUi(user) {
     if (chip) {
         chip.style.display = unlocked ? 'inline-flex' : 'none';
         chip.className = 'auth-chip';
-        chip.textContent = unlocked ? ('\u{2709}\uFE0F ' + (user.email || 'Signed In')) : '';
+        chip.textContent = unlocked ? ('\u{2709}\uFE0F ' + ((user && user.email) || 'Signed In')) : '';
     }
     if (user) setAuthStatus('', 'info');
 }
