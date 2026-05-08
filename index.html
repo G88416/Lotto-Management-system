@@ -83,7 +83,7 @@
         .section-title { font-size: 1.7rem; font-weight: 800; color: var(--text); margin-bottom: 22px; display: flex; align-items: center; gap: 10px; }
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-muted); font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        input[type="text"], input[type="number"], input[type="date"], select, textarea { width: 100%; padding: 13px 16px; border: 2px solid var(--border); border-radius: 13px; font-size: 1rem; background: var(--surface2); color: var(--text); transition: border-color 0.2s, box-shadow 0.2s; }
+        input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], select, textarea { width: 100%; padding: 13px 16px; border: 2px solid var(--border); border-radius: 13px; font-size: 1rem; background: var(--surface2); color: var(--text); transition: border-color 0.2s, box-shadow 0.2s; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 4px rgba(139,92,246,0.15); }
         .btn { padding: 13px 24px; border: none; border-radius: 13px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.25s; display: inline-flex; align-items: center; gap: 8px; }
         .btn-primary { background: var(--accent-grad); color: #fff; box-shadow: 0 6px 18px rgba(139,92,246,0.3); }
@@ -227,6 +227,15 @@
         .sync-dot.grey   { background:rgba(255,255,255,0.45); }
         .firebase-setup-banner { background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; padding:14px 20px; border-radius:14px; margin-bottom:20px; display:none; align-items:center; gap:12px; font-weight:600; font-size:0.9rem; flex-wrap:wrap; }
         .firebase-setup-banner a { color:#fff; text-decoration:underline; }
+        .auth-chip { display:inline-flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:700; padding:6px 12px; border-radius:20px; background:rgba(255,255,255,0.18); color:#fff; white-space:nowrap; }
+        .auth-chip.guest { background:rgba(245,158,11,0.22); }
+        .auth-portal { display:none; }
+        .auth-portal p { line-height:1.5; }
+        .auth-status { display:none; margin-top:14px; padding:12px 14px; border-radius:12px; border:1px solid var(--border); font-size:0.88rem; font-weight:600; }
+        .auth-status.info { display:block; background:var(--surface2); color:var(--text-muted); border-color:var(--border); }
+        .auth-status.success { display:block; background:#f0fdf4; color:var(--green); border-color:#86efac; }
+        .auth-status.error { display:block; background:#fef2f2; color:var(--red); border-color:#fca5a5; }
+        .auth-helper { margin-top:14px; font-size:0.84rem; color:var(--text-muted); }
         .draw-result-card { background: var(--surface); border-radius: 18px; border: 1px solid var(--border); padding: 18px 20px; margin-bottom: 12px; box-shadow: 0 4px 14px var(--shadow); }
         .draw-result-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
         .draw-result-date { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
@@ -727,6 +736,9 @@
             <span class="sync-dot grey"></span>
             <span class="sync-label">Offline</span>
         </span>
+        <span id="auth-user-chip" class="auth-chip" style="display:none;"></span>
+        <button id="auth-manage-btn" class="theme-toggle" onclick="focusAuthPortal()" style="display:none;">&#128274; Sign In</button>
+        <button id="auth-signout-btn" class="theme-toggle" onclick="signOutUser()" style="display:none;">&#128682; Sign Out</button>
         <button class="theme-toggle" onclick="toggleTheme()">&#127769; Dark</button>
     </div>
 </header>
@@ -741,6 +753,31 @@
         and the <code style="background:rgba(0,0,0,0.15);padding:2px 6px;border-radius:4px;">README.md</code>
         for instructions.&nbsp;
         <a href="#" onclick="document.getElementById('firebase-setup-banner').style.display='none';return false;">Dismiss</a>
+    </div>
+    <div id="auth-portal" class="card auth-portal">
+        <div class="section-title">&#128274; Login / Sign Up Portal</div>
+        <p class="text-muted">Sign in with Firebase Authentication to sync your tickets, draw history, saved patterns, and settings across devices.</p>
+        <div class="grid-2 mt-20">
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" />
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="auth-password" placeholder="Minimum 6 characters" autocomplete="current-password" />
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Confirm Password <span class="text-muted text-sm">(sign up only)</span></label>
+            <input type="password" id="auth-confirm-password" placeholder="Repeat password for sign up" autocomplete="new-password" />
+        </div>
+        <div id="auth-status" class="auth-status"></div>
+        <div class="btn-row">
+            <button class="btn btn-primary" onclick="loginWithEmailPassword()">&#128274; Log In</button>
+            <button class="btn btn-success" onclick="signUpWithEmailPassword()">&#10133; Sign Up</button>
+            <button class="btn btn-secondary" onclick="signInAsGuest()">&#128100; Continue as Guest</button>
+        </div>
+        <p class="auth-helper">Use sign up to create a permanent account. Guest mode keeps Firebase sync available, and guest accounts can be upgraded by signing up from the same device.</p>
     </div>
     <nav class="tab-nav">
         <button class="tab-btn active" onclick="switchTab('quickpick')">&#127920; Quick Pick</button>
@@ -2797,7 +2834,9 @@ function getAllFormats() { return FORMATS.concat(state.customFormats || []); }
 var fbDb               = null;
 var fbAuth             = null;
 var fbUserId           = null;
+var fbCurrentUser      = null;
 var fbReady            = false;
+var fbConfigReady      = false;
 var fbSyncTimer        = null;
 var fbDrawsUnsubscribe = null;
 
@@ -2806,19 +2845,127 @@ function updateSyncStatus(status) {
     if (!el) return;
     var dotEl = el.querySelector('.sync-dot');
     var txtEl = el.querySelector('.sync-label');
-    var dotClass = { synced:'green', connecting:'yellow', offline:'grey', error:'red' }[status] || 'grey';
-    var label    = { synced:'Synced', connecting:'Syncing\u2026', offline:'Offline', error:'Sync Error' }[status] || status;
+    var dotClass = { synced:'green', connecting:'yellow', offline:'grey', error:'red', signedout:'grey' }[status] || 'grey';
+    var label    = { synced:'Synced', connecting:'Syncing\u2026', offline:'Offline', error:'Sync Error', signedout:'Sign In' }[status] || status;
     if (dotEl) dotEl.className = 'sync-dot ' + dotClass;
     if (txtEl) txtEl.textContent = label;
+}
+
+function setAuthStatus(message, type) {
+    var el = document.getElementById('auth-status');
+    if (!el) return;
+    if (!message) {
+        el.className = 'auth-status';
+        el.style.display = 'none';
+        el.textContent = '';
+        return;
+    }
+    el.className = 'auth-status ' + (type || 'info');
+    el.style.display = 'block';
+    el.textContent = message;
+}
+
+function clearAuthInputs() {
+    var ids = ['auth-email', 'auth-password', 'auth-confirm-password'];
+    ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+}
+
+function focusAuthPortal() {
+    var portal = document.getElementById('auth-portal');
+    if (!portal || !fbConfigReady || fbCurrentUser) return;
+    portal.style.display = 'block';
+    if (typeof portal.scrollIntoView === 'function') {
+        portal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    var emailEl = document.getElementById('auth-email');
+    if (emailEl) emailEl.focus();
+}
+
+function updateAuthUi(user) {
+    var portal = document.getElementById('auth-portal');
+    var chip = document.getElementById('auth-user-chip');
+    var signInBtn = document.getElementById('auth-manage-btn');
+    var signOutBtn = document.getElementById('auth-signout-btn');
+    if (portal) portal.style.display = (!user && fbConfigReady) ? 'block' : 'none';
+    if (signInBtn) signInBtn.style.display = (!user && fbConfigReady) ? 'inline-flex' : 'none';
+    if (signOutBtn) {
+        signOutBtn.style.display = user ? 'inline-flex' : 'none';
+        signOutBtn.textContent = user && user.isAnonymous ? '\u{1F6AA} Exit Guest' : '\u{1F682} Sign Out';
+    }
+    if (chip) {
+        chip.style.display = user ? 'inline-flex' : 'none';
+        chip.className = 'auth-chip' + (user && user.isAnonymous ? ' guest' : '');
+        chip.textContent = user ? (user.isAnonymous ? '\u{1F464} Guest Session' : '\u{2709}\uFE0F ' + (user.email || 'Signed In')) : '';
+    }
+    if (user) setAuthStatus('', 'info');
+}
+
+function resetFirebaseSession() {
+    clearTimeout(fbSyncTimer);
+    fbReady = false;
+    fbUserId = null;
+    if (fbDrawsUnsubscribe) {
+        fbDrawsUnsubscribe();
+        fbDrawsUnsubscribe = null;
+    }
+}
+
+function getMainStatePayload() {
+    return {
+        tickets:           state.tickets,
+        budget:            state.budget,
+        stats:             state.stats,
+        customDraws:       state.customDraws,
+        reverseHistory:    state.reverseHistory,
+        seedHistory:       state.seedHistory,
+        customFormats:     state.customFormats     || [],
+        savedPatternDraws: state.savedPatternDraws || [],
+        aiAdvisorHistory:  state.aiAdvisorHistory  || [],
+        updatedAt:         firebase.firestore.FieldValue.serverTimestamp()
+    };
+}
+
+function writeMainStateToFirestore() {
+    if (!fbReady || !fbDb || !fbUserId) return Promise.resolve();
+    updateSyncStatus('connecting');
+    return fbDb.collection('users').doc(fbUserId).collection('data').doc('main').set(getMainStatePayload(), { merge: true })
+        .then(function() {
+            updateSyncStatus('synced');
+        })
+        .catch(function(err) {
+            console.warn('[Firebase] Write error:', err.message);
+            updateSyncStatus('error');
+            throw err;
+        });
+}
+
+function formatAuthError(err, fallback) {
+    var map = {
+        'auth/invalid-email': 'Enter a valid email address.',
+        'auth/missing-password': 'Enter your password.',
+        'auth/weak-password': 'Use a password with at least 6 characters.',
+        'auth/email-already-in-use': 'That email address already has an account.',
+        'auth/invalid-credential': 'The email address or password is incorrect.',
+        'auth/user-not-found': 'No account exists for that email address.',
+        'auth/wrong-password': 'The email address or password is incorrect.',
+        'auth/operation-not-allowed': 'Enable Email/Password Authentication in Firebase before using this portal.',
+        'auth/requires-recent-login': 'Please sign in again and retry that action.'
+    };
+    return map[err && err.code] || fallback || (err && err.message) || 'Authentication failed.';
 }
 
 function initFirebase() {
     if (typeof firebase === 'undefined') { updateSyncStatus('offline'); return; }
     var cfg = (typeof FIREBASE_CONFIG !== 'undefined') ? FIREBASE_CONFIG : null;
-    if (!cfg || cfg.apiKey === 'YOUR_API_KEY') {
+    fbConfigReady = !!(cfg && cfg.apiKey && cfg.apiKey !== 'YOUR_API_KEY');
+    if (!fbConfigReady) {
         updateSyncStatus('offline');
         var banner = document.getElementById('firebase-setup-banner');
         if (banner) banner.style.display = 'flex';
+        updateAuthUi(null);
         return;
     }
     try {
@@ -2826,22 +2973,28 @@ function initFirebase() {
         if (typeof firebase.analytics === 'function') { firebase.analytics(); }
         fbAuth = firebase.auth();
         fbDb   = firebase.firestore();
-        /* Enable offline persistence so the app works without a network.
-           Fails silently in private-browsing mode or if already enabled by
-           another tab; log the reason but continue — online sync still works. */
         fbDb.enablePersistence({ synchronizeTabs: true }).catch(function(err) {
             console.info('[Firebase] Offline persistence not available:', err.code);
         });
-        updateSyncStatus('connecting');
-        fbAuth.signInAnonymously().then(function(cred) {
-            fbUserId = cred.user.uid;
-            fbReady  = true;
-            updateSyncStatus('synced');
+        updateAuthUi(fbAuth.currentUser);
+        updateSyncStatus(fbAuth.currentUser ? 'connecting' : 'signedout');
+        fbAuth.onAuthStateChanged(function(user) {
+            resetFirebaseSession();
+            fbCurrentUser = user || null;
+            updateAuthUi(user || null);
+            if (!user) {
+                updateSyncStatus('signedout');
+                return;
+            }
+            fbUserId = user.uid;
+            fbReady = true;
+            updateSyncStatus('connecting');
             loadFromFirestore();
             setupRealtimeListeners();
-        }).catch(function(err) {
-            console.warn('[Firebase] Auth error:', err.message);
+        }, function(err) {
+            console.warn('[Firebase] Auth state error:', err.message);
             updateSyncStatus('error');
+            setAuthStatus(formatAuthError(err, 'Firebase authentication could not be initialised.'), 'error');
         });
     } catch(err) {
         console.warn('[Firebase] Init error:', err.message);
@@ -2849,29 +3002,97 @@ function initFirebase() {
     }
 }
 
+function signInAsGuest() {
+    if (!fbAuth) return;
+    if (fbCurrentUser && !fbCurrentUser.isAnonymous) {
+        setAuthStatus('You are already signed in with a saved account.', 'info');
+        return;
+    }
+    if (fbCurrentUser && fbCurrentUser.isAnonymous) {
+        setAuthStatus('You are already using a guest session.', 'info');
+        return;
+    }
+    setAuthStatus('Starting guest session…', 'info');
+    fbAuth.signInAnonymously().then(function() {
+        clearAuthInputs();
+        showToast('Guest session started', 'success');
+    }).catch(function(err) {
+        setAuthStatus(formatAuthError(err, 'Guest sign-in failed.'), 'error');
+        updateSyncStatus('error');
+    });
+}
+
+function loginWithEmailPassword() {
+    if (!fbAuth) return;
+    var email = (document.getElementById('auth-email').value || '').trim();
+    var password = document.getElementById('auth-password').value || '';
+    if (!email || !password) {
+        setAuthStatus('Enter both email address and password to log in.', 'error');
+        return;
+    }
+    setAuthStatus('Signing in…', 'info');
+    var signIn = function() { return fbAuth.signInWithEmailAndPassword(email, password); };
+    var flow = (fbCurrentUser && fbCurrentUser.isAnonymous) ? fbAuth.signOut().then(signIn) : signIn();
+    flow.then(function() {
+        clearAuthInputs();
+        showToast('Signed in successfully', 'success');
+    }).catch(function(err) {
+        setAuthStatus(formatAuthError(err, 'Sign-in failed.'), 'error');
+        updateSyncStatus('error');
+    });
+}
+
+function signUpWithEmailPassword() {
+    if (!fbAuth) return;
+    var email = (document.getElementById('auth-email').value || '').trim();
+    var password = document.getElementById('auth-password').value || '';
+    var confirm = document.getElementById('auth-confirm-password').value || '';
+    if (!email || !password) {
+        setAuthStatus('Enter an email address and password to create an account.', 'error');
+        return;
+    }
+    if (password.length < 6) {
+        setAuthStatus('Use a password with at least 6 characters.', 'error');
+        return;
+    }
+    if (password !== confirm) {
+        setAuthStatus('Password confirmation does not match.', 'error');
+        return;
+    }
+    setAuthStatus(fbCurrentUser && fbCurrentUser.isAnonymous ? 'Upgrading guest session…' : 'Creating your account…', 'info');
+    var flow;
+    if (fbCurrentUser && fbCurrentUser.isAnonymous) {
+        var credential = firebase.auth.EmailAuthProvider.credential(email, password);
+        flow = fbCurrentUser.linkWithCredential(credential);
+    } else {
+        flow = fbAuth.createUserWithEmailAndPassword(email, password);
+    }
+    flow.then(function() {
+        clearAuthInputs();
+        showToast('Account ready and sync enabled', 'success');
+    }).catch(function(err) {
+        setAuthStatus(formatAuthError(err, 'Sign-up failed.'), 'error');
+        updateSyncStatus('error');
+    });
+}
+
+function signOutUser() {
+    if (!fbAuth || !fbCurrentUser) return;
+    var wasGuest = !!fbCurrentUser.isAnonymous;
+    fbAuth.signOut().then(function() {
+        showToast(wasGuest ? 'Guest session ended' : 'Signed out', 'info');
+        setAuthStatus(wasGuest ? 'Guest session ended. Sign in again to resume sync.' : 'Signed out. Sign in again to keep syncing across devices.', 'info');
+    }).catch(function(err) {
+        setAuthStatus(formatAuthError(err, 'Sign-out failed.'), 'error');
+    });
+}
+
 /* Debounced write of tickets/budget/stats/customDraws/history to Firestore */
 function syncToFirestore() {
     if (!fbReady || !fbDb || !fbUserId) return;
     clearTimeout(fbSyncTimer);
-    updateSyncStatus('connecting');
     fbSyncTimer = setTimeout(function() {
-        fbDb.collection('users').doc(fbUserId).collection('data').doc('main').set({
-            tickets:           state.tickets,
-            budget:            state.budget,
-            stats:             state.stats,
-            customDraws:       state.customDraws,
-            reverseHistory:    state.reverseHistory,
-            seedHistory:       state.seedHistory,
-            customFormats:     state.customFormats     || [],
-            savedPatternDraws: state.savedPatternDraws || [],
-            aiAdvisorHistory:  state.aiAdvisorHistory  || [],
-            updatedAt:         firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true }).then(function() {
-            updateSyncStatus('synced');
-        }).catch(function(err) {
-            console.warn('[Firebase] Write error:', err.message);
-            updateSyncStatus('error');
-        });
+        writeMainStateToFirestore();
     }, 1500);
 }
 
@@ -2880,7 +3101,9 @@ function loadFromFirestore() {
     if (!fbReady || !fbDb || !fbUserId) return;
     fbDb.collection('users').doc(fbUserId).collection('data').doc('main').get()
         .then(function(doc) {
-            if (!doc.exists) return;
+            if (!doc.exists) {
+                return writeMainStateToFirestore();
+            }
             var d = doc.data();
             if (Array.isArray(d.tickets))          state.tickets        = d.tickets;
             if (d.budget && typeof d.budget === 'object') state.budget  = d.budget;
@@ -2891,7 +3114,6 @@ function loadFromFirestore() {
             if (Array.isArray(d.customFormats))    state.customFormats  = d.customFormats;
             if (Array.isArray(d.savedPatternDraws)) state.savedPatternDraws = d.savedPatternDraws;
             if (Array.isArray(d.aiAdvisorHistory)) state.aiAdvisorHistory = d.aiAdvisorHistory;
-            /* Back-fill localStorage with the freshly loaded cloud state */
             try {
                 localStorage.setItem('lotto_state', JSON.stringify({
                     tickets:state.tickets, budget:state.budget, stats:state.stats,
@@ -2902,17 +3124,20 @@ function loadFromFirestore() {
                     aiAdvisorHistory:state.aiAdvisorHistory
                 }));
             } catch(e) {}
-            /* Rebuild format dropdowns now that customFormats may have changed. */
             buildFormatGrids();
             updateHeader();
             renderReverseHistory();
             renderSeedHistory();
+            renderSavedPatternDraws();
             if (document.getElementById('sec-budget').classList.contains('active'))  renderBudget();
             if (document.getElementById('sec-tickets').classList.contains('active')) renderTickets();
             if (document.getElementById('sec-stats').classList.contains('active'))   renderWheeling();
+            if (document.getElementById('sec-aiadvisor').classList.contains('active')) renderAiHistory();
+            updateSyncStatus('synced');
         })
         .catch(function(err) {
             console.warn('[Firebase] Load error:', err.message);
+            updateSyncStatus('error');
         });
 }
 
@@ -13681,6 +13906,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    ['auth-email', 'auth-password', 'auth-confirm-password'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                var confirmEl = document.getElementById('auth-confirm-password');
+                if (confirmEl && confirmEl.value) signUpWithEmailPassword();
+                else loginWithEmailPassword();
+            }
+        });
+    });
     /* Initialise Firebase sync after the rest of the app is ready */
     initFirebase();
 });

@@ -6,24 +6,15 @@
  * 2. In Project Settings > General, click "Add app" and choose the Web (</>)  platform.
  *    Copy the firebaseConfig object that is shown and paste the values below.
  * 3. Enable Firestore Database under Build > Firestore Database (Native mode).
- * 4. Enable Anonymous Authentication under Build > Authentication > Sign-in method.
- * 5. Apply the Firestore Security Rules shown below in the Rules tab of your
- *    Firestore Database console.
- * 6. Replace every "YOUR_…" placeholder below with your actual project values.
+ * 4. Enable Email/Password Authentication under Build > Authentication > Sign-in method.
+ * 5. (Optional) Enable Anonymous Authentication as well if you want the guest mode
+ *    button in the app to work.
+ * 6. Apply the rules from firestore.rules and database.rules.json in your Firebase
+ *    console (or deploy them with the Firebase CLI).
+ * 7. Replace every "YOUR_…" placeholder below with your actual project values.
  *
- * ── Recommended Firestore Security Rules ──────────────────────────────────────
- *
- *   rules_version = '2';
- *   service cloud.firestore {
- *     match /databases/{database}/documents {
- *       match /users/{userId}/{document=**} {
- *         allow read, write: if request.auth != null
- *                            && request.auth.uid == userId;
- *       }
- *     }
- *   }
- *
- * ──────────────────────────────────────────────────────────────────────────────
+ * See firestore.rules and database.rules.json in the repository root for the
+ * checked-in Firebase security rules used by this app.
  *
  * ⚠️  Security note:
  *    Avoid committing real API keys to a public repository.
