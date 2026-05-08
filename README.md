@@ -37,28 +37,20 @@ To enable **cross-device sync** and **real-time live draw data**, connect it to 
 2. Click **Create database** and choose **Native mode**.
 3. Pick any location and click **Enable**.
 
-### 4. Enable Anonymous Authentication
+### 4. Enable Firebase Authentication
 
 1. Go to **Build → Authentication → Sign-in method**.
-2. Enable **Anonymous**.
+2. Enable **Email/Password**.
+3. Optionally enable **Anonymous** if you want the app's guest mode button to keep working.
 
-### 5. Set Firestore Security Rules
+### 5. Apply the Firebase security rules
 
-In **Firestore Database → Rules**, replace the default rules with:
+This repository now includes ready-to-use Firebase rules files:
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId;
-    }
-  }
-}
-```
+- `firestore.rules`
+- `database.rules.json`
 
-Click **Publish**.
+Apply them in the Firebase console, or deploy them with the Firebase CLI if you use it for your project.
 
 ### 6. Fill in `firebase-config.js`
 
@@ -84,7 +76,7 @@ var FIREBASE_CONFIG = {
 ### 7. Open the app
 
 Open `index.html` in a browser (or serve it with any static web server).  
-The sync indicator in the top-right corner will turn **green** (🟢 Synced) once Firebase is connected.
+The sync indicator in the top-right corner will turn **green** (🟢 Synced) once Firebase is connected. Use the in-app **Login / Sign Up Portal** to sign in with Firebase Authentication and sync your data across devices.
 
 ---
 
