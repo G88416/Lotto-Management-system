@@ -2892,21 +2892,20 @@ function focusAuthPortal() {
 }
 
 function isAppUnlocked(user) {
-    return user != null && !user.isAnonymous;
+    return user !== null && user !== undefined && !user.isAnonymous;
 }
 
 function setAppLockState(unlocked) {
     var app = document.querySelector('.app-container');
     var lockMessage = document.getElementById('auth-lock-message');
     var lockCopy = document.getElementById('auth-lock-copy');
-    var configured = !!fbConfigReady;
     if (document.body) document.body.classList.toggle('auth-locked', !unlocked);
     if (app) app.classList.toggle('auth-locked', !unlocked);
     if (lockMessage) {
         lockMessage.style.display = unlocked ? 'none' : 'block';
     }
     if (lockCopy) {
-        lockCopy.textContent = configured
+        lockCopy.textContent = fbConfigReady
             ? 'Please sign in with your account before using the lotto system.'
             : 'Configure Firebase Authentication before the lotto system can be unlocked.';
     }
