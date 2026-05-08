@@ -237,8 +237,10 @@
         .auth-status.success { display:block; background:#f0fdf4; color:var(--green); border-color:#86efac; }
         .auth-status.error { display:block; background:#fef2f2; color:var(--red); border-color:#fca5a5; }
         .auth-helper { margin-top:14px; font-size:0.84rem; color:var(--text-muted); }
-        .app-container.auth-locked > .tab-nav,
-        .app-container.auth-locked > .section { display:none !important; }
+        body.auth-locked .app-container > .auth-portal,
+        body.auth-locked .app-container > .auth-lock-message { display:block; }
+        body.auth-locked .app-container > .tab-nav,
+        body.auth-locked .app-container > .section { display:none !important; }
         body.auth-locked .header-stat { display:none; }
         .draw-result-card { background: var(--surface); border-radius: 18px; border: 1px solid var(--border); padding: 18px 20px; margin-bottom: 12px; box-shadow: 0 4px 14px var(--shadow); }
         .draw-result-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
@@ -747,7 +749,7 @@
     </div>
 </header>
 
-<div class="app-container auth-locked">
+<div class="app-container">
     <!-- Shown when firebase-config.js has not been filled in -->
     <div id="firebase-setup-banner" class="firebase-setup-banner">
         &#9888;&#65039; <strong>Firebase Setup Required:</strong>&nbsp;
@@ -758,7 +760,7 @@
         for instructions.&nbsp;
         <a href="#" onclick="document.getElementById('firebase-setup-banner').style.display='none';return false;">Dismiss</a>
     </div>
-    <div id="auth-portal" class="card auth-portal" style="display:block;">
+    <div id="auth-portal" class="card auth-portal">
         <div class="section-title">&#128274; Login / Sign Up Portal</div>
         <p class="text-muted">Sign in with Firebase Authentication to sync your tickets, draw history, saved patterns, and settings across devices.</p>
         <div class="grid-2 mt-20">
@@ -782,7 +784,7 @@
         </div>
         <p class="auth-helper">Sign in or create an account to unlock the lotto system and sync your data across devices.</p>
     </div>
-    <div id="auth-lock-message" class="card auth-lock-message" style="display:block;">
+    <div id="auth-lock-message" class="card auth-lock-message">
         <div id="auth-lock-title" class="section-title">&#128274; Login Required</div>
         <p id="auth-lock-copy" class="text-muted">Please sign in with your account before using the lotto system.</p>
     </div>
@@ -2896,11 +2898,9 @@ function isAppUnlocked(user) {
 }
 
 function setAppLockState(unlocked) {
-    var app = document.querySelector('.app-container');
     var lockMessage = document.getElementById('auth-lock-message');
     var lockCopy = document.getElementById('auth-lock-copy');
     if (document.body) document.body.classList.toggle('auth-locked', !unlocked);
-    if (app) app.classList.toggle('auth-locked', !unlocked);
     if (lockMessage) {
         lockMessage.style.display = unlocked ? 'none' : 'block';
     }
@@ -2922,7 +2922,7 @@ function updateAuthUi(user) {
     if (signInBtn) signInBtn.style.display = (!unlocked && fbConfigReady) ? 'inline-flex' : 'none';
     if (signOutBtn) {
         signOutBtn.style.display = user ? 'inline-flex' : 'none';
-        signOutBtn.textContent = user && user.isAnonymous ? '\u{1F6AA} Exit Guest' : '\u{1F682} Sign Out';
+        signOutBtn.textContent = '\u{1F682} Sign Out';
     }
     if (chip) {
         chip.style.display = unlocked ? 'inline-flex' : 'none';
