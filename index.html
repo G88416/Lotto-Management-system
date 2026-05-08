@@ -2928,6 +2928,21 @@ function getMainStatePayload() {
     };
 }
 
+function hasMeaningfulLocalData() {
+    return !!(
+        (state.tickets && state.tickets.length) ||
+        (state.customDraws && state.customDraws.length) ||
+        (state.recentDraws && state.recentDraws.length) ||
+        (state.reverseHistory && state.reverseHistory.length) ||
+        (state.seedHistory && state.seedHistory.length) ||
+        (state.savedPatternDraws && state.savedPatternDraws.length) ||
+        (state.customFormats && state.customFormats.length) ||
+        (state.aiAdvisorHistory && state.aiAdvisorHistory.length) ||
+        (state.budget && Number(state.budget.limit || 0) > 0) ||
+        (state.stats && Object.keys(state.stats).length)
+    );
+}
+
 function writeMainStateToFirestore() {
     if (!fbReady || !fbDb || !fbUserId) return Promise.resolve();
     updateSyncStatus('connecting');
@@ -3102,7 +3117,9 @@ function loadFromFirestore() {
     fbDb.collection('users').doc(fbUserId).collection('data').doc('main').get()
         .then(function(doc) {
             if (!doc.exists) {
-                return writeMainStateToFirestore();
+                if (hasMeaningfulLocalData()) return writeMainStateToFirestore();
+                updateSyncStatus('synced');
+                return;
             }
             var d = doc.data();
             if (Array.isArray(d.tickets))          state.tickets        = d.tickets;
@@ -13906,18 +13923,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    ['auth-email', 'auth-password', 'auth-confirm-password'].forEach(function(id) {
+    ['auth-email', 'auth-password'].forEach(function(id) {
         var el = document.getElementById(id);
         if (!el) return;
         el.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                var confirmEl = document.getElementById('auth-confirm-password');
-                if (confirmEl && confirmEl.value) signUpWithEmailPassword();
-                else loginWithEmailPassword();
+                loginWithEmailPassword();
             }
         });
     });
+    var authConfirmEl = document.getElementById('auth-confirm-password');
+    if (authConfirmEl) {
+        authConfirmEl.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                signUpWithEmailPassword();
+            }
+        });
+    }
     /* Initialise Firebase sync after the rest of the app is ready */
     initFirebase();
 });
