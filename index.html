@@ -783,8 +783,8 @@
         <p class="auth-helper">Sign in or create an account to unlock the lotto system and sync your data across devices.</p>
     </div>
     <div id="auth-lock-message" class="card auth-lock-message" style="display:block;">
-        <div class="section-title">&#128274; Login Required</div>
-        <p class="text-muted">Please sign in with your account before using the lotto system.</p>
+        <div id="auth-lock-title" class="section-title">&#128274; Login Required</div>
+        <p id="auth-lock-copy" class="text-muted">Please sign in with your account before using the lotto system.</p>
     </div>
     <nav class="tab-nav">
         <button class="tab-btn active" onclick="switchTab('quickpick')">&#127920; Quick Pick</button>
@@ -2898,18 +2898,17 @@ function isAppUnlocked(user) {
 function setAppLockState(unlocked) {
     var app = document.querySelector('.app-container');
     var lockMessage = document.getElementById('auth-lock-message');
+    var lockCopy = document.getElementById('auth-lock-copy');
     var configured = !!fbConfigReady;
     if (document.body) document.body.classList.toggle('auth-locked', !unlocked);
     if (app) app.classList.toggle('auth-locked', !unlocked);
     if (lockMessage) {
         lockMessage.style.display = unlocked ? 'none' : 'block';
-        lockMessage.innerHTML = unlocked
-            ? ''
-            : '<div class="section-title">&#128274; Login Required</div><p class="text-muted">' +
-                (configured
-                    ? 'Please sign in with your account before using the lotto system.'
-                    : 'Configure Firebase Authentication before the lotto system can be unlocked.') +
-              '</p>';
+    }
+    if (lockCopy) {
+        lockCopy.textContent = configured
+            ? 'Please sign in with your account before using the lotto system.'
+            : 'Configure Firebase Authentication before the lotto system can be unlocked.';
     }
 }
 
@@ -2928,7 +2927,7 @@ function updateAuthUi(user) {
     }
     if (chip) {
         chip.style.display = unlocked ? 'inline-flex' : 'none';
-        chip.className = 'auth-chip' + (user && user.isAnonymous ? ' guest' : '');
+        chip.className = 'auth-chip';
         chip.textContent = unlocked ? ('\u{2709}\uFE0F ' + (user.email || 'Signed In')) : '';
     }
     if (user) setAuthStatus('', 'info');
