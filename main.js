@@ -1,5 +1,5 @@
 /**
- * Electron main process for Bophelong Lotto Management System.
+ * Electron main process for LottoCanvas Workstation.
  * Opens index.html in a BrowserWindow — no Node integration in renderer.
  */
 
@@ -20,7 +20,7 @@ function createWindow() {
     height: 900,
     minWidth: 800,
     minHeight: 600,
-    title: 'Bophelong Lotto Management System',
+    title: 'LottoCanvas Workstation',
     icon: path.join(__dirname, 'icons', 'icon-512.png'),
     webPreferences: {
       nodeIntegration: false,

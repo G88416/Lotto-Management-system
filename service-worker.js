@@ -1,5 +1,5 @@
 /**
- * Service Worker for Bophelong Lotto Management System PWA
+ * Service Worker for LottoCanvas Workstation PWA
  *
  * Strategy: Cache-first for app shell (index.html, icons, manifest),
  * network-first for Firebase/external requests.

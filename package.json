@@ -1,7 +1,7 @@
 {
   "name": "bophelong-lotto",
   "version": "1.0.0",
-  "description": "Bophelong Lotto Management System — macOS desktop app",
+  "description": "LottoCanvas Workstation — macOS desktop app",
   "main": "main.js",
   "author": "G88416",
   "license": "MIT",
@@ -20,7 +20,7 @@
   },
   "build": {
     "appId": "com.g88416.bophelong-lotto",
-    "productName": "Bophelong Lotto",
+    "productName": "LottoCanvas Workstation",
     "copyright": "Copyright © 2024 G88416",
     "files": [
       "index.html",
@@ -55,7 +55,7 @@
       "darkModeSupport": true
     },
     "dmg": {
-      "title": "Bophelong Lotto ${version}",
+      "title": "LottoCanvas Workstation ${version}",
       "backgroundColor": "#0f172a",
       "window": {
         "width": 540,
