@@ -7,33 +7,83 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // Reject requests whose payload exceeds a reasonable size to guard against abuse.
-    // 500 KB is chosen to leave headroom below Firestore's 1 MB hard limit while
-    // still accommodating a large ticket/draw history.
-    function isReasonableSize() {
-      return request.resource.size() < 500 * 1024;
+    // Guard against oversized main-state documents. Firestore security rules do
+    // not expose raw byte size, so we enforce structural limits on every list
+    // field instead. The thresholds below are intentionally generous so normal
+    // usage is never blocked, while still preventing runaway writes.
+    //   tickets / customDraws  : up to 500 entries — covers heavy users
+    //   reverseHistory / seedHistory : up to 1 000 — historical prediction logs
+    //   savedPatternDraws       : up to 2 000 — largest historical draw archive
+    //   aiAdvisorHistory        : up to 200  — advisory conversation turns
+    //   customFormats           : up to 50   — user-defined lottery formats
+    function isReasonableMainDocSize() {
+      let d = request.resource.data;
+      return (!('tickets'           in d) || d.tickets.size()           <= 500)
+          && (!('customDraws'       in d) || d.customDraws.size()       <= 500)
+          && (!('reverseHistory'    in d) || d.reverseHistory.size()    <= 1000)
+          && (!('seedHistory'       in d) || d.seedHistory.size()       <= 1000)
+          && (!('savedPatternDraws' in d) || d.savedPatternDraws.size() <= 2000)
+          && (!('aiAdvisorHistory'  in d) || d.aiAdvisorHistory.size()  <= 200)
+          && (!('customFormats'     in d) || d.customFormats.size()     <= 50);
     }
 
-    // Validate that the main state document contains only expected top-level fields
-    // and that the mandatory timestamp field is always present.
+    // Validate that the main state document contains only expected top-level
+    // fields, that the mandatory server timestamp is always present, and that
+    // it carries the correct type so stale client-side values cannot be written.
     function isValidMainDoc() {
       let allowed = [
         'tickets', 'budget', 'stats', 'customDraws', 'reverseHistory',
         'seedHistory', 'customFormats', 'savedPatternDraws', 'aiAdvisorHistory',
         'updatedAt'
       ];
-      return request.resource.data.keys().hasOnly(allowed)
-          && request.resource.data.keys().hasAll(['updatedAt']);
+      let d = request.resource.data;
+      return d.keys().hasOnly(allowed)
+          && d.keys().hasAll(['updatedAt'])
+          && d.updatedAt is timestamp;
     }
 
-    // Validate that a draw document contains only expected top-level fields
-    // and that the mandatory identity fields are always present.
+    // Validate that a draw document contains only the fields that the app
+    // actually writes, that mandatory identity fields are always present, and
+    // that each field carries the expected type.
+    //
+    // Field mapping (app → Firestore):
+    //   id        – UUID string assigned by the client
+    //   formatId  – lottery format identifier (e.g. "sa-lotto")
+    //   date      – draw date string (ISO 8601, e.g. "2024-03-02")
+    //   drawTime  – optional draw time string (e.g. "21:00")
+    //   numbers   – list of main draw numbers (integers)
+    //   bonus     – list of bonus/powerball numbers (integers), may be empty
+    //   addedAt   – ISO 8601 datetime string set by the client at write time
     function isValidDrawDoc() {
       let allowed = [
-        'id', 'formatId', 'date', 'numbers', 'bonusBall', 'source', 'createdAt', 'updatedAt'
+        'id', 'formatId', 'date', 'drawTime', 'numbers', 'bonus', 'addedAt'
       ];
-      return request.resource.data.keys().hasOnly(allowed)
-          && request.resource.data.keys().hasAll(['id', 'date', 'numbers']);
+      let d = request.resource.data;
+      return d.keys().hasOnly(allowed)
+          && d.keys().hasAll(['id', 'formatId', 'date', 'numbers', 'addedAt'])
+          // id: non-empty string
+          && d.id is string
+          && d.id.size() > 0
+          // formatId: non-empty string
+          && d.formatId is string
+          && d.formatId.size() > 0
+          // date: at least YYYY-MM-DD (8 chars)
+          && d.date is string
+          && d.date.size() >= 8
+          // numbers: non-empty list. Capped at 10 — the highest mainCount across
+          // all built-in formats is 7 (e.g. AU Powerball, SE/NO/DK/FI Lotto);
+          // 10 gives a comfortable buffer for custom formats without being unlimited.
+          && d.numbers is list
+          && d.numbers.size() > 0
+          && d.numbers.size() <= 10
+          // bonus: optional list. Capped at 5 — the highest bonusCount is 3
+          // (Canada Lotto Max); 5 gives a buffer for custom formats.
+          && (!('bonus'    in d) || (d.bonus    is list && d.bonus.size()    <= 5))
+          // drawTime: optional non-empty string
+          && (!('drawTime' in d) || (d.drawTime is string))
+          // addedAt: non-empty ISO datetime string
+          && d.addedAt is string
+          && d.addedAt.size() >= 10;
     }
 
     // -------------------------------------------------------------------
@@ -51,8 +101,8 @@ service cloud.firestore {
         allow read: if isOwner(userId) && documentId == 'main';
         allow create, update: if isOwner(userId)
                               && documentId == 'main'
-                              && isReasonableSize()
-                              && isValidMainDoc();
+                              && isValidMainDoc()
+                              && isReasonableMainDocSize();
         allow delete: if isOwner(userId) && documentId == 'main';
       }
 
@@ -60,7 +110,6 @@ service cloud.firestore {
       match /draws/{drawId} {
         allow read: if isOwner(userId);
         allow create, update: if isOwner(userId)
-                              && isReasonableSize()
                               && isValidDrawDoc();
         allow delete: if isOwner(userId);
       }
