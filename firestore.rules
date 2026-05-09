@@ -11,6 +11,11 @@ service cloud.firestore {
     // not expose raw byte size, so we enforce structural limits on every list
     // field instead. The thresholds below are intentionally generous so normal
     // usage is never blocked, while still preventing runaway writes.
+    //   tickets / customDraws  : up to 500 entries — covers heavy users
+    //   reverseHistory / seedHistory : up to 1 000 — historical prediction logs
+    //   savedPatternDraws       : up to 2 000 — largest historical draw archive
+    //   aiAdvisorHistory        : up to 200  — advisory conversation turns
+    //   customFormats           : up to 50   — user-defined lottery formats
     function isReasonableMainDocSize() {
       let d = request.resource.data;
       return (!('tickets'           in d) || d.tickets.size()           <= 500)
@@ -65,12 +70,14 @@ service cloud.firestore {
           // date: at least YYYY-MM-DD (8 chars)
           && d.date is string
           && d.date.size() >= 8
-          // numbers: non-empty list, capped at 10 to match the largest known
-          // lottery format (e.g. Australian Powerball draws 7 main numbers)
+          // numbers: non-empty list. Capped at 10 — the highest mainCount across
+          // all built-in formats is 7 (e.g. AU Powerball, SE/NO/DK/FI Lotto);
+          // 10 gives a comfortable buffer for custom formats without being unlimited.
           && d.numbers is list
           && d.numbers.size() > 0
           && d.numbers.size() <= 10
-          // bonus: optional list, capped at 5 (Canada Lotto Max has 3 bonus balls)
+          // bonus: optional list. Capped at 5 — the highest bonusCount is 3
+          // (Canada Lotto Max); 5 gives a buffer for custom formats.
           && (!('bonus'    in d) || (d.bonus    is list && d.bonus.size()    <= 5))
           // drawTime: optional non-empty string
           && (!('drawTime' in d) || (d.drawTime is string))

@@ -739,7 +739,22 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
-    <!-- Project-specific Firebase credentials (fill in firebase-config.js) -->
+    <!-- Built-in Firebase credentials — always available even if firebase-config.js fails to load.
+         firebase-config.js (loaded next) can override these for a custom deployment.
+         Note: Firebase *web* API keys are designed to be public; access to data is
+         controlled exclusively by Firestore Security Rules (firestore.rules). -->
+    <script>
+    var FIREBASE_CONFIG = {
+        apiKey:            'AIzaSyDda_Ns_ca4XqxD6e89hBaGAWz5vt1he8I',
+        authDomain:        'lotto-management-system-26761.firebaseapp.com',
+        projectId:         'lotto-management-system-26761',
+        storageBucket:     'lotto-management-system-26761.firebasestorage.app',
+        messagingSenderId: '986799310017',
+        appId:             '1:986799310017:web:f65d7f237c26e8834d4040',
+        measurementId:     'G-EPNKLK5B52'
+    };
+    </script>
+    <!-- Project-specific Firebase credentials — override the built-in config above -->
     <script src="firebase-config.js"></script>
 </head>
 <body>
@@ -2924,6 +2939,11 @@ function updateSyncStatus(status) {
     var label    = { synced:'Synced', connecting:'Syncing\u2026', offline:'Offline', error:'Sync Error', signedout:'Sign In' }[status] || status;
     if (dotEl) dotEl.className = 'sync-dot ' + dotClass;
     if (txtEl) txtEl.textContent = label;
+    // Auto-hide the setup banner once Firebase is actively connecting or synced
+    if (status === 'synced' || status === 'connecting') {
+        var banner = document.getElementById('firebase-setup-banner');
+        if (banner) banner.style.display = 'none';
+    }
 }
 
 function setAuthStatus(message, type) {
