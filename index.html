@@ -237,6 +237,18 @@
         .auth-status.success { display:block; background:#f0fdf4; color:var(--green); border-color:#86efac; }
         .auth-status.error { display:block; background:#fef2f2; color:var(--red); border-color:#fca5a5; }
         .auth-helper { margin-top:14px; font-size:0.84rem; color:var(--text-muted); }
+        /* Auth method tabs */
+        .auth-method-tabs { display:flex; gap:6px; margin-bottom:20px; border-bottom:2px solid var(--border); padding-bottom:0; }
+        .auth-method-tab { flex:1; padding:10px 8px; border:none; background:transparent; color:var(--text-muted); font-size:0.85rem; font-weight:600; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; border-radius:6px 6px 0 0; transition:color 0.15s, border-color 0.15s, background 0.15s; }
+        .auth-method-tab:hover { color:var(--text); background:var(--surface2); }
+        .auth-method-tab.active { color:var(--purple); border-bottom-color:var(--purple); background:transparent; }
+        .auth-method-panel { display:none; }
+        .auth-method-panel.active { display:block; }
+        /* Phone OTP step */
+        .auth-otp-step { display:none; margin-top:14px; }
+        .auth-otp-step.visible { display:block; }
+        /* Anonymous warning card */
+        .auth-anon-warn { margin-top:12px; padding:12px 14px; border-radius:12px; border:1px solid rgba(245,158,11,0.4); background:rgba(245,158,11,0.08); font-size:0.84rem; color:var(--text-muted); line-height:1.5; }
         body:not(.auth-ready) .app-container > .auth-portal,
         body:not(.auth-ready) .app-container > .auth-lock-message,
         body.auth-locked .app-container > .auth-portal,
@@ -767,27 +779,76 @@
     </div>
     <div id="auth-portal" class="card auth-portal">
         <div class="section-title">&#128274; Login / Sign Up Portal</div>
-        <p class="text-muted">Sign in with Firebase Authentication to sync your tickets, draw history, saved patterns, and settings across devices.</p>
-        <div class="grid-2 mt-20">
-            <div class="form-group">
-                <label>Email Address</label>
-                <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" />
+        <p class="text-muted">Choose a sign-in method. Firebase Authentication keeps your tickets, draw history, saved patterns, and settings synced across devices.</p>
+
+        <!-- Auth method tabs -->
+        <div class="auth-method-tabs">
+            <button class="auth-method-tab active" data-tab="email" onclick="switchAuthTab('email')">&#9993;&#65039; Email</button>
+            <button class="auth-method-tab" data-tab="phone" onclick="switchAuthTab('phone')">&#128241; Phone</button>
+            <button class="auth-method-tab" data-tab="anonymous" onclick="switchAuthTab('anonymous')">&#128100; Guest</button>
+        </div>
+
+        <!-- Email / Password panel -->
+        <div id="auth-panel-email" class="auth-method-panel active">
+            <div class="grid-2 mt-20">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="auth-password" placeholder="Minimum 6 characters" autocomplete="current-password" />
+                </div>
             </div>
             <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="auth-password" placeholder="Minimum 6 characters" autocomplete="current-password" />
+                <label>Confirm Password <span class="text-muted text-sm">(sign up only)</span></label>
+                <input type="password" id="auth-confirm-password" placeholder="Repeat password for sign up" autocomplete="new-password" />
             </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="loginWithEmailPassword()">&#128274; Log In</button>
+                <button class="btn btn-success" onclick="signUpWithEmailPassword()">&#10133; Sign Up</button>
+            </div>
+            <p class="auth-helper">Sign in or create an account to unlock the lotto system and sync your data across devices.</p>
         </div>
-        <div class="form-group">
-            <label>Confirm Password <span class="text-muted text-sm">(sign up only)</span></label>
-            <input type="password" id="auth-confirm-password" placeholder="Repeat password for sign up" autocomplete="new-password" />
+
+        <!-- Phone / OTP panel -->
+        <div id="auth-panel-phone" class="auth-method-panel">
+            <div class="form-group mt-20">
+                <label>Phone Number <span class="text-muted text-sm">(with country code, e.g. +27821234567)</span></label>
+                <input type="tel" id="auth-phone" placeholder="+27821234567" autocomplete="tel" />
+            </div>
+            <!-- invisible reCAPTCHA anchor -->
+            <div id="auth-recaptcha-container"></div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="sendPhoneOtp()">&#128241; Send OTP</button>
+            </div>
+            <div id="auth-otp-step" class="auth-otp-step">
+                <div class="form-group">
+                    <label>One-Time Password</label>
+                    <input type="text" id="auth-otp" placeholder="6-digit OTP" autocomplete="one-time-code" maxlength="6" inputmode="numeric" />
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-success" onclick="verifyPhoneOtp()">&#10003; Verify &amp; Sign In</button>
+                    <button class="btn" onclick="resetPhoneAuth()">&#8592; Change Number</button>
+                </div>
+            </div>
+            <p class="auth-helper">We will send a one-time password to your phone. Standard SMS rates may apply.</p>
         </div>
+
+        <!-- Anonymous / Guest panel -->
+        <div id="auth-panel-anonymous" class="auth-method-panel">
+            <div class="auth-anon-warn">
+                &#9888;&#65039; <strong>Guest mode:</strong> Your data is stored locally and synced to a temporary Firebase account.
+                If you clear your browser data or switch devices without upgrading to a full account, your progress will be lost.
+                You can upgrade to a permanent account at any time from the settings.
+            </div>
+            <div class="btn-row mt-20">
+                <button class="btn btn-primary" onclick="signInAsGuest()">&#128100; Continue as Guest</button>
+            </div>
+            <p class="auth-helper">No email or phone required. Great for trying the app before committing to an account.</p>
+        </div>
+
         <div id="auth-status" class="auth-status"></div>
-        <div class="btn-row">
-            <button class="btn btn-primary" onclick="loginWithEmailPassword()">&#128274; Log In</button>
-            <button class="btn btn-success" onclick="signUpWithEmailPassword()">&#10133; Sign Up</button>
-        </div>
-        <p class="auth-helper">Sign in or create an account to unlock the lotto system and sync your data across devices.</p>
     </div>
     <div id="auth-lock-message" class="card auth-lock-message">
         <div id="auth-lock-title" class="section-title">&#128274; Login Required</div>
@@ -2880,17 +2941,20 @@ function setAuthStatus(message, type) {
 }
 
 function clearAuthInputs() {
-    var ids = ['auth-email', 'auth-password', 'auth-confirm-password'];
+    var ids = ['auth-email', 'auth-password', 'auth-confirm-password', 'auth-phone', 'auth-otp'];
     ids.forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.value = '';
     });
+    var otpStep = document.getElementById('auth-otp-step');
+    if (otpStep) otpStep.classList.remove('visible');
 }
 
 function focusAuthPortal() {
     var portal = document.getElementById('auth-portal');
     if (!portal || !fbConfigReady || isAppUnlocked(fbCurrentUser)) return;
     portal.style.display = 'block';
+    switchAuthTab('email');
     if (typeof portal.scrollIntoView === 'function') {
         portal.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -2899,7 +2963,7 @@ function focusAuthPortal() {
 }
 
 function isAppUnlocked(user) {
-    return user && !user.isAnonymous;
+    return !!(user);
 }
 
 function setAppLockState(unlocked) {
@@ -2934,8 +2998,13 @@ function updateAuthUi(user) {
     }
     if (chip) {
         chip.style.display = unlocked ? 'inline-flex' : 'none';
-        chip.className = 'auth-chip';
-        chip.textContent = unlocked ? ('\u{2709}\uFE0F ' + ((user && user.email) || 'Signed In')) : '';
+        if (user && user.isAnonymous) {
+            chip.className = 'auth-chip guest';
+            chip.textContent = '\u{1F464} Guest';
+        } else {
+            chip.className = 'auth-chip';
+            chip.textContent = unlocked ? ('\u{2709}\uFE0F ' + ((user && (user.phoneNumber || user.email)) || 'Signed In')) : '';
+        }
     }
     if (user) setAuthStatus('', 'info');
 }
@@ -3003,8 +3072,15 @@ function formatAuthError(err, fallback) {
         'auth/invalid-credential': 'The email address or password is incorrect.',
         'auth/user-not-found': 'No account exists for that email address.',
         'auth/wrong-password': 'The email address or password is incorrect.',
-        'auth/operation-not-allowed': 'Enable Email/Password Authentication in Firebase before using this portal.',
-        'auth/requires-recent-login': 'Please sign in again and retry that action.'
+        'auth/operation-not-allowed': 'Enable this sign-in method in Firebase before using this portal.',
+        'auth/requires-recent-login': 'Please sign in again and retry that action.',
+        'auth/invalid-phone-number': 'Enter a valid phone number with country code (e.g. +27821234567).',
+        'auth/missing-phone-number': 'Enter a phone number with country code.',
+        'auth/quota-exceeded': 'SMS quota exceeded. Please try again later.',
+        'auth/captcha-check-failed': 'reCAPTCHA verification failed. Please refresh and try again.',
+        'auth/invalid-verification-code': 'The OTP you entered is incorrect. Check and try again.',
+        'auth/code-expired': 'The OTP has expired. Please request a new one.',
+        'auth/missing-verification-code': 'Enter the OTP sent to your phone.'
     };
     return map[err && err.code] || fallback || (err && err.message) || 'Authentication failed.';
 }
@@ -3072,6 +3148,100 @@ function signInAsGuest() {
         setAuthStatus(formatAuthError(err, 'Guest sign-in failed.'), 'error');
         updateSyncStatus('error');
     });
+}
+
+/* ---- Auth tab switcher ---- */
+function switchAuthTab(tab) {
+    var tabs = ['email', 'phone', 'anonymous'];
+    tabs.forEach(function(t) {
+        var panel = document.getElementById('auth-panel-' + t);
+        var btn = document.querySelector('.auth-method-tab[data-tab="' + t + '"]');
+        if (panel) panel.classList.toggle('active', t === tab);
+        if (btn) btn.classList.toggle('active', t === tab);
+    });
+}
+
+/* ---- Phone authentication ---- */
+var _phoneConfirmResult = null;
+var _recaptchaVerifier   = null;
+
+function _ensureRecaptcha() {
+    if (_recaptchaVerifier) return;
+    _recaptchaVerifier = new firebase.auth.RecaptchaVerifier('auth-recaptcha-container', {
+        size: 'invisible',
+        callback: function() { /* reCAPTCHA solved */ },
+        'expired-callback': function() {
+            _recaptchaVerifier = null;
+            setAuthStatus('reCAPTCHA expired. Please try again.', 'error');
+        }
+    });
+}
+
+function sendPhoneOtp() {
+    if (!fbAuth) return;
+    var phone = (document.getElementById('auth-phone').value || '').trim();
+    if (!phone) {
+        setAuthStatus('Enter a phone number with country code (e.g. +27821234567).', 'error');
+        return;
+    }
+    setAuthStatus('Sending OTP…', 'info');
+    try { _ensureRecaptcha(); } catch(e) {
+        setAuthStatus('reCAPTCHA setup failed. Refresh and try again.', 'error');
+        return;
+    }
+    fbAuth.signInWithPhoneNumber(phone, _recaptchaVerifier)
+        .then(function(confirmationResult) {
+            _phoneConfirmResult = confirmationResult;
+            var otpStep = document.getElementById('auth-otp-step');
+            if (otpStep) otpStep.classList.add('visible');
+            setAuthStatus('OTP sent! Check your SMS messages.', 'success');
+            var otpEl = document.getElementById('auth-otp');
+            if (otpEl) otpEl.focus();
+        })
+        .catch(function(err) {
+            /* reset reCAPTCHA so it can be retried */
+            if (_recaptchaVerifier) { _recaptchaVerifier.clear(); _recaptchaVerifier = null; }
+            setAuthStatus(formatAuthError(err, 'Failed to send OTP.'), 'error');
+            updateSyncStatus('error');
+        });
+}
+
+function verifyPhoneOtp() {
+    if (!_phoneConfirmResult) {
+        setAuthStatus('Request an OTP first.', 'error');
+        return;
+    }
+    var code = (document.getElementById('auth-otp').value || '').trim();
+    if (!code) {
+        setAuthStatus('Enter the OTP sent to your phone.', 'error');
+        return;
+    }
+    setAuthStatus('Verifying OTP…', 'info');
+    var isLinking = !!(fbCurrentUser && fbCurrentUser.isAnonymous);
+    var flow = isLinking
+        ? fbCurrentUser.linkWithCredential(firebase.auth.PhoneAuthProvider.credential(_phoneConfirmResult.verificationId, code))
+        : _phoneConfirmResult.confirm(code);
+    flow.then(function() {
+        _phoneConfirmResult = null;
+        clearAuthInputs();
+        showToast('Phone number verified — signed in!', 'success');
+    }).catch(function(err) {
+        var fallback = isLinking ? 'Failed to link phone number to guest account.' : 'OTP verification failed.';
+        setAuthStatus(formatAuthError(err, fallback), 'error');
+        updateSyncStatus('error');
+    });
+}
+
+function resetPhoneAuth() {
+    _phoneConfirmResult = null;
+    if (_recaptchaVerifier) { _recaptchaVerifier.clear(); _recaptchaVerifier = null; }
+    var otpStep = document.getElementById('auth-otp-step');
+    if (otpStep) otpStep.classList.remove('visible');
+    var otpEl = document.getElementById('auth-otp');
+    if (otpEl) otpEl.value = '';
+    var phoneEl = document.getElementById('auth-phone');
+    if (phoneEl) { phoneEl.value = ''; phoneEl.focus(); }
+    setAuthStatus('', 'info');
 }
 
 function loginWithEmailPassword() {

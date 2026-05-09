@@ -7,11 +7,13 @@
  *    Copy the firebaseConfig object that is shown and paste the values below.
  * 3. Enable Firestore Database under Build > Firestore Database (Native mode).
  * 4. Enable Email/Password Authentication under Build > Authentication > Sign-in method.
- * 5. (Optional) Enable Anonymous Authentication as well if you want the guest mode
+ * 5. Enable Phone Authentication under Build > Authentication > Sign-in method so that
+ *    the phone OTP flow works.
+ * 6. (Optional) Enable Anonymous Authentication as well if you want the guest mode
  *    button in the app to work.
- * 6. Apply the rules from firestore.rules and database.rules.json in your Firebase
+ * 7. Apply the rules from firestore.rules and database.rules.json in your Firebase
  *    console (or deploy them with the Firebase CLI).
- * 7. Replace every "YOUR_…" placeholder below with your actual project values.
+ * 8. Replace every "YOUR_…" placeholder below with your actual project values.
  *
  * See firestore.rules and database.rules.json in the repository root for the
  * checked-in Firebase security rules used by this app.
