@@ -4,8 +4,31 @@
     ".write": false,
     "users": {
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".read":  "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['updatedAt'])",
+        "updatedAt": {
+          ".validate": "newData.isNumber() || newData.isString()"
+        },
+        "tickets": {
+          "$ticketId": {
+            ".validate": "newData.hasChildren(['formatId', 'createdAt'])",
+            "formatId":  { ".validate": "newData.isString() && newData.val().length > 0" },
+            "createdAt": { ".validate": "newData.isString() || newData.isNumber()" },
+            "$other":    { ".validate": true }
+          }
+        },
+        "draws": {
+          "$drawId": {
+            ".validate": "newData.hasChildren(['id', 'formatId', 'date', 'addedAt'])",
+            "id":       { ".validate": "newData.isString() && newData.val().length > 0" },
+            "formatId": { ".validate": "newData.isString() && newData.val().length > 0" },
+            "date":     { ".validate": "newData.isString() && newData.val().length >= 8" },
+            "addedAt":  { ".validate": "newData.isString() && newData.val().length >= 10" },
+            "$other":   { ".validate": true }
+          }
+        },
+        "$other": { ".validate": true }
       }
     }
   }
