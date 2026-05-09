@@ -1,19 +1,62 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Returns true only when the caller is authenticated and owns the resource.
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
 
+    // Reject requests whose payload exceeds a reasonable size to guard against abuse.
+    function isReasonableSize() {
+      return request.resource.size() < 500 * 1024; // 500 KB ceiling per document
+    }
+
+    // Validate that the main state document contains only expected top-level fields.
+    function isValidMainDoc() {
+      let allowed = [
+        'tickets', 'budget', 'stats', 'customDraws', 'reverseHistory',
+        'seedHistory', 'customFormats', 'savedPatternDraws', 'aiAdvisorHistory',
+        'updatedAt'
+      ];
+      return request.resource.data.keys().hasOnly(allowed);
+    }
+
+    // Validate that a draw document contains only expected top-level fields.
+    function isValidDrawDoc() {
+      let allowed = [
+        'id', 'formatId', 'date', 'numbers', 'bonusBall', 'source', 'createdAt', 'updatedAt'
+      ];
+      return request.resource.data.keys().hasOnly(allowed);
+    }
+
+    // -------------------------------------------------------------------
+    // User namespace — each signed-in user (including anonymous) owns
+    // exactly one document subtree rooted at /users/{userId}.
+    // -------------------------------------------------------------------
     match /users/{userId} {
+      // The user document itself is intentionally closed — all data lives
+      // in named sub-collections so there is no risk of accidentally
+      // exposing the parent document.
       allow read, write: if false;
 
+      // Main application state snapshot (tickets, budget, stats, history …)
       match /data/{documentId} {
-        allow read, write: if isOwner(userId) && documentId == 'main';
+        allow read: if isOwner(userId) && documentId == 'main';
+        allow create, update: if isOwner(userId)
+                              && documentId == 'main'
+                              && isReasonableSize()
+                              && isValidMainDoc();
+        allow delete: if isOwner(userId) && documentId == 'main';
       }
 
+      // Per-user draw records (live draw results cached per user)
       match /draws/{drawId} {
-        allow read, write: if isOwner(userId);
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+                              && isReasonableSize()
+                              && isValidDrawDoc();
+        allow delete: if isOwner(userId);
       }
     }
   }
