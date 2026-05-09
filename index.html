@@ -228,7 +228,7 @@
         .firebase-setup-banner { background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; padding:14px 20px; border-radius:14px; margin-bottom:20px; display:none; align-items:center; gap:12px; font-weight:600; font-size:0.9rem; flex-wrap:wrap; }
         .firebase-setup-banner a { color:#fff; text-decoration:underline; }
         .auth-chip { display:inline-flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:700; padding:6px 12px; border-radius:20px; background:rgba(255,255,255,0.18); color:#fff; white-space:nowrap; }
-        .auth-chip.guest { background:rgba(245,158,11,0.22); color:#fff; }
+        .auth-chip.guest { background:rgba(245,158,11,0.22); }
         .auth-portal { display:none; }
         .auth-portal p { line-height:1.5; }
         .auth-lock-message { display:none; border-left:4px solid var(--amber); background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(139,92,246,0.08)); }
@@ -783,9 +783,9 @@
 
         <!-- Auth method tabs -->
         <div class="auth-method-tabs">
-            <button class="auth-method-tab active" onclick="switchAuthTab('email')">&#9993;&#65039; Email</button>
-            <button class="auth-method-tab" onclick="switchAuthTab('phone')">&#128241; Phone</button>
-            <button class="auth-method-tab" onclick="switchAuthTab('anonymous')">&#128100; Guest</button>
+            <button class="auth-method-tab active" data-tab="email" onclick="switchAuthTab('email')">&#9993;&#65039; Email</button>
+            <button class="auth-method-tab" data-tab="phone" onclick="switchAuthTab('phone')">&#128241; Phone</button>
+            <button class="auth-method-tab" data-tab="anonymous" onclick="switchAuthTab('anonymous')">&#128100; Guest</button>
         </div>
 
         <!-- Email / Password panel -->
@@ -3155,7 +3155,7 @@ function switchAuthTab(tab) {
     var tabs = ['email', 'phone', 'anonymous'];
     tabs.forEach(function(t) {
         var panel = document.getElementById('auth-panel-' + t);
-        var btn = document.querySelector('.auth-method-tab[onclick="switchAuthTab(\'' + t + '\')"]');
+        var btn = document.querySelector('.auth-method-tab[data-tab="' + t + '"]');
         if (panel) panel.classList.toggle('active', t === tab);
         if (btn) btn.classList.toggle('active', t === tab);
     });
@@ -3217,7 +3217,8 @@ function verifyPhoneOtp() {
         return;
     }
     setAuthStatus('Verifying OTP…', 'info');
-    var flow = (fbCurrentUser && fbCurrentUser.isAnonymous)
+    var isLinking = !!(fbCurrentUser && fbCurrentUser.isAnonymous);
+    var flow = isLinking
         ? fbCurrentUser.linkWithCredential(firebase.auth.PhoneAuthProvider.credential(_phoneConfirmResult.verificationId, code))
         : _phoneConfirmResult.confirm(code);
     flow.then(function() {
@@ -3225,7 +3226,8 @@ function verifyPhoneOtp() {
         clearAuthInputs();
         showToast('Phone number verified — signed in!', 'success');
     }).catch(function(err) {
-        setAuthStatus(formatAuthError(err, 'OTP verification failed.'), 'error');
+        var fallback = isLinking ? 'Failed to link phone number to guest account.' : 'OTP verification failed.';
+        setAuthStatus(formatAuthError(err, fallback), 'error');
         updateSyncStatus('error');
     });
 }

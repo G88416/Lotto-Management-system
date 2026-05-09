@@ -8,26 +8,32 @@ service cloud.firestore {
     }
 
     // Reject requests whose payload exceeds a reasonable size to guard against abuse.
+    // 500 KB is chosen to leave headroom below Firestore's 1 MB hard limit while
+    // still accommodating a large ticket/draw history.
     function isReasonableSize() {
-      return request.resource.size() < 500 * 1024; // 500 KB ceiling per document
+      return request.resource.size() < 500 * 1024;
     }
 
-    // Validate that the main state document contains only expected top-level fields.
+    // Validate that the main state document contains only expected top-level fields
+    // and that the mandatory timestamp field is always present.
     function isValidMainDoc() {
       let allowed = [
         'tickets', 'budget', 'stats', 'customDraws', 'reverseHistory',
         'seedHistory', 'customFormats', 'savedPatternDraws', 'aiAdvisorHistory',
         'updatedAt'
       ];
-      return request.resource.data.keys().hasOnly(allowed);
+      return request.resource.data.keys().hasOnly(allowed)
+          && request.resource.data.keys().hasAll(['updatedAt']);
     }
 
-    // Validate that a draw document contains only expected top-level fields.
+    // Validate that a draw document contains only expected top-level fields
+    // and that the mandatory identity fields are always present.
     function isValidDrawDoc() {
       let allowed = [
         'id', 'formatId', 'date', 'numbers', 'bonusBall', 'source', 'createdAt', 'updatedAt'
       ];
-      return request.resource.data.keys().hasOnly(allowed);
+      return request.resource.data.keys().hasOnly(allowed)
+          && request.resource.data.keys().hasAll(['id', 'date', 'numbers']);
     }
 
     // -------------------------------------------------------------------
