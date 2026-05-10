@@ -20,7 +20,7 @@
     "dist:huawei": "npm run dist:android"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.3.3",
+    "@capacitor/cli": "^6.2.1",
     "electron": "40.8.0",
     "electron-builder": "^25.1.8",
     "sharp": "^0.34.5"
@@ -89,8 +89,8 @@
     }
   },
   "dependencies": {
-    "@capacitor/android": "^8.3.3",
-    "@capacitor/core": "^8.3.3",
-    "@capacitor/splash-screen": "^8.0.1"
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/splash-screen": "^6.0.2"
   }
 }

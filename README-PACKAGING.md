@@ -34,7 +34,7 @@ already satisfied.
 ## 2 — macOS Desktop App (Electron)
 
 ### Prerequisites
-- Node.js ≥ 22 (`node --version`)
+- Node.js ≥ 18 (`node --version`)
 - npm ≥ 9
 
 ### Install dependencies
@@ -95,7 +95,7 @@ builds. Huawei phones can install the same Android APK directly, or you can subm
 to Huawei AppGallery.
 
 ### Prerequisites
-- Node.js ≥ 22
+- Node.js ≥ 18
 - Android Studio (latest stable)
 - Android SDK + build tools installed in Android Studio
 - Java 17 (recommended by current Android Gradle plugin)
@@ -142,7 +142,7 @@ that can be submitted to the App Store.
 
 ### Prerequisites
 - macOS with **Xcode 15+** installed
-- Node.js ≥ 22
+- Node.js ≥ 18
 - An **Apple Developer Program** membership ($99/yr)
 
 ### Steps

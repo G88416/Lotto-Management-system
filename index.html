@@ -9006,7 +9006,8 @@ function computeDNAFingerprint(fmt, draws) {
 }
 
 function _bbSeedFromDraws(draws) {
-    if (!draws || !draws.length) return 13579;
+    var BB_DEFAULT_SEED = 13579;
+    if (!draws || !draws.length) return BB_DEFAULT_SEED;
     /* Small integer offsets only decorrelate low-value multiplications for a steadier deterministic seed spread. */
     var BB_SEED_NUM_OFFSET = 7;
     var BB_SEED_DRAW_OFFSET = 3;
@@ -9018,7 +9019,7 @@ function _bbSeedFromDraws(draws) {
             base = (base + (n + BB_SEED_NUM_OFFSET) * (di + BB_SEED_DRAW_OFFSET) * (ni + BB_SEED_SLOT_OFFSET)) >>> 0;
         });
     });
-    return (base || 13579) >>> 0;
+    return (base || BB_DEFAULT_SEED) >>> 0;
 }
 
 function _bbCreatePredictions(fmt, draws, dna, count) {
@@ -9029,6 +9030,9 @@ function _bbCreatePredictions(fmt, draws, dna, count) {
     var BB_CONF_SUM_WEIGHT = 0.5;
     var BB_CONF_EVEN_WEIGHT = 0.25;
     var BB_CONF_LOW_WEIGHT = 0.25;
+    var BB_RNG_DEFAULT_SEED = 2463534242;
+    var BB_SEED_ITERATION_MULTIPLIER = 977;
+    var BB_SEED_FORMAT_MULTIPLIER = 13;
     count = Math.max(1, Math.min(10, count || 3));
     var tpl = dna.template;
     var half = dna.half;
@@ -9067,7 +9071,7 @@ function _bbCreatePredictions(fmt, draws, dna, count) {
         .sort(function(a, b) { return score[b] - score[a]; });
 
     function makeRng(seed) {
-        var st = (seed || 2463534242) >>> 0;
+        var st = (seed || BB_RNG_DEFAULT_SEED) >>> 0;
         return function() {
             st = ((1664525 * st + 1013904223) >>> 0);
             return st / 4294967296;
@@ -9081,7 +9085,7 @@ function _bbCreatePredictions(fmt, draws, dna, count) {
     var sumTol = Math.max(4, (tpl.sumStd || 0) * 1.8);
 
     for (var p = 0; p < count * 6 && out.length < count; p++) {
-        var rand = makeRng(seedBase + p * 977 + fmt.mainMax * 13);
+        var rand = makeRng(seedBase + p * BB_SEED_ITERATION_MULTIPLIER + fmt.mainMax * BB_SEED_FORMAT_MULTIPLIER);
         var picked = [];
         var used = {};
         var evenCt = 0;
