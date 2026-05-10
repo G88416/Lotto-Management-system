@@ -4,6 +4,11 @@ node_modules/
 # Build output
 dist/
 out/
+www/
+
+# Capacitor native projects (generated)
+android/
+ios/
 
 # macOS
 .DS_Store

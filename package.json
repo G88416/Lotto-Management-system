@@ -1,7 +1,7 @@
 {
   "name": "bophelong-lotto",
   "version": "1.0.0",
-  "description": "LottoCanvas Workstation — macOS desktop app",
+  "description": "LottoCanvas Workstation — desktop and mobile app",
   "main": "main.js",
   "author": "G88416",
   "license": "MIT",
@@ -11,9 +11,16 @@
     "dist": "electron-builder --mac",
     "dist:dmg": "electron-builder --mac dmg",
     "dist:win": "electron-builder --win",
-    "dist:linux": "electron-builder --linux"
+    "dist:linux": "electron-builder --linux",
+    "prepare:web": "rm -rf www && mkdir -p www/icons && cp index.html manifest.json service-worker.js firebase-config.js www/ && cp -R icons/* www/icons/",
+    "cap:add:android": "npx cap add android",
+    "cap:sync:android": "npm run prepare:web && npx cap sync android",
+    "cap:open:android": "npx cap open android",
+    "dist:android": "(npm run cap:add:android || true) && npm run cap:sync:android && cd android && ./gradlew assembleRelease",
+    "dist:huawei": "npm run dist:android"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.3.3",
     "electron": "40.8.0",
     "electron-builder": "^25.1.8",
     "sharp": "^0.34.5"
@@ -80,5 +87,10 @@
         "deb"
       ]
     }
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.3",
+    "@capacitor/core": "^8.3.3",
+    "@capacitor/splash-screen": "^8.0.1"
   }
 }

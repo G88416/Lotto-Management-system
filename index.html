@@ -9005,6 +9005,143 @@ function computeDNAFingerprint(fmt, draws) {
     return { template: template, lastDNA: lastDNA, trend: trend, half: dnaHalf, drawCount: dnaList.length };
 }
 
+function _bbSeedFromDraws(draws) {
+    if (!draws || !draws.length) return 13579;
+    var base = 0;
+    var sample = draws.slice(0, Math.min(8, draws.length));
+    sample.forEach(function(d, di) {
+        (d.numbers || []).forEach(function(n, ni) {
+            base = (base + (n + 7) * (di + 3) * (ni + 11)) >>> 0;
+        });
+    });
+    return (base || 13579) >>> 0;
+}
+
+function _bbCreatePredictions(fmt, draws, dna, count) {
+    if (!fmt || !draws || !draws.length || !dna || !dna.template) return [];
+    count = Math.max(1, Math.min(10, count || 3));
+    var tpl = dna.template;
+    var half = dna.half;
+    var seedBase = _bbSeedFromDraws(draws);
+
+    var freq = {};
+    var recency = {};
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        freq[n] = 0;
+        recency[n] = 0;
+    }
+    draws.forEach(function(d, idx) {
+        var rw = 1 / (idx + 1);
+        (d.numbers || []).forEach(function(x) {
+            if (freq[x] !== undefined) {
+                freq[x]++;
+                recency[x] += rw;
+            }
+        });
+    });
+
+    var maxFreq = 1, maxRec = 1;
+    for (var k = 1; k <= fmt.mainMax; k++) {
+        if (freq[k] > maxFreq) maxFreq = freq[k];
+        if (recency[k] > maxRec) maxRec = recency[k];
+    }
+    var avgTarget = tpl.sum / Math.max(1, fmt.mainCount);
+    var score = {};
+    for (var s = 1; s <= fmt.mainMax; s++) {
+        var fSc = freq[s] / maxFreq;
+        var rSc = recency[s] / maxRec;
+        var cSc = Math.max(0, 1 - Math.abs(s - avgTarget) / Math.max(1, fmt.mainMax / 2));
+        score[s] = fSc * 0.55 + rSc * 0.30 + cSc * 0.15;
+    }
+    var ordered = Object.keys(score).map(function(x) { return parseInt(x, 10); })
+        .sort(function(a, b) { return score[b] - score[a]; });
+
+    function makeRng(seed) {
+        var st = (seed || 2463534242) >>> 0;
+        return function() {
+            st = ((1664525 * st + 1013904223) >>> 0);
+            return st / 4294967296;
+        };
+    }
+
+    var out = [];
+    var seen = {};
+    var targetEven = Math.max(0, Math.min(fmt.mainCount, Math.round(tpl.even * fmt.mainCount)));
+    var targetLow  = Math.max(0, Math.min(fmt.mainCount, Math.round(tpl.low  * fmt.mainCount)));
+    var sumTol = Math.max(4, (tpl.sumStd || 0) * 1.8);
+
+    for (var p = 0; p < count * 6 && out.length < count; p++) {
+        var rand = makeRng(seedBase + p * 977 + fmt.mainMax * 13);
+        var picked = [];
+        var used = {};
+        var evenCt = 0;
+        var lowCt = 0;
+
+        for (var slot = 0; slot < fmt.mainCount; slot++) {
+            var avail = [];
+            var totalW = 0;
+            for (var oi = 0; oi < ordered.length; oi++) {
+                var cand = ordered[(oi + slot * 3 + p) % ordered.length];
+                if (used[cand]) continue;
+                var evenNeed = targetEven - evenCt;
+                var lowNeed = targetLow - lowCt;
+                var evenLeft = fmt.mainCount - slot;
+                var lowLeft = fmt.mainCount - slot;
+                var w = score[cand] + 0.05;
+                if (evenNeed > 0 && cand % 2 === 0) w *= 1.18;
+                if (evenNeed >= evenLeft && cand % 2 !== 0) w *= 0.45;
+                if (lowNeed > 0 && cand <= half) w *= 1.16;
+                if (lowNeed >= lowLeft && cand > half) w *= 0.45;
+                w *= (0.88 + rand() * 0.28);
+                avail.push({ n: cand, w: w });
+                totalW += w;
+            }
+            if (!avail.length || totalW <= 0) break;
+            var r = rand() * totalW;
+            var chosen = avail[avail.length - 1].n;
+            for (var ai = 0; ai < avail.length; ai++) {
+                r -= avail[ai].w;
+                if (r <= 0) { chosen = avail[ai].n; break; }
+            }
+            used[chosen] = true;
+            picked.push(chosen);
+            if (chosen % 2 === 0) evenCt++;
+            if (chosen <= half) lowCt++;
+        }
+        if (picked.length !== fmt.mainCount) continue;
+        picked.sort(function(a, b) { return a - b; });
+
+        var pSum = picked.reduce(function(t, x) { return t + x; }, 0);
+        if (Math.abs(pSum - tpl.sum) > sumTol * 1.8) continue;
+
+        var evenRatio = evenCt / fmt.mainCount;
+        var lowRatio = lowCt / fmt.mainCount;
+        var sumFit = Math.max(0, 1 - Math.abs(pSum - tpl.sum) / Math.max(1, sumTol * 2));
+        var evenFit = Math.max(0, 1 - Math.abs(evenRatio - tpl.even) / 0.8);
+        var lowFit = Math.max(0, 1 - Math.abs(lowRatio - tpl.low) / 0.8);
+        var conf = Math.round((sumFit * 0.5 + evenFit * 0.25 + lowFit * 0.25) * 100);
+
+        var bonus = [];
+        if (fmt.bonusCount > 0 && fmt.bonusMax > 0) {
+            var bUsed = {};
+            for (var bc = 0; bc < fmt.bonusCount; bc++) {
+                var bv = 1 + Math.floor(rand() * fmt.bonusMax);
+                var guard = 0;
+                while (bUsed[bv] && guard < 25) { bv = 1 + Math.floor(rand() * fmt.bonusMax); guard++; }
+                bUsed[bv] = true;
+                bonus.push(bv);
+            }
+            bonus.sort(function(a, b) { return a - b; });
+        }
+
+        var key = picked.join(',') + '|' + bonus.join(',');
+        if (seen[key]) continue;
+        seen[key] = true;
+        out.push({ numbers: picked, bonus: bonus, confidence: conf });
+    }
+    return out;
+}
+
 /* Render a compact Borrowed-Brilliance DNA panel as an HTML string.
    Depends on _prngStatBox (defined in the PRNG section). */
 function renderDNABorrowedBrilliancePanel(fmt, draws) {
@@ -9064,6 +9201,25 @@ function renderDNABorrowedBrilliancePanel(fmt, draws) {
                 Math.floor(dna.drawCount / 2) + ' vs older ' + (dna.drawCount - Math.floor(dna.drawCount / 2)) + ' draws):</strong> ' +
                 trendParts.join(' &middot; ') + '</div>';
         }
+    }
+    var bbPreds = _bbCreatePredictions(fmt, draws, dna, 3);
+    if (bbPreds.length) {
+        html += '<div class="pattern-section-title" style="font-size:0.88rem;margin-top:10px;margin-bottom:6px;">&#127919; Borrowed Brilliance Predictions</div>' +
+            '<div class="algo-info" style="margin-bottom:8px;font-size:0.82rem;">Predictions synthesized to match draw DNA (sum profile, even/odd ratio, low/high split) with recency-aware frequency weighting.</div>' +
+            '<div style="display:flex;flex-direction:column;gap:7px;">' +
+            bbPreds.map(function(pred, idx) {
+                return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);">' +
+                    '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+                    '<span style="font-size:0.74rem;color:var(--text-muted);min-width:20px;">#' + (idx + 1) + '</span>' +
+                    pred.numbers.map(function(n) { return '<span class="ball ball-main ball-sm">' + n + '</span>'; }).join('') +
+                    (pred.bonus && pred.bonus.length
+                        ? '<span style="font-size:0.72rem;color:var(--text-muted);margin:0 2px;">+</span>' + pred.bonus.map(function(b) { return '<span class="ball ball-bonus ball-sm">' + b + '</span>'; }).join('')
+                        : '') +
+                    '</div>' +
+                    '<span style="font-size:0.76rem;font-weight:700;color:#22c55e;">' + pred.confidence + '%</span>' +
+                    '</div>';
+            }).join('') +
+            '</div>';
     }
     html += '</div>';
     return html;

@@ -1,7 +1,7 @@
 {
   "appId": "com.g88416.bophelong",
   "appName": "LottoCanvas Workstation",
-  "webDir": ".",
+  "webDir": "www",
   "bundledWebRuntime": false,
   "server": {
     "errorPath": "index.html",
