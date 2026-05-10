@@ -9007,11 +9007,15 @@ function computeDNAFingerprint(fmt, draws) {
 
 function _bbSeedFromDraws(draws) {
     if (!draws || !draws.length) return 13579;
+    /* Small integer offsets only decorrelate low-value multiplications for a steadier deterministic seed spread. */
+    var BB_SEED_NUM_OFFSET = 7;
+    var BB_SEED_DRAW_OFFSET = 3;
+    var BB_SEED_SLOT_OFFSET = 11;
     var base = 0;
     var sample = draws.slice(0, Math.min(8, draws.length));
     sample.forEach(function(d, di) {
         (d.numbers || []).forEach(function(n, ni) {
-            base = (base + (n + 7) * (di + 3) * (ni + 11)) >>> 0;
+            base = (base + (n + BB_SEED_NUM_OFFSET) * (di + BB_SEED_DRAW_OFFSET) * (ni + BB_SEED_SLOT_OFFSET)) >>> 0;
         });
     });
     return (base || 13579) >>> 0;
@@ -9019,6 +9023,12 @@ function _bbSeedFromDraws(draws) {
 
 function _bbCreatePredictions(fmt, draws, dna, count) {
     if (!fmt || !draws || !draws.length || !dna || !dna.template) return [];
+    var BB_WEIGHT_FREQ = 0.55;
+    var BB_WEIGHT_RECENCY = 0.30;
+    var BB_WEIGHT_CENTRALITY = 0.15;
+    var BB_CONF_SUM_WEIGHT = 0.5;
+    var BB_CONF_EVEN_WEIGHT = 0.25;
+    var BB_CONF_LOW_WEIGHT = 0.25;
     count = Math.max(1, Math.min(10, count || 3));
     var tpl = dna.template;
     var half = dna.half;
@@ -9051,7 +9061,7 @@ function _bbCreatePredictions(fmt, draws, dna, count) {
         var fSc = freq[s] / maxFreq;
         var rSc = recency[s] / maxRec;
         var cSc = Math.max(0, 1 - Math.abs(s - avgTarget) / Math.max(1, fmt.mainMax / 2));
-        score[s] = fSc * 0.55 + rSc * 0.30 + cSc * 0.15;
+        score[s] = fSc * BB_WEIGHT_FREQ + rSc * BB_WEIGHT_RECENCY + cSc * BB_WEIGHT_CENTRALITY;
     }
     var ordered = Object.keys(score).map(function(x) { return parseInt(x, 10); })
         .sort(function(a, b) { return score[b] - score[a]; });
@@ -9119,7 +9129,7 @@ function _bbCreatePredictions(fmt, draws, dna, count) {
         var sumFit = Math.max(0, 1 - Math.abs(pSum - tpl.sum) / Math.max(1, sumTol * 2));
         var evenFit = Math.max(0, 1 - Math.abs(evenRatio - tpl.even) / 0.8);
         var lowFit = Math.max(0, 1 - Math.abs(lowRatio - tpl.low) / 0.8);
-        var conf = Math.round((sumFit * 0.5 + evenFit * 0.25 + lowFit * 0.25) * 100);
+        var conf = Math.round((sumFit * BB_CONF_SUM_WEIGHT + evenFit * BB_CONF_EVEN_WEIGHT + lowFit * BB_CONF_LOW_WEIGHT) * 100);
 
         var bonus = [];
         if (fmt.bonusCount > 0 && fmt.bonusMax > 0) {
