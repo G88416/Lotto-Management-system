@@ -9033,6 +9033,8 @@ function _bbCreatePredictions(fmt, draws, dna, count) {
     var BB_RNG_DEFAULT_SEED = 2463534242;
     var BB_SEED_ITERATION_MULTIPLIER = 977;
     var BB_SEED_FORMAT_MULTIPLIER = 13;
+    var BB_MAX_SCORING_DRAWS = 400;
+    var BB_BONUS_RETRY_LIMIT = 25;
     count = Math.max(1, Math.min(10, count || 3));
     var tpl = dna.template;
     var half = dna.half;
@@ -9044,7 +9046,7 @@ function _bbCreatePredictions(fmt, draws, dna, count) {
         freq[n] = 0;
         recency[n] = 0;
     }
-    draws.forEach(function(d, idx) {
+    draws.slice(0, Math.min(draws.length, BB_MAX_SCORING_DRAWS)).forEach(function(d, idx) {
         var rw = 1 / (idx + 1);
         (d.numbers || []).forEach(function(x) {
             if (freq[x] !== undefined) {
@@ -9141,7 +9143,7 @@ function _bbCreatePredictions(fmt, draws, dna, count) {
             for (var bc = 0; bc < fmt.bonusCount; bc++) {
                 var bv = 1 + Math.floor(rand() * fmt.bonusMax);
                 var guard = 0;
-                while (bUsed[bv] && guard < 25) { bv = 1 + Math.floor(rand() * fmt.bonusMax); guard++; }
+                while (bUsed[bv] && guard < BB_BONUS_RETRY_LIMIT) { bv = 1 + Math.floor(rand() * fmt.bonusMax); guard++; }
                 bUsed[bv] = true;
                 bonus.push(bv);
             }
