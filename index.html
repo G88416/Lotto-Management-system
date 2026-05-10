@@ -9035,6 +9035,8 @@ function _bbCreatePredictions(fmt, draws, dna, count) {
     var BB_SEED_FORMAT_MULTIPLIER = 13;
     var BB_MAX_SCORING_DRAWS = 400;
     var BB_BONUS_RETRY_LIMIT = 25;
+    var BB_MAX_ATTEMPTS_MULTIPLIER = 6;
+    var BB_SUM_STD_MULTIPLIER = 1.8;
     count = Math.max(1, Math.min(10, count || 3));
     var tpl = dna.template;
     var half = dna.half;
@@ -9084,9 +9086,9 @@ function _bbCreatePredictions(fmt, draws, dna, count) {
     var seen = {};
     var targetEven = Math.max(0, Math.min(fmt.mainCount, Math.round(tpl.even * fmt.mainCount)));
     var targetLow  = Math.max(0, Math.min(fmt.mainCount, Math.round(tpl.low  * fmt.mainCount)));
-    var sumTol = Math.max(4, (tpl.sumStd || 0) * 1.8);
+    var sumTol = Math.max(4, (tpl.sumStd || 0) * BB_SUM_STD_MULTIPLIER);
 
-    for (var p = 0; p < count * 6 && out.length < count; p++) {
+    for (var p = 0; p < count * BB_MAX_ATTEMPTS_MULTIPLIER && out.length < count; p++) {
         var rand = makeRng(seedBase + p * BB_SEED_ITERATION_MULTIPLIER + fmt.mainMax * BB_SEED_FORMAT_MULTIPLIER);
         var picked = [];
         var used = {};
@@ -9128,7 +9130,7 @@ function _bbCreatePredictions(fmt, draws, dna, count) {
         picked.sort(function(a, b) { return a - b; });
 
         var pSum = picked.reduce(function(t, x) { return t + x; }, 0);
-        if (Math.abs(pSum - tpl.sum) > sumTol * 1.8) continue;
+        if (Math.abs(pSum - tpl.sum) > sumTol * BB_SUM_STD_MULTIPLIER) continue;
 
         var evenRatio = evenCt / fmt.mainCount;
         var lowRatio = lowCt / fmt.mainCount;
