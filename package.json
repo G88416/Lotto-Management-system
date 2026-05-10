@@ -1,7 +1,7 @@
 {
   "name": "bophelong-lotto",
   "version": "1.0.0",
-  "description": "LottoCanvas Workstation — desktop and mobile app",
+  "description": "LottoCanvas Workstation — desktop and mobile (Android/Huawei) app",
   "main": "main.js",
   "author": "G88416",
   "license": "MIT",

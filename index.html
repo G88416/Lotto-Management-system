@@ -9130,7 +9130,7 @@ function _bbCreatePredictions(fmt, draws, dna, count) {
         picked.sort(function(a, b) { return a - b; });
 
         var pSum = picked.reduce(function(t, x) { return t + x; }, 0);
-        if (Math.abs(pSum - tpl.sum) > sumTol * BB_SUM_STD_MULTIPLIER) continue;
+        if (Math.abs(pSum - tpl.sum) > sumTol) continue;
 
         var evenRatio = evenCt / fmt.mainCount;
         var lowRatio = lowCt / fmt.mainCount;

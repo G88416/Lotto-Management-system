@@ -153,6 +153,7 @@ npm install
 npm install @capacitor/core @capacitor/cli @capacitor/ios @capacitor/splash-screen
 
 # 2. Initialise Capacitor (first time only)
+# Skip this step if `capacitor.config.json` already exists in the repository.
 npx cap init "LottoCanvas Workstation" "com.g88416.bophelong" --web-dir www
 
 # 3. Add the iOS platform
