@@ -9005,6 +9005,161 @@ function computeDNAFingerprint(fmt, draws) {
     return { template: template, lastDNA: lastDNA, trend: trend, half: dnaHalf, drawCount: dnaList.length };
 }
 
+function _bbSeedFromDraws(draws) {
+    var BB_DEFAULT_SEED = 13579;
+    if (!draws || !draws.length) return BB_DEFAULT_SEED;
+    /* Small integer offsets only decorrelate low-value multiplications for a steadier deterministic seed spread. */
+    var BB_SEED_NUM_OFFSET = 7;
+    var BB_SEED_DRAW_OFFSET = 3;
+    var BB_SEED_SLOT_OFFSET = 11;
+    var base = 0;
+    var sample = draws.slice(0, Math.min(8, draws.length));
+    sample.forEach(function(d, di) {
+        (d.numbers || []).forEach(function(n, ni) {
+            base = (base + (n + BB_SEED_NUM_OFFSET) * (di + BB_SEED_DRAW_OFFSET) * (ni + BB_SEED_SLOT_OFFSET)) >>> 0;
+        });
+    });
+    return (base || BB_DEFAULT_SEED) >>> 0;
+}
+
+function _bbCreatePredictions(fmt, draws, dna, count) {
+    if (!fmt || !draws || !draws.length || !dna || !dna.template) return [];
+    var BB_WEIGHT_FREQ = 0.55;
+    var BB_WEIGHT_RECENCY = 0.30;
+    var BB_WEIGHT_CENTRALITY = 0.15;
+    var BB_CONF_SUM_WEIGHT = 0.5;
+    var BB_CONF_EVEN_WEIGHT = 0.25;
+    var BB_CONF_LOW_WEIGHT = 0.25;
+    var BB_RNG_DEFAULT_SEED = 2463534242;
+    var BB_SEED_ITERATION_MULTIPLIER = 977;
+    var BB_SEED_FORMAT_MULTIPLIER = 13;
+    var BB_MAX_SCORING_DRAWS = 400;
+    var BB_BONUS_RETRY_LIMIT = 25;
+    var BB_MAX_ATTEMPTS_MULTIPLIER = 6;
+    var BB_SUM_STD_MULTIPLIER = 1.8;
+    count = Math.max(1, Math.min(10, count || 3));
+    var tpl = dna.template;
+    var half = dna.half;
+    var seedBase = _bbSeedFromDraws(draws);
+
+    var freq = {};
+    var recency = {};
+    for (var n = 1; n <= fmt.mainMax; n++) {
+        freq[n] = 0;
+        recency[n] = 0;
+    }
+    draws.slice(0, Math.min(draws.length, BB_MAX_SCORING_DRAWS)).forEach(function(d, idx) {
+        var rw = 1 / (idx + 1);
+        (d.numbers || []).forEach(function(x) {
+            if (freq[x] !== undefined) {
+                freq[x]++;
+                recency[x] += rw;
+            }
+        });
+    });
+
+    var maxFreq = 1, maxRec = 1;
+    for (var k = 1; k <= fmt.mainMax; k++) {
+        if (freq[k] > maxFreq) maxFreq = freq[k];
+        if (recency[k] > maxRec) maxRec = recency[k];
+    }
+    var avgTarget = tpl.sum / Math.max(1, fmt.mainCount);
+    var score = {};
+    for (var s = 1; s <= fmt.mainMax; s++) {
+        var fSc = freq[s] / maxFreq;
+        var rSc = recency[s] / maxRec;
+        var cSc = Math.max(0, 1 - Math.abs(s - avgTarget) / Math.max(1, fmt.mainMax / 2));
+        score[s] = fSc * BB_WEIGHT_FREQ + rSc * BB_WEIGHT_RECENCY + cSc * BB_WEIGHT_CENTRALITY;
+    }
+    var ordered = Object.keys(score).map(function(x) { return parseInt(x, 10); })
+        .sort(function(a, b) { return score[b] - score[a]; });
+
+    function makeRng(seed) {
+        var st = (seed || BB_RNG_DEFAULT_SEED) >>> 0;
+        return function() {
+            st = ((1664525 * st + 1013904223) >>> 0);
+            return st / 4294967296;
+        };
+    }
+
+    var out = [];
+    var seen = {};
+    var targetEven = Math.max(0, Math.min(fmt.mainCount, Math.round(tpl.even * fmt.mainCount)));
+    var targetLow  = Math.max(0, Math.min(fmt.mainCount, Math.round(tpl.low  * fmt.mainCount)));
+    var sumTol = Math.max(4, (tpl.sumStd || 0) * BB_SUM_STD_MULTIPLIER);
+
+    for (var p = 0; p < count * BB_MAX_ATTEMPTS_MULTIPLIER && out.length < count; p++) {
+        var rand = makeRng(seedBase + p * BB_SEED_ITERATION_MULTIPLIER + fmt.mainMax * BB_SEED_FORMAT_MULTIPLIER);
+        var picked = [];
+        var used = {};
+        var evenCt = 0;
+        var lowCt = 0;
+
+        for (var slot = 0; slot < fmt.mainCount; slot++) {
+            var avail = [];
+            var totalW = 0;
+            for (var oi = 0; oi < ordered.length; oi++) {
+                var cand = ordered[(oi + slot * 3 + p) % ordered.length];
+                if (used[cand]) continue;
+                var evenNeed = targetEven - evenCt;
+                var lowNeed = targetLow - lowCt;
+                var evenLeft = fmt.mainCount - slot;
+                var lowLeft = fmt.mainCount - slot;
+                var w = score[cand] + 0.05;
+                if (evenNeed > 0 && cand % 2 === 0) w *= 1.18;
+                if (evenNeed >= evenLeft && cand % 2 !== 0) w *= 0.45;
+                if (lowNeed > 0 && cand <= half) w *= 1.16;
+                if (lowNeed >= lowLeft && cand > half) w *= 0.45;
+                w *= (0.88 + rand() * 0.28);
+                avail.push({ n: cand, w: w });
+                totalW += w;
+            }
+            if (!avail.length || totalW <= 0) break;
+            var r = rand() * totalW;
+            var chosen = avail[avail.length - 1].n;
+            for (var ai = 0; ai < avail.length; ai++) {
+                r -= avail[ai].w;
+                if (r <= 0) { chosen = avail[ai].n; break; }
+            }
+            used[chosen] = true;
+            picked.push(chosen);
+            if (chosen % 2 === 0) evenCt++;
+            if (chosen <= half) lowCt++;
+        }
+        if (picked.length !== fmt.mainCount) continue;
+        picked.sort(function(a, b) { return a - b; });
+
+        var pSum = picked.reduce(function(t, x) { return t + x; }, 0);
+        if (Math.abs(pSum - tpl.sum) > sumTol) continue;
+
+        var evenRatio = evenCt / fmt.mainCount;
+        var lowRatio = lowCt / fmt.mainCount;
+        var sumFit = Math.max(0, 1 - Math.abs(pSum - tpl.sum) / Math.max(1, sumTol * 2));
+        var evenFit = Math.max(0, 1 - Math.abs(evenRatio - tpl.even) / 0.8);
+        var lowFit = Math.max(0, 1 - Math.abs(lowRatio - tpl.low) / 0.8);
+        var conf = Math.round((sumFit * BB_CONF_SUM_WEIGHT + evenFit * BB_CONF_EVEN_WEIGHT + lowFit * BB_CONF_LOW_WEIGHT) * 100);
+
+        var bonus = [];
+        if (fmt.bonusCount > 0 && fmt.bonusMax > 0) {
+            var bUsed = {};
+            for (var bc = 0; bc < fmt.bonusCount; bc++) {
+                var bv = 1 + Math.floor(rand() * fmt.bonusMax);
+                var guard = 0;
+                while (bUsed[bv] && guard < BB_BONUS_RETRY_LIMIT) { bv = 1 + Math.floor(rand() * fmt.bonusMax); guard++; }
+                bUsed[bv] = true;
+                bonus.push(bv);
+            }
+            bonus.sort(function(a, b) { return a - b; });
+        }
+
+        var key = picked.join(',') + '|' + bonus.join(',');
+        if (seen[key]) continue;
+        seen[key] = true;
+        out.push({ numbers: picked, bonus: bonus, confidence: conf });
+    }
+    return out;
+}
+
 /* Render a compact Borrowed-Brilliance DNA panel as an HTML string.
    Depends on _prngStatBox (defined in the PRNG section). */
 function renderDNABorrowedBrilliancePanel(fmt, draws) {
@@ -9064,6 +9219,25 @@ function renderDNABorrowedBrilliancePanel(fmt, draws) {
                 Math.floor(dna.drawCount / 2) + ' vs older ' + (dna.drawCount - Math.floor(dna.drawCount / 2)) + ' draws):</strong> ' +
                 trendParts.join(' &middot; ') + '</div>';
         }
+    }
+    var bbPreds = _bbCreatePredictions(fmt, draws, dna, 3);
+    if (bbPreds.length) {
+        html += '<div class="pattern-section-title" style="font-size:0.88rem;margin-top:10px;margin-bottom:6px;">&#127919; Borrowed Brilliance Predictions</div>' +
+            '<div class="algo-info" style="margin-bottom:8px;font-size:0.82rem;">Predictions synthesized to match draw DNA (sum profile, even/odd ratio, low/high split) with recency-aware frequency weighting.</div>' +
+            '<div style="display:flex;flex-direction:column;gap:7px;">' +
+            bbPreds.map(function(pred, idx) {
+                return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);">' +
+                    '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+                    '<span style="font-size:0.74rem;color:var(--text-muted);min-width:20px;">#' + (idx + 1) + '</span>' +
+                    pred.numbers.map(function(n) { return '<span class="ball ball-main ball-sm">' + n + '</span>'; }).join('') +
+                    (pred.bonus && pred.bonus.length
+                        ? '<span style="font-size:0.72rem;color:var(--text-muted);margin:0 2px;">+</span>' + pred.bonus.map(function(b) { return '<span class="ball ball-bonus ball-sm">' + b + '</span>'; }).join('')
+                        : '') +
+                    '</div>' +
+                    '<span style="font-size:0.76rem;font-weight:700;color:#22c55e;">' + pred.confidence + '%</span>' +
+                    '</div>';
+            }).join('') +
+            '</div>';
     }
     html += '</div>';
     return html;

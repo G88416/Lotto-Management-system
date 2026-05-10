@@ -1,8 +1,8 @@
 # Packaging Guide — LottoCanvas Workstation
 
 This document explains how to build and distribute the LottoCanvas Workstation app as a
-**macOS desktop app** (via Electron) and as an **iOS installable app** (via PWA
-or Capacitor).
+**desktop app** (via Electron), as an **Android/Huawei installable app** (via Capacitor),
+and as an **iOS installable app** (via PWA or Capacitor).
 
 ---
 
@@ -84,11 +84,58 @@ Generate `icon.icns` from `icons/icon.svg` using the helper script:
 node scripts/generate-icons.js
 ```
 
-See **Section 4** for details.
+See **Section 5** for details.
 
 ---
 
-## 3 — iOS Native App (Capacitor)
+## 3 — Android & Huawei Native App (Capacitor)
+
+Capacitor wraps the web app in a native Android WebView and produces installable APK/AAB
+builds. Huawei phones can install the same Android APK directly, or you can submit an AAB/APK
+to Huawei AppGallery.
+
+### Prerequisites
+- Node.js ≥ 18
+- Android Studio (latest stable)
+- Android SDK + build tools installed in Android Studio
+- Java 17 (recommended by current Android Gradle plugin)
+
+### Steps
+
+```bash
+# 1. Install dependencies (includes Capacitor Android packages)
+npm install
+
+# 2. Add Android platform (first time only)
+npm run cap:add:android
+
+# 3. Sync web assets into native Android project
+npm run cap:sync:android
+
+# 4. Build a release APK (downloadable install file)
+npm run dist:android
+```
+
+Release APK output:
+- `android/app/build/outputs/apk/release/app-release.apk`
+
+For Huawei phones:
+- Use the same APK from `dist:android`, or run `npm run dist:huawei` (same build output).
+- Enable **Install unknown apps** on-device for direct APK install, or publish to AppGallery.
+
+### Build AAB for Play Store / AppGallery (optional)
+
+```bash
+cd android
+./gradlew bundleRelease
+```
+
+AAB output:
+- `android/app/build/outputs/bundle/release/app-release.aab`
+
+---
+
+## 4 — iOS Native App (Capacitor)
 
 Capacitor wraps the web app in a native WKWebView and produces a real iOS app
 that can be submitted to the App Store.
@@ -106,12 +153,14 @@ npm install
 npm install @capacitor/core @capacitor/cli @capacitor/ios @capacitor/splash-screen
 
 # 2. Initialise Capacitor (first time only)
-npx cap init "LottoCanvas Workstation" "com.g88416.bophelong" --web-dir .
+# Skip this step if `capacitor.config.json` already exists in the repository.
+npx cap init "LottoCanvas Workstation" "com.g88416.bophelong" --web-dir www
 
 # 3. Add the iOS platform
 npx cap add ios
 
-# 4. Sync web assets into the iOS project
+# 4. Build/copy web assets and sync to iOS
+npm run prepare:web
 npx cap sync ios
 
 # 5. Open in Xcode
@@ -128,7 +177,7 @@ The `capacitor.config.json` file in this repo already contains the correct
 
 ---
 
-## 4 — Generating PNG & ICNS Icons
+## 5 — Generating PNG & ICNS Icons
 
 Place your source artwork as `icons/icon.svg` (already included), then run:
 
@@ -147,7 +196,7 @@ still work on non-macOS platforms using the PNG fallback.
 
 ---
 
-## 5 — File Overview
+## 6 — File Overview
 
 ```
 ├── index.html           # Main app (single-file HTML/JS/CSS)
