@@ -71,6 +71,10 @@
         .tab-btn { flex: 1; min-width: 120px; padding: 13px 10px; border: none; background: transparent; color: var(--text-muted); font-weight: 700; font-size: 0.9rem; border-radius: 14px; cursor: pointer; transition: all 0.25s; white-space: nowrap; }
         .tab-btn:hover { background: var(--surface2); color: var(--purple); }
         .tab-btn.active { background: var(--accent-grad); color: #fff; box-shadow: 0 6px 20px rgba(139,92,246,0.35); }
+        .tab-btn.locked-premium { position: relative; border: 1.5px dashed var(--amber); color: var(--amber); background: rgba(245, 158, 11, 0.08); }
+        .tab-btn.locked-premium:hover { color: var(--amber); background: rgba(245, 158, 11, 0.15); }
+        .tab-premium-note { display: block; font-size: 0.68rem; font-weight: 800; line-height: 1.1; margin-top: 4px; letter-spacing: 0.01em; white-space: normal; }
+        .premium-lock-card { border-left: 4px solid var(--amber); background: linear-gradient(135deg, rgba(245,158,11,0.10), rgba(139,92,246,0.08)); }
         .section { display: none; }
         .section.active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
@@ -885,8 +889,8 @@
         <button class="tab-btn" onclick="switchTab('intelligentcanvas')">&#127912; Smart Canvas</button>
         <button class="tab-btn" onclick="switchTab('tetragematrn')">&#129504; Intelligent Generator</button>
         <button class="tab-btn" onclick="switchTab('prngml')">&#129302; PRNG ML</button>
-        <button class="tab-btn" onclick="switchTab('integrity')">&#128270; Integrity Check</button>
-        <button class="tab-btn" onclick="switchTab('aiadvisor')">&#10024; AI Advisor</button>
+        <button class="tab-btn" id="tab-integrity" onclick="switchTab('integrity')">&#128270; Integrity Check <span id="tab-note-integrity" class="tab-premium-note"></span></button>
+        <button class="tab-btn" id="tab-aiadvisor" onclick="switchTab('aiadvisor')">&#10024; AI Advisor <span id="tab-note-aiadvisor" class="tab-premium-note"></span></button>
     </nav>
 
     <!-- QUICK PICK -->
@@ -2486,6 +2490,17 @@
     <!-- INTEGRITY CHECK -->
     <section id="sec-integrity" class="section">
         <div class="section-title">&#128270; Integrity Check</div>
+        <div id="integrity-lock-panel" class="card premium-lock-card" style="display:none;">
+            <div class="pattern-section-title" id="integrity-lock-title"></div>
+            <p class="text-muted text-sm">
+                The Integrity Check tab is premium. It includes randomness health scoring, anomaly tests, and smart prediction guidance.
+            </p>
+            <p class="text-muted text-sm" id="premium-expiry-integrity"></p>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="unlockPremiumFor12Months('integrity')">&#128179; I Paid — Unlock 12 Months</button>
+            </div>
+        </div>
+        <div id="integrity-premium-content">
         <div class="algo-info">
             Statistical anomaly detection engine &#8212; runs <strong>7 independent tests</strong> on your draw history and synthesises them into a single <strong>Randomness Score (0&#8211;100)</strong>.
             A score above 70 indicates statistically healthy randomness. Persistent bias across 100+ draws warrants deeper investigation.
@@ -2549,11 +2564,23 @@
 
         <!-- Sub-tab 5: Smart Prediction -->
         <div id="integ-sub-5" style="display:none;"></div>
+        </div>
     </section>
 
     <!-- AI ADVISOR -->
     <section id="sec-aiadvisor" class="section">
         <div class="section-title">&#10024; AI Advisor</div>
+        <div id="aiadvisor-lock-panel" class="card premium-lock-card" style="display:none;">
+            <div class="pattern-section-title" id="aiadvisor-lock-title"></div>
+            <p class="text-muted text-sm">
+                AI Advisor is currently locked while premium rollout is in progress. This tab provides AI verdicts, contextual guidance, and chat-based strategy help.
+            </p>
+            <p class="text-muted text-sm" id="premium-expiry-aiadvisor"></p>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="unlockPremiumFor12Months('aiadvisor')">&#128179; I Paid — Unlock 12 Months</button>
+            </div>
+        </div>
+        <div id="aiadvisor-premium-content">
         <div class="card">
             <div class="grid-2">
                 <div>
@@ -2604,6 +2631,7 @@
             <div id="ai-history-list">
                 <p class="text-muted text-sm text-center" style="padding:14px 0;">No AI conversations yet.</p>
             </div>
+        </div>
         </div>
     </section>
 
@@ -2908,7 +2936,8 @@ let state = {
     manualBonusPicked:    [],
     manualBonusPhase:     false,
     customFormats:        [],
-    aiAdvisorHistory:     []
+    aiAdvisorHistory:     [],
+    premiumAccessExpiresAt: 0
 };
 
 /* Returns all formats: built-in + user-created custom formats */
@@ -3050,6 +3079,7 @@ function getMainStatePayload() {
         customFormats:     state.customFormats     || [],
         savedPatternDraws: state.savedPatternDraws || [],
         aiAdvisorHistory:  state.aiAdvisorHistory  || [],
+        premiumAccessExpiresAt: Number(state.premiumAccessExpiresAt || 0),
         updatedAt:         firebase.firestore.FieldValue.serverTimestamp()
     };
 }
@@ -3064,6 +3094,7 @@ function hasMeaningfulLocalData() {
         (state.savedPatternDraws && state.savedPatternDraws.length) ||
         (state.customFormats && state.customFormats.length) ||
         (state.aiAdvisorHistory && state.aiAdvisorHistory.length) ||
+        Number(state.premiumAccessExpiresAt || 0) > 0 ||
         (state.budget && Number(state.budget.limit || 0) > 0) ||
         (state.stats && Object.keys(state.stats).length)
     );
@@ -3358,6 +3389,7 @@ function loadFromFirestore() {
             if (Array.isArray(d.customFormats))    state.customFormats  = d.customFormats;
             if (Array.isArray(d.savedPatternDraws)) state.savedPatternDraws = d.savedPatternDraws;
             if (Array.isArray(d.aiAdvisorHistory)) state.aiAdvisorHistory = d.aiAdvisorHistory;
+            state.premiumAccessExpiresAt = Number(d.premiumAccessExpiresAt || 0);
             try {
                 localStorage.setItem('lotto_state', JSON.stringify({
                     tickets:state.tickets, budget:state.budget, stats:state.stats,
@@ -3365,7 +3397,8 @@ function loadFromFirestore() {
                     seedHistory:state.seedHistory, recentDraws:state.recentDraws,
                     savedPatternDraws:state.savedPatternDraws,
                     customFormats:state.customFormats,
-                    aiAdvisorHistory:state.aiAdvisorHistory
+                    aiAdvisorHistory:state.aiAdvisorHistory,
+                    premiumAccessExpiresAt:state.premiumAccessExpiresAt
                 }));
             } catch(e) {}
             buildFormatGrids();
@@ -3373,6 +3406,7 @@ function loadFromFirestore() {
             renderReverseHistory();
             renderSeedHistory();
             renderSavedPatternDraws();
+            updatePremiumTabLockUi();
             if (document.getElementById('sec-budget').classList.contains('active'))  renderBudget();
             if (document.getElementById('sec-tickets').classList.contains('active')) renderTickets();
             if (document.getElementById('sec-stats').classList.contains('active'))   renderWheeling();
@@ -3414,7 +3448,8 @@ function setupRealtimeListeners() {
                     seedHistory:state.seedHistory, recentDraws:state.recentDraws,
                     savedPatternDraws:state.savedPatternDraws,
                     customFormats:state.customFormats,
-                    aiAdvisorHistory:state.aiAdvisorHistory
+                    aiAdvisorHistory:state.aiAdvisorHistory,
+                    premiumAccessExpiresAt:state.premiumAccessExpiresAt
                 }));
             } catch(e) {}
             if (document.getElementById('sec-livedraws').classList.contains('active')) renderLiveDraws();
@@ -3446,7 +3481,8 @@ function persist() {
             seedHistory: state.seedHistory, recentDraws: state.recentDraws,
             savedPatternDraws: state.savedPatternDraws,
             customFormats: state.customFormats,
-            aiAdvisorHistory: state.aiAdvisorHistory
+            aiAdvisorHistory: state.aiAdvisorHistory,
+            premiumAccessExpiresAt: Number(state.premiumAccessExpiresAt || 0)
         }));
     } catch(e) {}
     syncToFirestore();
@@ -3467,6 +3503,7 @@ function loadPersisted() {
         state.savedPatternDraws = d.savedPatternDraws || [];
         state.customFormats     = d.customFormats     || [];
         state.aiAdvisorHistory  = d.aiAdvisorHistory  || [];
+        state.premiumAccessExpiresAt = Number(d.premiumAccessExpiresAt || 0);
     } catch(e) {}
 }
 
@@ -3522,11 +3559,105 @@ function purgeOrphanedDataManual() {
 }
 
 var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern','intelligentcanvas','tetragematrn','prngml','integrity','aiadvisor'];
+var PREMIUM_PRICE_LABEL = 'R150/year';
+var PREMIUM_UNLOCK_MESSAGE = 'Pay ' + PREMIUM_PRICE_LABEL + ' to unlock this tab for 12 months.';
+var PREMIUM_TAB_CONFIG = {
+    integrity: {
+        lockTitle: 'Unlock ' + PREMIUM_PRICE_LABEL,
+        shortLabel: 'Unlock ' + PREMIUM_PRICE_LABEL,
+        hoverInfo: 'Integrity Check is locked. Includes randomness and anomaly tests. Unlock for ' + PREMIUM_PRICE_LABEL + '.',
+        blockedToast: 'Integrity Check is locked — Unlock ' + PREMIUM_PRICE_LABEL + '.'
+    },
+    aiadvisor: {
+        lockTitle: 'Coming Soon ' + PREMIUM_PRICE_LABEL,
+        shortLabel: 'Coming Soon ' + PREMIUM_PRICE_LABEL,
+        hoverInfo: 'AI Advisor is locked. Includes AI verdict, guidance and chat. Coming soon at ' + PREMIUM_PRICE_LABEL + '.',
+        blockedToast: 'AI Advisor is locked — Coming Soon ' + PREMIUM_PRICE_LABEL + '.'
+    }
+};
+
+function getPremiumAccessExpiryTs() {
+    var ts = Number(state.premiumAccessExpiresAt || 0);
+    return ts > 0 ? ts : 0;
+}
+
+function hasPremiumAccess() {
+    return getPremiumAccessExpiryTs() > Date.now();
+}
+
+function getPremiumExpiryForNext12MonthsTs() {
+    var expiry = new Date();
+    var startMonth = expiry.getMonth();
+    expiry.setFullYear(expiry.getFullYear() + 1);
+    if (expiry.getMonth() !== startMonth) expiry.setDate(0);
+    return expiry.getTime();
+}
+
+function formatPremiumExpiryDate(ts) {
+    return new Date(ts).toLocaleDateString(undefined, { day:'numeric', month:'long', year:'numeric' });
+}
+
+function isPremiumTabLocked(key) {
+    return !!PREMIUM_TAB_CONFIG[key] && !hasPremiumAccess();
+}
+
+function updatePremiumTabLockUi() {
+    var integrityLockTitle = document.getElementById('integrity-lock-title');
+    if (integrityLockTitle) integrityLockTitle.innerHTML = '&#128274; ' + PREMIUM_TAB_CONFIG.integrity.lockTitle;
+    var aiLockTitle = document.getElementById('aiadvisor-lock-title');
+    if (aiLockTitle) aiLockTitle.innerHTML = '&#128640; ' + PREMIUM_TAB_CONFIG.aiadvisor.lockTitle;
+
+    ['integrity', 'aiadvisor'].forEach(function(key) {
+        var btn = document.getElementById('tab-' + key);
+        var note = document.getElementById('tab-note-' + key);
+        if (!btn) return;
+        var locked = isPremiumTabLocked(key);
+        var cfg = PREMIUM_TAB_CONFIG[key];
+        btn.classList.toggle('locked-premium', locked);
+        btn.title = locked ? cfg.hoverInfo : 'Premium access active.';
+        if (note) note.textContent = locked ? cfg.shortLabel : '';
+    });
+
+    var integLock = document.getElementById('integrity-lock-panel');
+    var integContent = document.getElementById('integrity-premium-content');
+    var aiLock = document.getElementById('aiadvisor-lock-panel');
+    var aiContent = document.getElementById('aiadvisor-premium-content');
+    var integLocked = isPremiumTabLocked('integrity');
+    var aiLocked = isPremiumTabLocked('aiadvisor');
+
+    if (integLock) integLock.style.display = integLocked ? 'block' : 'none';
+    if (integContent) integContent.style.display = integLocked ? 'none' : 'block';
+    if (aiLock) aiLock.style.display = aiLocked ? 'block' : 'none';
+    if (aiContent) aiContent.style.display = aiLocked ? 'none' : 'block';
+
+    var expiryTs = getPremiumAccessExpiryTs();
+    var expiryLabel = expiryTs > Date.now()
+        ? ('Premium active until ' + formatPremiumExpiryDate(expiryTs) + '.')
+        : PREMIUM_UNLOCK_MESSAGE;
+    var integExpiry = document.getElementById('premium-expiry-integrity');
+    var aiExpiry = document.getElementById('premium-expiry-aiadvisor');
+    if (integExpiry) integExpiry.textContent = expiryLabel;
+    if (aiExpiry) aiExpiry.textContent = expiryLabel;
+}
+
+function unlockPremiumFor12Months(targetTab) {
+    state.premiumAccessExpiresAt = getPremiumExpiryForNext12MonthsTs();
+    persist();
+    updatePremiumTabLockUi();
+    showToast('Premium unlocked for 12 months.', 'success');
+    if (targetTab && !isPremiumTabLocked(targetTab)) switchTab(targetTab);
+}
 
 function switchTab(key) {
     if (!isAppUnlocked(fbCurrentUser)) {
         setAuthStatus('Please sign in to access the lotto system.', 'info');
         focusAuthPortal();
+        return;
+    }
+    if (isPremiumTabLocked(key)) {
+        var cfg = PREMIUM_TAB_CONFIG[key];
+        showToast(cfg && cfg.blockedToast ? cfg.blockedToast : 'This tab is locked.', 'info');
+        updatePremiumTabLockUi();
         return;
     }
     TAB_KEYS.forEach(function(k, i) {
@@ -3803,6 +3934,11 @@ function submitAiChat() {
 }
 
 function openAiAdvisorWithContext(source) {
+    if (isPremiumTabLocked('aiadvisor')) {
+        showToast(PREMIUM_TAB_CONFIG.aiadvisor.blockedToast, 'info');
+        updatePremiumTabLockUi();
+        return;
+    }
     switchTab('aiadvisor');
     initAiAdvisorTab();
     var sel = document.getElementById('ai-format');
@@ -14289,6 +14425,7 @@ document.addEventListener('DOMContentLoaded', function() {
     renderReverseHistory();
     renderSeedHistory();
     updateHeader();
+    updatePremiumTabLockUi();
     renderSavedPatternDraws();
     updatePasteWorkspaceStatus();
     updateDpPasteWorkspaceStatus();
