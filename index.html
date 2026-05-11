@@ -2491,13 +2491,13 @@
     <section id="sec-integrity" class="section">
         <div class="section-title">&#128270; Integrity Check</div>
         <div id="integrity-lock-panel" class="card premium-lock-card" style="display:none;">
-            <div class="pattern-section-title">&#128274; Unlock R150/year</div>
+            <div class="pattern-section-title">&#128274; Unlock for R150/year</div>
             <p class="text-muted text-sm">
                 The Integrity Check tab is premium. It includes randomness health scoring, anomaly tests, and smart prediction guidance.
             </p>
             <p class="text-muted text-sm" id="premium-expiry-integrity"></p>
             <div class="btn-row">
-                <button class="btn btn-primary" onclick="activatePremiumAccessFromPayment('integrity')">&#128179; I Paid — Unlock 12 Months</button>
+                <button class="btn btn-primary" onclick="unlockPremiumFor12Months('integrity')">&#128179; I Paid — Unlock 12 Months</button>
             </div>
         </div>
         <div id="integrity-premium-content">
@@ -2571,13 +2571,13 @@
     <section id="sec-aiadvisor" class="section">
         <div class="section-title">&#10024; AI Advisor</div>
         <div id="aiadvisor-lock-panel" class="card premium-lock-card" style="display:none;">
-            <div class="pattern-section-title">&#128640; Coming Soon R150/year</div>
+            <div class="pattern-section-title">&#128640; Coming Soon — R150/year</div>
             <p class="text-muted text-sm">
                 AI Advisor is currently locked while premium rollout is in progress. This tab provides AI verdicts, contextual guidance, and chat-based strategy help.
             </p>
             <p class="text-muted text-sm" id="premium-expiry-aiadvisor"></p>
             <div class="btn-row">
-                <button class="btn btn-primary" onclick="activatePremiumAccessFromPayment('aiadvisor')">&#128179; I Paid — Unlock 12 Months</button>
+                <button class="btn btn-primary" onclick="unlockPremiumFor12Months('aiadvisor')">&#128179; I Paid — Unlock 12 Months</button>
             </div>
         </div>
         <div id="aiadvisor-premium-content">
@@ -3585,8 +3585,12 @@ function hasPremiumAccess() {
 
 function getPremiumExpiryForNext12MonthsTs() {
     var expiry = new Date();
-    expiry.setMonth(expiry.getMonth() + 12);
+    expiry.setFullYear(expiry.getFullYear() + 1);
     return expiry.getTime();
+}
+
+function formatPremiumExpiryDate(ts) {
+    return new Date(ts).toLocaleDateString(undefined, { day:'numeric', month:'long', year:'numeric' });
 }
 
 function isPremiumTabLocked(key) {
@@ -3619,7 +3623,7 @@ function updatePremiumTabLockUi() {
 
     var expiryTs = getPremiumAccessExpiryTs();
     var expiryLabel = expiryTs > Date.now()
-        ? ('Premium active until ' + new Date(expiryTs).toLocaleDateString(undefined, { day:'numeric', month:'long', year:'numeric' }) + '.')
+        ? ('Premium active until ' + formatPremiumExpiryDate(expiryTs) + '.')
         : PREMIUM_UNLOCK_MESSAGE;
     var integExpiry = document.getElementById('premium-expiry-integrity');
     var aiExpiry = document.getElementById('premium-expiry-aiadvisor');
@@ -3627,11 +3631,11 @@ function updatePremiumTabLockUi() {
     if (aiExpiry) aiExpiry.textContent = expiryLabel;
 }
 
-function activatePremiumAccessFromPayment(targetTab) {
+function unlockPremiumFor12Months(targetTab) {
     state.premiumAccessExpiresAt = getPremiumExpiryForNext12MonthsTs();
     persist();
     updatePremiumTabLockUi();
-    showToast('Payment received. Premium unlocked for 12 months.', 'success');
+    showToast('Premium unlocked for 12 months.', 'success');
     if (targetTab && !isPremiumTabLocked(targetTab)) switchTab(targetTab);
 }
 
