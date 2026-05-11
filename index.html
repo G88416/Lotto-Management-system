@@ -2491,7 +2491,7 @@
     <section id="sec-integrity" class="section">
         <div class="section-title">&#128270; Integrity Check</div>
         <div id="integrity-lock-panel" class="card premium-lock-card" style="display:none;">
-            <div class="pattern-section-title">&#128274; Unlock for R150/year</div>
+            <div class="pattern-section-title" id="integrity-lock-title"></div>
             <p class="text-muted text-sm">
                 The Integrity Check tab is premium. It includes randomness health scoring, anomaly tests, and smart prediction guidance.
             </p>
@@ -2571,7 +2571,7 @@
     <section id="sec-aiadvisor" class="section">
         <div class="section-title">&#10024; AI Advisor</div>
         <div id="aiadvisor-lock-panel" class="card premium-lock-card" style="display:none;">
-            <div class="pattern-section-title">&#128640; Coming Soon — R150/year</div>
+            <div class="pattern-section-title" id="aiadvisor-lock-title"></div>
             <p class="text-muted text-sm">
                 AI Advisor is currently locked while premium rollout is in progress. This tab provides AI verdicts, contextual guidance, and chat-based strategy help.
             </p>
@@ -3563,11 +3563,13 @@ var PREMIUM_PRICE_LABEL = 'R150/year';
 var PREMIUM_UNLOCK_MESSAGE = 'Pay ' + PREMIUM_PRICE_LABEL + ' to unlock this tab for 12 months.';
 var PREMIUM_TAB_CONFIG = {
     integrity: {
+        lockTitle: 'Unlock ' + PREMIUM_PRICE_LABEL,
         shortLabel: 'Unlock ' + PREMIUM_PRICE_LABEL,
         hoverInfo: 'Integrity Check is locked. Includes randomness and anomaly tests. Unlock for ' + PREMIUM_PRICE_LABEL + '.',
         blockedToast: 'Integrity Check is locked — Unlock ' + PREMIUM_PRICE_LABEL + '.'
     },
     aiadvisor: {
+        lockTitle: 'Coming Soon ' + PREMIUM_PRICE_LABEL,
         shortLabel: 'Coming Soon ' + PREMIUM_PRICE_LABEL,
         hoverInfo: 'AI Advisor is locked. Includes AI verdict, guidance and chat. Coming soon at ' + PREMIUM_PRICE_LABEL + '.',
         blockedToast: 'AI Advisor is locked — Coming Soon ' + PREMIUM_PRICE_LABEL + '.'
@@ -3585,7 +3587,9 @@ function hasPremiumAccess() {
 
 function getPremiumExpiryForNext12MonthsTs() {
     var expiry = new Date();
+    var startMonth = expiry.getMonth();
     expiry.setFullYear(expiry.getFullYear() + 1);
+    if (expiry.getMonth() !== startMonth) expiry.setDate(0);
     return expiry.getTime();
 }
 
@@ -3598,6 +3602,11 @@ function isPremiumTabLocked(key) {
 }
 
 function updatePremiumTabLockUi() {
+    var integrityLockTitle = document.getElementById('integrity-lock-title');
+    if (integrityLockTitle) integrityLockTitle.innerHTML = '&#128274; ' + PREMIUM_TAB_CONFIG.integrity.lockTitle;
+    var aiLockTitle = document.getElementById('aiadvisor-lock-title');
+    if (aiLockTitle) aiLockTitle.innerHTML = '&#128640; ' + PREMIUM_TAB_CONFIG.aiadvisor.lockTitle;
+
     ['integrity', 'aiadvisor'].forEach(function(key) {
         var btn = document.getElementById('tab-' + key);
         var note = document.getElementById('tab-note-' + key);
