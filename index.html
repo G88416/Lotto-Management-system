@@ -3559,27 +3559,34 @@ function purgeOrphanedDataManual() {
 }
 
 var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern','intelligentcanvas','tetragematrn','prngml','integrity','aiadvisor'];
+var PREMIUM_PRICE_LABEL = 'R150/year';
+var PREMIUM_UNLOCK_MESSAGE = 'Pay ' + PREMIUM_PRICE_LABEL + ' to unlock this tab for 12 months.';
 var PREMIUM_TAB_CONFIG = {
     integrity: {
-        shortLabel: 'Unlock R150/year',
-        hoverInfo: 'Integrity Check is locked. Includes randomness and anomaly tests. Unlock for R150/year.',
-        blockedToast: 'Integrity Check is locked — Unlock R150/year.'
+        shortLabel: 'Unlock ' + PREMIUM_PRICE_LABEL,
+        hoverInfo: 'Integrity Check is locked. Includes randomness and anomaly tests. Unlock for ' + PREMIUM_PRICE_LABEL + '.',
+        blockedToast: 'Integrity Check is locked — Unlock ' + PREMIUM_PRICE_LABEL + '.'
     },
     aiadvisor: {
-        shortLabel: 'Coming Soon R150/year',
-        hoverInfo: 'AI Advisor is locked. Includes AI verdict, guidance and chat. Coming soon at R150/year.',
-        blockedToast: 'AI Advisor is locked — Coming Soon R150/year.'
+        shortLabel: 'Coming Soon ' + PREMIUM_PRICE_LABEL,
+        hoverInfo: 'AI Advisor is locked. Includes AI verdict, guidance and chat. Coming soon at ' + PREMIUM_PRICE_LABEL + '.',
+        blockedToast: 'AI Advisor is locked — Coming Soon ' + PREMIUM_PRICE_LABEL + '.'
     }
 };
-var PREMIUM_ACCESS_MS = 365 * 24 * 60 * 60 * 1000;
 
 function getPremiumAccessExpiryTs() {
     var ts = Number(state.premiumAccessExpiresAt || 0);
-    return isFinite(ts) && ts > 0 ? ts : 0;
+    return ts > 0 ? ts : 0;
 }
 
 function hasPremiumAccess() {
     return getPremiumAccessExpiryTs() > Date.now();
+}
+
+function getPremiumExpiryForNext12MonthsTs() {
+    var expiry = new Date();
+    expiry.setMonth(expiry.getMonth() + 12);
+    return expiry.getTime();
 }
 
 function isPremiumTabLocked(key) {
@@ -3613,7 +3620,7 @@ function updatePremiumTabLockUi() {
     var expiryTs = getPremiumAccessExpiryTs();
     var expiryLabel = expiryTs > Date.now()
         ? ('Premium active until ' + new Date(expiryTs).toLocaleDateString(undefined, { day:'numeric', month:'long', year:'numeric' }) + '.')
-        : 'Pay R150/year to unlock this tab for 12 months.';
+        : PREMIUM_UNLOCK_MESSAGE;
     var integExpiry = document.getElementById('premium-expiry-integrity');
     var aiExpiry = document.getElementById('premium-expiry-aiadvisor');
     if (integExpiry) integExpiry.textContent = expiryLabel;
@@ -3621,7 +3628,7 @@ function updatePremiumTabLockUi() {
 }
 
 function activatePremiumAccessFromPayment(targetTab) {
-    state.premiumAccessExpiresAt = Date.now() + PREMIUM_ACCESS_MS;
+    state.premiumAccessExpiresAt = getPremiumExpiryForNext12MonthsTs();
     persist();
     updatePremiumTabLockUi();
     showToast('Payment received. Premium unlocked for 12 months.', 'success');
