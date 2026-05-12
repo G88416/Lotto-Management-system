@@ -802,13 +802,13 @@
 
     if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_API_KEY') {
       const FIREBASE_AI_APP_NAME = 'gemini-ai-app';
-      const FALLBACK_GEMINI_PROMPT = "Write a story about a magic backpack.";
+      const DEFAULT_GEMINI_PROMPT = "Write a story about a magic backpack.";
       const firebaseApp = initializeApp(firebaseConfig, FIREBASE_AI_APP_NAME);
       const ai = getAI(firebaseApp, { backend: new GoogleAIBackend() });
       const model = getGenerativeModel(ai, { model: "gemini-3-flash-preview" });
 
       async function runGeminiPrompt(promptText) {
-        const prompt = promptText || FALLBACK_GEMINI_PROMPT;
+        const prompt = promptText || DEFAULT_GEMINI_PROMPT;
         const result = await model.generateContent(prompt);
         const response = result.response;
         const text = response.text();
