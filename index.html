@@ -6172,9 +6172,9 @@ var _LOTTO_APP_SOURCE_URL = 'https://lotto-management-system-26761.web.app/';
 var _LOTTO_APP_SIGNUP_MESSAGE = 'Sign up for LottoCanvas Workstation here';
 var _LOTTO_APP_SHARE_IMAGE_URL = 'https://github.com/user-attachments/assets/4ba9cd33-5b1d-48d8-af59-2f08da6d52a1';
 
-function _getLottoStatusText(includeAppUrl) {
+function _getLottoStatusText(includeAppUrlLine) {
     var lines = [_LOTTO_APP_SIGNUP_MESSAGE];
-    if (includeAppUrl !== false) lines.push(_LOTTO_APP_SOURCE_URL);
+    if (includeAppUrlLine !== false) lines.push(_LOTTO_APP_SOURCE_URL);
     lines.push('Preview image: ' + _LOTTO_APP_SHARE_IMAGE_URL);
     return lines.join('\n');
 }
