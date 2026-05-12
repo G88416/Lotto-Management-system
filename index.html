@@ -6171,6 +6171,8 @@ function _shuffleModClear() {
 var _LOTTO_APP_SOURCE_URL = 'https://lotto-management-system-26761.web.app/';
 var _LOTTO_APP_SIGNUP_MESSAGE = 'Sign up for LottoCanvas Workstation here';
 var _LOTTO_APP_SHARE_IMAGE_URL = 'https://github.com/user-attachments/assets/4ba9cd33-5b1d-48d8-af59-2f08da6d52a1';
+var _LOTTO_APP_RELEASES_URL = 'https://github.com/G88416/Lotto-Management-system/releases/latest';
+var _LOTTO_APP_ANDROID_APK_URL = 'https://github.com/G88416/Lotto-Management-system/releases/latest/download/app-release.apk';
 
 function _getLottoStatusText(includeAppUrlLine, includeImageLine) {
     var lines = [_LOTTO_APP_SIGNUP_MESSAGE];
@@ -6208,6 +6210,19 @@ function copyLottoAppLink() {
     showToast('Sharing is not supported in this browser.', 'error');
 }
 
+function copyDownloadLink(url) {
+    if (!url) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function() {
+            showToast('Download link copied to clipboard.', 'success');
+        }).catch(function() {
+            showToast('Unable to copy download link.', 'error');
+        });
+        return;
+    }
+    showToast('Clipboard copy is not supported in this browser.', 'error');
+}
+
 function showDownloadModal() {
     var content = document.getElementById('download-modal-content');
     if (!content) return;
@@ -6219,42 +6234,53 @@ function showDownloadModal() {
     var isLinux   = /Linux/i.test(ua) && !isAndroid;
 
     var appSource = _LOTTO_APP_SOURCE_URL;
+    var releasesUrl = _LOTTO_APP_RELEASES_URL;
+    var androidApkUrl = _LOTTO_APP_ANDROID_APK_URL;
 
     var cards = '';
+    cards += _dlCard('&#128229;', 'Latest Device Downloads', 'Open the latest release page with install files for Android, Windows, macOS, and Linux.', releasesUrl, 'Open Latest Downloads', false, false);
 
     if (isAndroid) {
-        cards += _dlCard('&#129419;', 'Android App (APK)', 'Open the official download page, then choose the latest Android build.', appSource, 'Open Download Page', true);
-        cards += _dlCard('&#128241;', 'Install as Web App (PWA)', 'In Chrome, tap the menu (&#8942;) &rarr; <strong>Add to Home Screen</strong> for an app-like experience with no download needed.', null, null, false);
+        cards += _dlCard('&#129419;', 'Android App (APK)', 'Tap below to download the latest Android APK directly, then open the file to install.', androidApkUrl, 'Download APK', true, true);
+        cards += _dlCard('&#128241;', 'Install as Web App (PWA)', 'In Chrome, tap the menu (&#8942;) &rarr; <strong>Add to Home Screen</strong> for an app-like experience with no download needed.', appSource, 'Open Web App', false, false);
     } else if (isIOS) {
-        cards += _dlCard('&#127822;', 'iPhone / iPad Web App (PWA)', 'In Safari, tap the <strong>Share</strong> button &#8679; then <strong>Add to Home Screen</strong>. LottoCanvas will appear like a native app.', null, null, true);
+        cards += _dlCard('&#127822;', 'iPhone / iPad Web App (PWA)', 'In Safari, tap the <strong>Share</strong> button &#8679; then <strong>Add to Home Screen</strong>. LottoCanvas will appear like a native app.', appSource, 'Open in Safari', true, false);
         cards += _dlCard('&#128241;', 'iOS App Store', 'Native iOS app coming soon \u2014 use the PWA option above in the meantime.', null, null, false);
     } else if (isWin) {
-        cards += _dlCard('&#128167;', 'Windows Installer (.exe)', 'Open the official download page, then choose the latest Windows build.', appSource, 'Open Download Page', true);
-        cards += _dlCard('&#127758;', 'Web App (no install)', 'Use LottoCanvas directly in your browser \u2014 no download needed.', null, null, false);
+        cards += _dlCard('&#128167;', 'Windows Installer (.exe)', 'Open latest downloads and choose the Windows setup file to install.', releasesUrl, 'Open Windows Downloads', true, false);
+        cards += _dlCard('&#127758;', 'Web App (no install)', 'Use LottoCanvas directly in your browser \u2014 no download needed.', appSource, 'Open Web App', false, false);
     } else if (isMac) {
-        cards += _dlCard('&#127822;', 'macOS App (.dmg)', 'Open the official download page, then choose the latest macOS build.', appSource, 'Open Download Page', true);
-        cards += _dlCard('&#127758;', 'Web App (no install)', 'Use LottoCanvas directly in your browser \u2014 no download needed.', null, null, false);
+        cards += _dlCard('&#127822;', 'macOS App (.dmg)', 'Open latest downloads and choose the macOS DMG file to install.', releasesUrl, 'Open macOS Downloads', true, false);
+        cards += _dlCard('&#127758;', 'Web App (no install)', 'Use LottoCanvas directly in your browser \u2014 no download needed.', appSource, 'Open Web App', false, false);
     } else if (isLinux) {
-        cards += _dlCard('&#127939;', 'Linux AppImage', 'Open the official download page, then choose the latest AppImage build for portable Linux use.', appSource, 'Open Download Page', true);
-        cards += _dlCard('&#128230;', 'Linux .deb Package', 'Open the official download page, then choose the latest .deb build for Debian/Ubuntu-based systems.', appSource, 'Open Download Page', false);
+        cards += _dlCard('&#127939;', 'Linux AppImage', 'Open latest downloads and choose the AppImage build for portable Linux use.', releasesUrl, 'Open Linux Downloads', true, false);
+        cards += _dlCard('&#128230;', 'Linux .deb Package', 'Open latest downloads and choose the .deb build for Debian/Ubuntu-based systems.', releasesUrl, 'Open Linux Downloads', false, false);
     } else {
         /* Unknown / desktop fallback — show all platforms */
-        cards += _dlCard('&#128167;', 'Windows', 'Open the official download page, then choose the Windows build.', appSource, 'Open Download Page', false);
-        cards += _dlCard('&#127822;', 'macOS', 'Open the official download page, then choose the macOS build.', appSource, 'Open Download Page', false);
-        cards += _dlCard('&#127939;', 'Linux', 'Open the official download page, then choose the Linux build.', appSource, 'Open Download Page', false);
-        cards += _dlCard('&#129419;', 'Android APK', 'Open the official download page, then choose the Android build.', appSource, 'Open Download Page', false);
+        cards += _dlCard('&#128167;', 'Windows', 'Open latest downloads and select the Windows installer.', releasesUrl, 'Open Windows Downloads', false, false);
+        cards += _dlCard('&#127822;', 'macOS', 'Open latest downloads and select the macOS DMG.', releasesUrl, 'Open macOS Downloads', false, false);
+        cards += _dlCard('&#127939;', 'Linux', 'Open latest downloads and select the Linux AppImage or .deb.', releasesUrl, 'Open Linux Downloads', false, false);
+        cards += _dlCard('&#129419;', 'Android APK', 'Download the latest Android APK directly.', androidApkUrl, 'Download APK', false, true);
     }
 
     cards += '<div style="margin-top:14px;padding:10px 14px;background:var(--surface2);border-radius:12px;font-size:0.82rem;color:var(--text-muted);">' +
-        '&#127758; <strong>Download page:</strong> <a href="' + appSource + '" target="_blank" rel="noopener" style="color:var(--purple);">lotto-management-system-26761.web.app</a>' +
+        '&#127758; <strong>Web app:</strong> <a href="' + appSource + '" target="_blank" rel="noopener" style="color:var(--purple);">lotto-management-system-26761.web.app</a><br>' +
+        '&#128229; <strong>Latest binaries:</strong> <a href="' + releasesUrl + '" target="_blank" rel="noopener" style="color:var(--purple);">GitHub Releases</a>' +
         '</div>';
 
     content.innerHTML = cards;
     document.getElementById('download-app-modal').classList.add('open');
 }
 
-function _dlCard(icon, title, desc, href, btnLabel, recommended) {
-    var btn = href ? '<a href="' + href + '" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="margin-top:10px;display:inline-block;">' + btnLabel + '</a>' : '';
+function _dlCard(icon, title, desc, href, btnLabel, recommended, directDownload) {
+    var btn = '';
+    if (href) {
+        var downloadAttr = directDownload ? ' download' : '';
+        btn = '<div class="btn-row" style="margin-top:10px;gap:8px;">' +
+            '<a href="' + href + '"' + downloadAttr + ' target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="display:inline-block;">' + btnLabel + '</a>' +
+            '<button class="btn btn-secondary btn-sm" onclick="copyDownloadLink(\'' + href + '\')">&#128203; Copy Link</button>' +
+            '</div>';
+    }
     return '<div class="dl-platform-card' + (recommended ? ' dl-recommended' : '') + '">' +
         '<div class="dl-platform-icon">' + icon + '</div>' +
         '<div class="dl-platform-info">' +
