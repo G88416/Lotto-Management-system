@@ -77,6 +77,14 @@
         .premium-lock-card { border-left: 4px solid var(--amber); background: linear-gradient(135deg, rgba(245,158,11,0.10), rgba(139,92,246,0.08)); }
         .section { display: none; }
         .section.active { display: block; animation: fadeIn 0.3s ease; }
+        .tab-video-guide { padding: 20px; }
+        .tab-video-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+        .tab-video-head h3 { margin:0; font-size:1.02rem; color:var(--text); }
+        .tab-video-head p { margin:4px 0 0; font-size:0.84rem; color:var(--text-muted); }
+        .tab-video-badge { border:1px solid var(--border); background:var(--surface2); color:var(--purple); border-radius:999px; padding:5px 10px; font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; }
+        .tab-video-player { width:100%; border:1px solid var(--border); border-radius:12px; background:#000; max-height:260px; }
+        .tab-video-fallback { display:none; margin-top:10px; padding:10px 12px; border-radius:10px; background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.22); font-size:0.82rem; color:var(--text); }
+        .tab-video-steps { margin:12px 0 0 18px; color:var(--text-muted); font-size:0.82rem; line-height:1.45; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
         .card { background: var(--surface); border-radius: 22px; padding: 28px; box-shadow: 0 8px 30px var(--shadow); margin-bottom: 22px; border: 1px solid var(--border); }
         .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 22px; }
@@ -3547,6 +3555,25 @@ function purgeOrphanedDataManual() {
 }
 
 var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule','livedraws','patterns','combimatrix','lottogap','digitpattern','intelligentcanvas','tetragematrn','prngml','integrity','aiadvisor'];
+var TAB_VIDEO_DEMOS = {
+    quickpick: { title:'Quick Pick Walkthrough', description:'See how to create and save auto-generated tickets quickly.', src:'videos/quickpick-demo.mp4', steps:['Choose a lottery format.','Pick a generation method and ticket count.','Generate tickets, then save the ones you want.'] },
+    manual: { title:'Manual Pick Walkthrough', description:'Learn how to hand-pick your numbers for each draw.', src:'videos/manual-demo.mp4', steps:['Select a lottery format first.','Pick your numbers in the selector grid.','Save the ticket when your pick is complete.'] },
+    tickets: { title:'My Tickets Walkthrough', description:'Manage, sort, export, and clean up saved tickets.', src:'videos/tickets-demo.mp4', steps:['Filter and sort your saved tickets.','Use export to download your list.','Remove one ticket or clear all when needed.'] },
+    stats: { title:'Wheeling Walkthrough', description:'Generate wheeling sets and explore match analysis tools.', src:'videos/stats-demo.mp4', steps:['Open the right wheeling sub-tab.','Set your numbers and wheel settings.','Generate and review results before saving.'] },
+    seed: { title:'Seed Engine Walkthrough', description:'Reverse or forward-seed number generation workflows.', src:'videos/seed-demo.mp4', steps:['Choose Reverse Seed, Forward Seed, or Seed→Numbers.','Enter valid seed input values.','Run the engine and review generated output.'] },
+    budget: { title:'Budget Walkthrough', description:'Track spending limits and monitor play costs.', src:'videos/budget-demo.mp4', steps:['Enter your budget and preferred limits.','Save settings for ongoing tracking.','Monitor total spend against your cap.'] },
+    schedule: { title:'Draws Walkthrough', description:'View draw schedules and set reminders for upcoming draws.', src:'videos/schedule-demo.mp4', steps:['Select your lottery format.','Review countdowns and next draw times.','Add reminders where available.'] },
+    livedraws: { title:'Live Draws Walkthrough', description:'Check live/recent draw data and sync into your tools.', src:'videos/livedraws-demo.mp4', steps:['Open the target lottery format.','Review latest results and imported draws.','Use actions to save or process draw data.'] },
+    patterns: { title:'Patterns Walkthrough', description:'Detect historical draw patterns and reuse stored sets.', src:'videos/patterns-demo.mp4', steps:['Run pattern detection on a selected format.','Review generated pattern insights.','Save useful patterns for quick reuse.'] },
+    combimatrix: { title:'Combi-Matrix Walkthrough', description:'Build matrix combinations and run prediction analysis.', src:'videos/combimatrix-demo.mp4', steps:['Pick a matrix sub-tool.','Provide source numbers/draws.','Generate combinations and inspect outputs.'] },
+    lottogap: { title:'Lotto Gap Walkthrough', description:'Use overdue and frequency gap analysis to guide picks.', src:'videos/lottogap-demo.mp4', steps:['Switch to the needed analysis sub-tab.','Set gap/frequency filters.','Export or apply shortlisted numbers.'] },
+    digitpattern: { title:'Digit Pattern Walkthrough', description:'Analyze digit distribution and structured number trends.', src:'videos/digitpattern-demo.mp4', steps:['Select format and analysis options.','Run the digit pattern engine.','Use findings to refine number choices.'] },
+    intelligentcanvas: { title:'Smart Canvas Walkthrough', description:'Visualize advanced combinations and inspect smart insights.', src:'videos/intelligentcanvas-demo.mp4', steps:['Set your format and canvas parameters.','Generate smart canvas output.','Review highlighted combinations and notes.'] },
+    tetragematrn: { title:'Intelligent Generator Walkthrough', description:'Use AI-assisted number generation flows.', src:'videos/tetragematrn-demo.mp4', steps:['Set format and generator options.','Run intelligent generation.','Compare and save preferred outputs.'] },
+    prngml: { title:'PRNG ML Walkthrough', description:'Train PRNG models and generate ML-backed predictions.', src:'videos/prngml-demo.mp4', steps:['Choose analyser, trainer, prediction, or brilliance mode.','Run analysis/training using available draws.','Review and save selected predictions.'] },
+    integrity: { title:'Integrity Check Walkthrough', description:'Use integrity scoring, constraints, and date-aware prediction.', src:'videos/integrity-demo.mp4', steps:['Set constraints, picks, and methods.','Run integrity checks and predictions.','Inspect confidence details before saving.'] },
+    aiadvisor: { title:'AI Advisor Walkthrough', description:'Get guided AI-style reasoning on number choices and trends.', src:'videos/aiadvisor-demo.mp4', steps:['Select a format and open AI chat tools.','Ask for analysis or recommendation help.','Review guidance and apply it to your picks.'] }
+};
 var PREMIUM_PRICE_LABEL = 'R150/year';
 var PREMIUM_UNLOCK_MESSAGE = 'Pay ' + PREMIUM_PRICE_LABEL + ' to unlock this tab for 12 months.';
 var PREMIUM_TAB_CONFIG = {
@@ -3653,6 +3680,76 @@ function switchTab(key) {
     if (key === 'prngml')            { initPrngMlTab(); }
     if (key === 'integrity')         { initIntegrityTab(); }
     if (key === 'aiadvisor')         { initAiAdvisorTab(); }
+}
+
+function renderTabVideoGuide(tabKey) {
+    var sec = document.getElementById('sec-' + tabKey);
+    if (!sec || sec.querySelector('.tab-video-guide')) return;
+    var meta = TAB_VIDEO_DEMOS[tabKey] || {};
+    var card = document.createElement('div');
+    card.className = 'card tab-video-guide';
+
+    var header = document.createElement('div');
+    header.className = 'tab-video-head';
+    var intro = document.createElement('div');
+    var h3 = document.createElement('h3');
+    h3.textContent = '\ud83c\udfac ' + (meta.title || 'Tab Walkthrough');
+    var p = document.createElement('p');
+    p.textContent = meta.description || 'Short video guide for this tab.';
+    intro.appendChild(h3);
+    intro.appendChild(p);
+    header.appendChild(intro);
+    var badge = document.createElement('span');
+    badge.className = 'tab-video-badge';
+    badge.textContent = 'For Users';
+    header.appendChild(badge);
+    card.appendChild(header);
+
+    var video = document.createElement('video');
+    video.className = 'tab-video-player';
+    video.setAttribute('controls', 'controls');
+    video.setAttribute('preload', 'metadata');
+    video.setAttribute('playsinline', 'playsinline');
+    var source = document.createElement('source');
+    source.src = meta.src || '';
+    source.type = 'video/mp4';
+    video.appendChild(source);
+    card.appendChild(video);
+
+    var fallback = document.createElement('div');
+    fallback.className = 'tab-video-fallback';
+    fallback.textContent = 'Video not available yet. Use the quick steps below while the short walkthrough clip is being prepared.';
+    card.appendChild(fallback);
+
+    function showFallback() { fallback.style.display = 'block'; }
+    video.addEventListener('error', showFallback);
+    source.addEventListener('error', showFallback);
+    if (!meta.src) showFallback();
+
+    var steps = Array.isArray(meta.steps) ? meta.steps : [];
+    if (steps.length) {
+        var ol = document.createElement('ol');
+        ol.className = 'tab-video-steps';
+        steps.forEach(function(step) {
+            var li = document.createElement('li');
+            li.textContent = step;
+            ol.appendChild(li);
+        });
+        card.appendChild(ol);
+    }
+
+    var sectionTitle = sec.querySelector('.section-title');
+    if (sectionTitle && sectionTitle.nextSibling) {
+        sec.insertBefore(card, sectionTitle.nextSibling);
+    } else {
+        sec.insertBefore(card, sec.firstChild);
+    }
+}
+
+function initTabVideoGuides() {
+    TAB_KEYS.forEach(function(tabKey) {
+        renderTabVideoGuide(tabKey);
+    });
 }
 
 var _aiAdvisorLastReq = null;
@@ -14617,6 +14714,7 @@ document.addEventListener('DOMContentLoaded', function() {
     renderSeedHistory();
     updateHeader();
     updatePremiumTabLockUi();
+    initTabVideoGuides();
     renderSavedPatternDraws();
     updatePasteWorkspaceStatus();
     updateDpPasteWorkspaceStatus();
