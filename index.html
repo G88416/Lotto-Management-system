@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>LottoCanvas Workstation</title>
     <meta name="description" content="Sign up for LottoCanvas Workstation to manage lottery tickets, track draws, and use advanced lottery predictions across devices.">
-    <link rel="canonical" href="https://lotto-management-system-26761.web.app/">
+    <link rel="canonical" href="https://lotto-management-system-26761.web.app">
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="LottoCanvas Workstation">
     <meta property="og:title" content="LottoCanvas Workstation">
     <meta property="og:description" content="Sign up for LottoCanvas Workstation and share one link for lotto tracking, predictions, and cloud sync.">
-    <meta property="og:url" content="https://lotto-management-system-26761.web.app/">
+    <meta property="og:url" content="https://lotto-management-system-26761.web.app">
     <meta property="og:image" content="https://lotto-management-system-26761.web.app/icons/ad-banner.png">
     <meta property="og:image:width" content="1080">
     <meta property="og:image:height" content="1080">
@@ -6169,11 +6169,12 @@ function _shuffleModClear() {
 /* ── Download App modal — device-aware ───────────────────────────── */
 /* Base URL used as the source for app downloads */
 var _LOTTO_APP_SOURCE_URL = 'https://lotto-management-system-26761.web.app/';
+var _LOTTO_APP_SIGNUP_MESSAGE = 'Sign up for LottoCanvas Workstation here';
 
 function shareLottoApp() {
     var shareData = {
         title: 'LottoCanvas Workstation',
-        text: 'Sign up for LottoCanvas Workstation and start using the lotto tools online.',
+        text: _LOTTO_APP_SIGNUP_MESSAGE,
         url: _LOTTO_APP_SOURCE_URL
     };
     if (navigator.share) {
@@ -6189,7 +6190,7 @@ function shareLottoApp() {
 
 function copyLottoAppLink() {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText('Sign up for LottoCanvas Workstation here: ' + _LOTTO_APP_SOURCE_URL).then(function() {
+        navigator.clipboard.writeText(_LOTTO_APP_SIGNUP_MESSAGE + ': ' + _LOTTO_APP_SOURCE_URL).then(function() {
             showToast('Sign-up link copied to clipboard.', 'success');
         }).catch(function() {
             showToast('Unable to copy the sign-up link.', 'error');
