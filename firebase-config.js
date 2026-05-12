@@ -11,9 +11,11 @@
  *    the phone OTP flow works.
  * 6. (Optional) Enable Anonymous Authentication as well if you want the guest mode
  *    button in the app to work.
- * 7. Apply the rules from firestore.rules and database.rules.json in your Firebase
+ * 7. Enable Firebase App Check with a reCAPTCHA Enterprise provider, then copy your
+ *    reCAPTCHA Enterprise site key for use below as appCheckEnterpriseKey.
+ * 8. Apply the rules from firestore.rules and database.rules.json in your Firebase
  *    console (or deploy them with the Firebase CLI).
- * 8. Replace every "YOUR_…" placeholder below with your actual project values.
+ * 9. Replace every "YOUR_…" placeholder below with your actual project values.
  *
  * See firestore.rules and database.rules.json in the repository root for the
  * checked-in Firebase security rules used by this app.
@@ -32,5 +34,6 @@ var FIREBASE_CONFIG = {
     messagingSenderId: '986799310017',
     appId:             '1:986799310017:web:3dd73e67ccc1654b4d4040',
     measurementId:     'G-9E7QXGCQW8',
-    databaseURL:       'https://lotto-management-system-26761-default-rtdb.firebaseio.com'
+    databaseURL:       'https://lotto-management-system-26761-default-rtdb.firebaseio.com',
+    appCheckEnterpriseKey: 'YOUR_RECAPTCHA_ENTERPRISE_SITE_KEY'
 };

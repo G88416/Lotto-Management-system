@@ -788,12 +788,14 @@
     {
       "imports": {
         "firebase/app": "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js",
+        "firebase/app-check": "https://www.gstatic.com/firebasejs/12.0.0/firebase-app-check.js",
         "firebase/ai": "https://www.gstatic.com/firebasejs/12.0.0/firebase-ai.js"
       }
     }
     </script>
     <script type="module">
     import { initializeApp } from "firebase/app";
+    import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
     import { getAI, getGenerativeModel, GoogleAIBackend } from "firebase/ai";
 
     const firebaseConfig = (typeof globalThis.FIREBASE_CONFIG === 'object' && globalThis.FIREBASE_CONFIG)
@@ -803,7 +805,17 @@
     if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_API_KEY') {
       const FIREBASE_AI_APP_NAME = 'gemini-ai-app';
       const DEFAULT_GEMINI_PROMPT = "Write a story about a magic backpack.";
+      const APP_CHECK_ENTERPRISE_KEY_PLACEHOLDER = 'YOUR_RECAPTCHA_ENTERPRISE_SITE_KEY';
       const firebaseApp = initializeApp(firebaseConfig, FIREBASE_AI_APP_NAME);
+      const appCheckSiteKey = firebaseConfig.appCheckEnterpriseKey;
+      if (appCheckSiteKey && appCheckSiteKey !== APP_CHECK_ENTERPRISE_KEY_PLACEHOLDER) {
+        initializeAppCheck(firebaseApp, {
+          provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),
+          isTokenAutoRefreshEnabled: true
+        });
+      } else {
+        console.info('[Firebase App Check] Missing reCAPTCHA Enterprise site key; App Check was not initialized.');
+      }
       const ai = getAI(firebaseApp, { backend: new GoogleAIBackend() });
       const model = getGenerativeModel(ai, { model: "gemini-3-flash-preview" });
 
