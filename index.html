@@ -4,6 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>LottoCanvas Workstation</title>
+    <meta name="description" content="Sign up for LottoCanvas Workstation to manage lottery tickets, track draws, and use advanced lottery predictions across devices.">
+    <link rel="canonical" href="https://lotto-management-system-26761.web.app">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="LottoCanvas Workstation">
+    <meta property="og:title" content="LottoCanvas Workstation">
+    <meta property="og:description" content="Sign up for LottoCanvas Workstation and share one link for lotto tracking, predictions, and cloud sync.">
+    <meta property="og:url" content="https://lotto-management-system-26761.web.app">
+    <meta property="og:image" content="https://lotto-management-system-26761.web.app/icons/ad-banner.png">
+    <meta property="og:image:width" content="1080">
+    <meta property="og:image:height" content="1080">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="LottoCanvas Workstation">
+    <meta name="twitter:description" content="Share the LottoCanvas sign-up link so people can tap through and create an account.">
+    <meta name="twitter:image" content="https://lotto-management-system-26761.web.app/icons/ad-banner.png">
 
     <!-- PWA / Web App Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -838,7 +854,7 @@
 
 <header class="app-header">
     <div class="brand">
-        <img class="logo" src="https://github.com/user-attachments/assets/047d8f7c-9351-499f-91e0-fd0f7837d829" alt="LottoCanvas Workstation logo">
+        <img class="logo" src="icons/icon-192.png" alt="LottoCanvas Workstation logo">
         <div>
             <h1>LottoCanvas Workstation</h1>
             <p>Advanced Multi-Format Lottery Engine</p>
@@ -854,6 +870,8 @@
         <span id="auth-user-chip" class="auth-chip" style="display:none;"></span>
         <button id="auth-manage-btn" class="theme-toggle" onclick="focusAuthPortal()" style="display:none;">&#128274; Sign In</button>
         <button id="auth-signout-btn" class="theme-toggle" onclick="signOutUser()" style="display:none;">&#128682; Sign Out</button>
+        <button class="download-app-btn" onclick="shareLottoApp()" title="Share LottoCanvas sign-up link" aria-label="Share LottoCanvas sign-up link">&#128279; Share App</button>
+        <button class="download-app-btn" onclick="copyLottoAppLink()" title="Copy LottoCanvas sign-up link" aria-label="Copy LottoCanvas sign-up link">&#128203; Copy Link</button>
         <button class="download-app-btn" onclick="showDownloadModal()" title="Download LottoCanvas App" aria-label="Download LottoCanvas App">&#11015;&#65039; Download App</button>
         <button class="theme-toggle" onclick="toggleTheme()">&#127769; Dark</button>
     </div>
@@ -6151,6 +6169,36 @@ function _shuffleModClear() {
 /* ── Download App modal — device-aware ───────────────────────────── */
 /* Base URL used as the source for app downloads */
 var _LOTTO_APP_SOURCE_URL = 'https://lotto-management-system-26761.web.app/';
+var _LOTTO_APP_SIGNUP_MESSAGE = 'Sign up for LottoCanvas Workstation here';
+
+function shareLottoApp() {
+    var shareData = {
+        title: 'LottoCanvas Workstation',
+        text: _LOTTO_APP_SIGNUP_MESSAGE,
+        url: _LOTTO_APP_SOURCE_URL
+    };
+    if (navigator.share) {
+        navigator.share(shareData).catch(function(err) {
+            if (err && err.name === 'AbortError') return;
+            console.warn('Share failed:', err && err.message ? err.message : err);
+            showToast('Unable to open the share sheet right now.', 'error');
+        });
+        return;
+    }
+    copyLottoAppLink();
+}
+
+function copyLottoAppLink() {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(_LOTTO_APP_SIGNUP_MESSAGE + ': ' + _LOTTO_APP_SOURCE_URL).then(function() {
+            showToast('Sign-up link copied to clipboard.', 'success');
+        }).catch(function() {
+            showToast('Unable to copy the sign-up link.', 'error');
+        });
+        return;
+    }
+    showToast('Sharing is not supported in this browser.', 'error');
+}
 
 function showDownloadModal() {
     var content = document.getElementById('download-modal-content');
