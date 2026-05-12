@@ -196,6 +196,22 @@
         .modal-backdrop.open { display: flex; }
         .modal { background: var(--surface); border-radius: 24px; padding: 32px; max-width: 540px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: fadeIn 0.25s ease; }
         .modal-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 20px; }
+        /* Shuffle modifier chip tag */
+        .shuffle-mod-chip { display:inline-flex; align-items:center; gap:4px; background:var(--purple); color:#fff; border-radius:20px; padding:3px 10px; font-size:0.8rem; font-weight:700; margin:3px; }
+        .shuffle-mod-chip button { background:none; border:none; color:#fff; cursor:pointer; font-size:0.85rem; padding:0 2px; line-height:1; }
+        /* Shuffle modifier active indicator on buttons */
+        .shuffle-mod-active-badge { background:#22c55e; color:#fff; border-radius:10px; font-size:0.68rem; font-weight:800; padding:2px 6px; margin-left:6px; vertical-align:middle; }
+        /* Download modal platform cards */
+        .dl-platform-card { border:2px solid var(--border); border-radius:16px; padding:18px 20px; margin-bottom:12px; display:flex; align-items:center; gap:16px; cursor:pointer; transition:border-color 0.2s,background 0.2s; }
+        .dl-platform-card:hover { border-color:var(--purple); background:rgba(139,92,246,0.06); }
+        .dl-platform-card.dl-recommended { border-color:#22c55e; background:rgba(34,197,94,0.06); }
+        .dl-platform-icon { font-size:2.2rem; flex-shrink:0; }
+        .dl-platform-info { flex:1; }
+        .dl-platform-title { font-weight:800; font-size:1rem; }
+        .dl-platform-sub { font-size:0.82rem; color:var(--text-muted); margin-top:2px; }
+        .dl-recommended-badge { font-size:0.7rem; font-weight:800; color:#22c55e; background:rgba(34,197,94,0.12); border-radius:8px; padding:2px 8px; margin-left:6px; }
+        /* Download app header button */
+        .download-app-btn { background:rgba(255,255,255,0.22); border:2px solid rgba(255,255,255,0.35); color:#fff; border-radius:50px; padding:8px 16px; cursor:pointer; font-size:0.9rem; font-weight:700; transition:all 0.25s; }
         .divider { height: 1px; background: var(--border); margin: 22px 0; }
         @media print { .app-header, .tab-nav, .btn, .no-print { display: none !important; } .section { display: block !important; } }
         @media (max-width: 640px) {
@@ -789,6 +805,7 @@
         <span id="auth-user-chip" class="auth-chip" style="display:none;"></span>
         <button id="auth-manage-btn" class="theme-toggle" onclick="focusAuthPortal()" style="display:none;">&#128274; Sign In</button>
         <button id="auth-signout-btn" class="theme-toggle" onclick="signOutUser()" style="display:none;">&#128682; Sign Out</button>
+        <button class="download-app-btn" onclick="showDownloadModal()" title="Download LottoCanvas App" aria-label="Download LottoCanvas App">&#11015;&#65039; Download App</button>
         <button class="theme-toggle" onclick="toggleTheme()">&#127769; Dark</button>
     </div>
 </header>
@@ -2632,6 +2649,44 @@
     </section>
 
     <button class="ai-fab" title="Open AI Advisor" onclick="openAiAdvisorWithContext('floating')">&#10024;</button>
+
+<!-- SHUFFLE MODIFIER MODAL -->
+<div class="modal-backdrop" id="shuffle-modifier-modal">
+    <div class="modal" style="max-width:500px;">
+        <div class="modal-title">&#128295; Shuffle Modifier</div>
+        <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:16px;">
+            Add numbers that are <strong>not</strong> in the current predictions to expand the shuffle pool.
+            These extra numbers will be available when generating new shuffled combinations.
+        </p>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-weight:700;margin-bottom:6px;display:block;">Extra numbers (comma-separated)</label>
+            <div style="display:flex;gap:8px;">
+                <input type="text" id="shuffle-mod-input" placeholder="e.g. 7, 14, 23, 38" style="flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text);font-size:0.95rem;" />
+                <button class="btn btn-primary btn-sm" onclick="_shuffleModAddNums()" style="white-space:nowrap;" aria-label="Add numbers to shuffle modifier">&#10133; Add</button>
+            </div>
+        </div>
+        <div id="shuffle-mod-chips" style="min-height:36px;margin-bottom:14px;"></div>
+        <div style="font-size:0.82rem;color:var(--text-muted);background:var(--surface2);border-radius:10px;padding:10px 14px;margin-bottom:18px;">
+            &#128161; <strong>How it works:</strong> The shuffle engine normally picks only from the numbers already in your predictions.
+            Numbers you add here are injected into that pool, allowing truly new combinations that blend your predicted numbers with your chosen extras.
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-primary" onclick="closeShuffleModifier()">&#9989; Done</button>
+            <button class="btn btn-secondary" onclick="_shuffleModClear()">&#128465; Clear All</button>
+        </div>
+    </div>
+</div>
+
+<!-- DOWNLOAD APP MODAL -->
+<div class="modal-backdrop" id="download-app-modal">
+    <div class="modal" style="max-width:520px;">
+        <div class="modal-title">&#11015;&#65039; Download LottoCanvas App</div>
+        <div id="download-modal-content"></div>
+        <div class="btn-row" style="margin-top:18px;">
+            <button class="btn btn-secondary" onclick="closeDownloadModal()">Close</button>
+        </div>
+    </div>
+</div>
 
 <!-- SAVE TICKET MODAL -->
 <div class="modal-backdrop" id="save-modal">
@@ -5938,6 +5993,126 @@ var _matrixPredictFmt  = null;
 var _mpfOE = 'any';
 var _mpfHL = 'any';
 
+/* ── Shuffle Modifier — global extra-number pool ─────────────────── */
+window._shuffleModifierNums = [];
+/* Maximum lottery number allowed in the modifier — covers the largest supported format */
+var _SHUFFLE_MOD_MAX_NUM = 200;
+
+function _shuffleModBadgeHtml() {
+    var cnt = (window._shuffleModifierNums || []).length;
+    return cnt > 0 ? '<span class="shuffle-mod-active-badge">+' + cnt + '</span>' : '';
+}
+
+function showShuffleModifier() {
+    _shuffleModRenderChips();
+    document.getElementById('shuffle-modifier-modal').classList.add('open');
+}
+
+function closeShuffleModifier() {
+    document.getElementById('shuffle-modifier-modal').classList.remove('open');
+}
+
+function _shuffleModRenderChips() {
+    var wrap = document.getElementById('shuffle-mod-chips');
+    if (!wrap) return;
+    if (!window._shuffleModifierNums.length) {
+        wrap.innerHTML = '<span style="font-size:0.82rem;color:var(--text-muted);">No extra numbers added yet.</span>';
+        return;
+    }
+    wrap.innerHTML = window._shuffleModifierNums.map(function(n) {
+        return '<span class="shuffle-mod-chip">' + n +
+            '<button onclick="_shuffleModRemove(' + n + ')" title="Remove">&#215;</button></span>';
+    }).join('');
+}
+
+function _shuffleModAddNums() {
+    var inp = document.getElementById('shuffle-mod-input');
+    if (!inp) return;
+    var raw = inp.value.replace(/[^0-9,\s]/g, '');
+    var nums = raw.split(/[,\s]+/).map(Number).filter(function(n) { return n > 0 && n <= _SHUFFLE_MOD_MAX_NUM; });
+    nums.forEach(function(n) {
+        if (window._shuffleModifierNums.indexOf(n) === -1) window._shuffleModifierNums.push(n);
+    });
+    window._shuffleModifierNums.sort(function(a, b) { return a - b; });
+    inp.value = '';
+    _shuffleModRenderChips();
+}
+
+function _shuffleModRemove(n) {
+    var idx = window._shuffleModifierNums.indexOf(n);
+    if (idx !== -1) window._shuffleModifierNums.splice(idx, 1);
+    _shuffleModRenderChips();
+}
+
+function _shuffleModClear() {
+    window._shuffleModifierNums = [];
+    _shuffleModRenderChips();
+}
+
+/* ── Download App modal — device-aware ───────────────────────────── */
+/* Base URL for all platform-specific release asset downloads */
+var _LOTTO_RELEASES_BASE = 'https://github.com/G88416/Lotto-Management-system/releases/latest';
+
+function showDownloadModal() {
+    var content = document.getElementById('download-modal-content');
+    if (!content) return;
+    var ua = navigator.userAgent || '';
+    var isAndroid = /Android/i.test(ua);
+    var isIOS     = /iPhone|iPad|iPod/i.test(ua);
+    var isWin     = /Windows NT/i.test(ua);
+    var isMac     = /Macintosh|Mac OS X/i.test(ua) && !isIOS;
+    var isLinux   = /Linux/i.test(ua) && !isAndroid;
+
+    var ghBase = _LOTTO_RELEASES_BASE;
+
+    var cards = '';
+
+    if (isAndroid) {
+        cards += _dlCard('&#129419;', 'Android App (APK)', 'Download the native Android APK for the best experience.', ghBase + '/download/LottoCanvas.apk', 'Download APK', true);
+        cards += _dlCard('&#128241;', 'Install as Web App (PWA)', 'In Chrome, tap the menu (&#8942;) &rarr; <strong>Add to Home Screen</strong> for an app-like experience with no download needed.', null, null, false);
+    } else if (isIOS) {
+        cards += _dlCard('&#127822;', 'iPhone / iPad Web App (PWA)', 'In Safari, tap the <strong>Share</strong> button &#8679; then <strong>Add to Home Screen</strong>. LottoCanvas will appear like a native app.', null, null, true);
+        cards += _dlCard('&#128241;', 'iOS App Store', 'Native iOS app coming soon \u2014 use the PWA option above in the meantime.', null, null, false);
+    } else if (isWin) {
+        cards += _dlCard('&#128167;', 'Windows Installer (.exe)', 'Download the Windows setup file \u2014 includes full offline support.', ghBase + '/download/LottoCanvas-Setup.exe', 'Download for Windows', true);
+        cards += _dlCard('&#127758;', 'Web App (no install)', 'Use LottoCanvas directly in your browser \u2014 no download needed.', null, null, false);
+    } else if (isMac) {
+        cards += _dlCard('&#127822;', 'macOS App (.dmg)', 'Download the macOS disk image for Apple Silicon and Intel Macs.', ghBase + '/download/LottoCanvas.dmg', 'Download for macOS', true);
+        cards += _dlCard('&#127758;', 'Web App (no install)', 'Use LottoCanvas directly in your browser \u2014 no download needed.', null, null, false);
+    } else if (isLinux) {
+        cards += _dlCard('&#127939;', 'Linux AppImage', 'Download the portable AppImage \u2014 works on most Linux distributions.', ghBase + '/download/LottoCanvas.AppImage', 'Download AppImage', true);
+        cards += _dlCard('&#128230;', 'Linux .deb Package', 'Install via the Debian/Ubuntu package.', ghBase + '/download/LottoCanvas.deb', 'Download .deb', false);
+    } else {
+        /* Unknown / desktop fallback — show all platforms */
+        cards += _dlCard('&#128167;', 'Windows', 'Windows 10/11 installer.', ghBase + '/download/LottoCanvas-Setup.exe', 'Download', false);
+        cards += _dlCard('&#127822;', 'macOS', 'macOS DMG (Intel + Apple Silicon).', ghBase + '/download/LottoCanvas.dmg', 'Download', false);
+        cards += _dlCard('&#127939;', 'Linux', 'AppImage \u2014 no install required.', ghBase + '/download/LottoCanvas.AppImage', 'Download', false);
+        cards += _dlCard('&#129419;', 'Android APK', 'Sideload on Android devices.', ghBase + '/download/LottoCanvas.apk', 'Download', false);
+    }
+
+    cards += '<div style="margin-top:14px;padding:10px 14px;background:var(--surface2);border-radius:12px;font-size:0.82rem;color:var(--text-muted);">' +
+        '&#127758; <strong>All releases:</strong> <a href="' + ghBase + '" target="_blank" rel="noopener" style="color:var(--purple);">github.com/G88416/Lotto-Management-system/releases</a>' +
+        '</div>';
+
+    content.innerHTML = cards;
+    document.getElementById('download-app-modal').classList.add('open');
+}
+
+function _dlCard(icon, title, desc, href, btnLabel, recommended) {
+    var btn = href ? '<a href="' + href + '" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="margin-top:10px;display:inline-block;">' + btnLabel + '</a>' : '';
+    return '<div class="dl-platform-card' + (recommended ? ' dl-recommended' : '') + '">' +
+        '<div class="dl-platform-icon">' + icon + '</div>' +
+        '<div class="dl-platform-info">' +
+        '<div class="dl-platform-title">' + title + (recommended ? '<span class="dl-recommended-badge">Recommended</span>' : '') + '</div>' +
+        '<div class="dl-platform-sub">' + desc + '</div>' +
+        btn +
+        '</div></div>';
+}
+
+function closeDownloadModal() {
+    document.getElementById('download-app-modal').classList.remove('open');
+}
+
 function _shuffleCopy(arr) {
     var out = (arr || []).slice();
     for (var i = out.length - 1; i > 0; i--) {
@@ -5972,8 +6147,15 @@ function _buildDoubledShuffledPredictions(basePreds, cfg) {
     if (!src.length) return [];
     var target = src.length * 2;
     var mainPoolMap = {};
+    // Collect numbers that are already in the predicted combinations
     src.forEach(function(p) { p.main.forEach(function(n) { mainPoolMap[n] = true; }); });
-    for (var n = 1; n <= (cfg.mainMax || 0); n++) mainPoolMap[n] = true;
+    // Inject any user-specified modifier numbers (numbers outside the current predictions)
+    (window._shuffleModifierNums || []).forEach(function(n) { if (n > 0) mainPoolMap[n] = true; });
+    // Fall back to the full range only when the restricted pool is too small to form valid combos.
+    // We need at least 2x the pick count so there is room to create distinct combinations.
+    if (Object.keys(mainPoolMap).length < (cfg.mainCount || 1) * 2) {
+        for (var n = 1; n <= (cfg.mainMax || 0); n++) mainPoolMap[n] = true;
+    }
     var mainPool = Object.keys(mainPoolMap).map(Number);
     var bonusPool = [];
     if ((cfg.bonusCount || 0) > 0) {
@@ -9548,7 +9730,10 @@ function renderDNABorrowedBrilliancePanel(fmt, draws) {
         })));
         html += '<div class="pattern-section-title" style="font-size:0.88rem;margin-top:10px;margin-bottom:6px;">&#127919; Borrowed Brilliance Predictions</div>' +
             '<div class="algo-info" style="margin-bottom:8px;font-size:0.82rem;">Predictions synthesized to match draw DNA (sum profile, even/odd ratio, low/high split) with recency-aware frequency weighting.</div>' +
-            '<div class="btn-row" style="margin-bottom:8px;"><button class="btn btn-secondary btn-sm" onclick="_shuffleBorrowedBrilliancePredictions(this,' + fmt.mainCount + ',' + fmt.mainMax + ',' + (fmt.bonusCount || 0) + ',' + (fmt.bonusMax || 0) + ')">&#128256; Shuffle Combinations</button></div>' +
+            '<div class="btn-row" style="margin-bottom:8px;gap:8px;">' +
+            '<button class="btn btn-secondary btn-sm" onclick="_shuffleBorrowedBrilliancePredictions(this,' + fmt.mainCount + ',' + fmt.mainMax + ',' + (fmt.bonusCount || 0) + ',' + (fmt.bonusMax || 0) + ')">&#128256; Shuffle Combinations' + (_shuffleModBadgeHtml()) + '</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="showShuffleModifier()" title="Add extra numbers to the shuffle pool">&#128295; Shuffle Modifier</button>' +
+            '</div>' +
             '<div class="bb-preds-wrap" data-bb-base="' + bbData + '" style="display:flex;flex-direction:column;gap:7px;">' +
             bbPreds.map(function(pred, idx) {
                 return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);">' +
@@ -11300,7 +11485,7 @@ function runNextDrawPredictor() {
     html += '</div>';
 
     html += '<div class="pattern-card-title" style="margin-bottom:12px;">&#127942; Top Predictions by Confidence <span class="paste-count-badge" style="font-size:0.7rem;margin-left:6px;" id="mpf-filtered-count">All ' + predictions.length + '</span></div>';
-    html += '<div class="btn-row" style="margin-bottom:10px;"><button class="btn btn-secondary btn-sm" onclick="shuffleMatrixPredictions()">&#128256; Shuffle Combinations</button></div>';
+    html += '<div class="btn-row" style="margin-bottom:10px;gap:8px;"><button class="btn btn-secondary btn-sm" onclick="shuffleMatrixPredictions()">&#128256; Shuffle Combinations' + _shuffleModBadgeHtml() + '</button><button class="btn btn-secondary btn-sm" onclick="showShuffleModifier()" title="Add extra numbers to the shuffle pool">&#128295; Shuffle Modifier</button></div>';
     html += '<div id="matrix-predict-filtered-list">';
     var medals = ['&#127941;','&#129352;','&#129353;'];
     predictions.slice(0, 5).forEach(function(p, rank) {
@@ -13820,11 +14005,13 @@ function _icRenderPrediction(predData, fmt) {
         if (algo.cls === 'ic-predict') {
             html += '<div style="' + titleStyle + '">' + algo.icon + ' ' + algo.name +
                 '<button class="btn btn-secondary" style="margin-left:auto;padding:4px 12px;font-size:0.78rem;font-weight:700;" onclick="icRegenerateDeltaPrediction()">&#128260; Regenerate</button>' +
-                '<button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;font-weight:700;" onclick="_icShuffleAlgoPredictions(\'' + algo.cls + '\')">&#128256; Shuffle</button>' +
+                '<button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;font-weight:700;" onclick="_icShuffleAlgoPredictions(\'' + algo.cls + '\')">&#128256; Shuffle' + _shuffleModBadgeHtml() + '</button>' +
+                '<button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;font-weight:700;" onclick="showShuffleModifier()" title="Add extra numbers to the shuffle pool">&#128295; Modifier</button>' +
                 '</div>';
         } else {
             html += '<div style="' + titleStyle + '">' + algo.icon + ' ' + algo.name +
-                '<button class="btn btn-secondary" style="margin-left:auto;padding:4px 12px;font-size:0.78rem;font-weight:700;" onclick="_icShuffleAlgoPredictions(\'' + algo.cls + '\')">&#128256; Shuffle</button>' +
+                '<button class="btn btn-secondary" style="margin-left:auto;padding:4px 12px;font-size:0.78rem;font-weight:700;" onclick="_icShuffleAlgoPredictions(\'' + algo.cls + '\')">&#128256; Shuffle' + _shuffleModBadgeHtml() + '</button>' +
+                '<button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;font-weight:700;" onclick="showShuffleModifier()" title="Add extra numbers to the shuffle pool">&#128295; Modifier</button>' +
                 '</div>';
         }
 
@@ -14134,7 +14321,7 @@ function _icgRenderResults() {
         return '<div class="card">' +
             '<div class="pattern-section-title">' + fmt.flag + ' ' + fmt.name + ' — ' + item.predictions.length + ' predictions</div>' +
             '<div class="algo-info" style="margin-bottom:12px;">Combined engines: Quick Pick, Manual Pick, My Tickets, Wheeling, Seed Engine, Budget, Draws, Live Draws, Patterns, Combi-Matrix, Lotto Gap, Digit Pattern, Smart Canvas.</div>' +
-            '<div class="btn-row" style="margin-bottom:10px;"><button class="btn btn-secondary btn-sm" onclick="_icgShufflePredictions(\'' + fmt.id + '\')">&#128256; Shuffle Combinations</button></div>' +
+            '<div class="btn-row" style="margin-bottom:10px;gap:8px;"><button class="btn btn-secondary btn-sm" onclick="_icgShufflePredictions(\'' + fmt.id + '\')">&#128256; Shuffle Combinations' + _shuffleModBadgeHtml() + '</button><button class="btn btn-secondary btn-sm" onclick="showShuffleModifier()" title="Add extra numbers to the shuffle pool">&#128295; Shuffle Modifier</button></div>' +
             body +
             renderDNABorrowedBrilliancePanel(fmt, getCombinedDrawsForFormat(fmt.id)) +
             '</div>';
@@ -14745,6 +14932,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.getElementById('custom-format-modal').addEventListener('click', function(e) {
         if (e.target === this) closeCustomFormatModal();
+    });
+    document.getElementById('shuffle-modifier-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeShuffleModifier();
+    });
+    document.getElementById('download-app-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeDownloadModal();
     });
     var aiInput = document.getElementById('ai-chat-input');
     if (aiInput) {
@@ -15571,7 +15764,7 @@ function _renderPrngMlPredictions(out) {
         '<div class="pattern-section-title">&#127919; Advanced PRNG ML Predictions &#8212; ' + fmt.flag + ' ' + fmt.name + '</div>' +
         '<div class="algo-info" style="margin-bottom:10px;">8 combined signals &middot; DNA-constrained sampling &middot; carry-forward scoring &middot; sum targeting (<strong>' + st.targetSum.toFixed(0) + ' &#177;' + st.sumTol.toFixed(0) + '</strong>)</div>' +
         st.signalSummary +
-        '<div class="btn-row" style="margin-bottom:10px;"><button class="btn btn-secondary btn-sm" onclick="_prngShufflePredictions()">&#128256; Shuffle Combinations</button></div>' +
+        '<div class="btn-row" style="margin-bottom:10px;gap:8px;"><button class="btn btn-secondary btn-sm" onclick="_prngShufflePredictions()">&#128256; Shuffle Combinations' + _shuffleModBadgeHtml() + '</button><button class="btn btn-secondary btn-sm" onclick="showShuffleModifier()" title="Add extra numbers to the shuffle pool">&#128295; Shuffle Modifier</button></div>' +
         st.predictions.map(function(p, i) {
             var confColor = p.conf >= 78 ? '#22c55e' : p.conf >= 62 ? '#f59e0b' : 'var(--text-muted)';
             var dnaMatch  = p.dnaScore !== undefined ? Math.round(p.dnaScore * 100) : null;
@@ -17565,7 +17758,7 @@ function _integBuildPredictionsHtml(st) {
         '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);vertical-align:middle;"></span>&nbsp;Low. ' +
         'Overdue: &#9201;&#65039; &nbsp; Hot-pair: &#128101;' +
         '</div>' +
-        '<div class="btn-row" style="margin-bottom:10px;"><button class="btn btn-secondary btn-sm" onclick="_integShufflePredictions()">&#128256; Shuffle Combinations</button></div>';
+        '<div class="btn-row" style="margin-bottom:10px;gap:8px;"><button class="btn btn-secondary btn-sm" onclick="_integShufflePredictions()">&#128256; Shuffle Combinations' + _shuffleModBadgeHtml() + '</button><button class="btn btn-secondary btn-sm" onclick="showShuffleModifier()" title="Add extra numbers to the shuffle pool">&#128295; Shuffle Modifier</button></div>';
 
     predictions.forEach(function(p, idx) {
         var scoreCls  = p.confidence >= 60 ? 'ic-score-high' : p.confidence >= 35 ? 'ic-score-mid' : 'ic-score-low';
