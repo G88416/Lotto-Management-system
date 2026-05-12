@@ -1,5 +1,5 @@
 {
-  "name": "bophelong-lotto",
+  "name": "lottocanvas-workstation",
   "version": "1.0.0",
   "description": "LottoCanvas Workstation — desktop and mobile (Android/Huawei) app",
   "main": "main.js",
@@ -26,7 +26,7 @@
     "sharp": "^0.34.5"
   },
   "build": {
-    "appId": "com.g88416.bophelong-lotto",
+    "appId": "com.g88416.lottocanvas-workstation",
     "productName": "LottoCanvas Workstation",
     "copyright": "Copyright © 2024 G88416",
     "files": [

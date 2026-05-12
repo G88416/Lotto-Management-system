@@ -5,7 +5,7 @@
  * network-first for Firebase/external requests.
  */
 
-const CACHE_NAME = 'bophelong-lotto-v1';
+const CACHE_NAME = 'lottocanvas-workstation-v2';
 
 const APP_SHELL = [
   './',
