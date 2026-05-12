@@ -6172,14 +6172,17 @@ var _LOTTO_APP_SOURCE_URL = 'https://lotto-management-system-26761.web.app/';
 var _LOTTO_APP_SIGNUP_MESSAGE = 'Sign up for LottoCanvas Workstation here';
 var _LOTTO_APP_SHARE_IMAGE_URL = 'https://github.com/user-attachments/assets/4ba9cd33-5b1d-48d8-af59-2f08da6d52a1';
 
-function _getLottoStatusText() {
-    return _LOTTO_APP_SIGNUP_MESSAGE + ': ' + _LOTTO_APP_SOURCE_URL + '\nImage: ' + _LOTTO_APP_SHARE_IMAGE_URL;
+function _getLottoStatusText(includeAppUrl) {
+    var lines = [_LOTTO_APP_SIGNUP_MESSAGE];
+    if (includeAppUrl !== false) lines.push(_LOTTO_APP_SOURCE_URL);
+    lines.push('Preview image: ' + _LOTTO_APP_SHARE_IMAGE_URL);
+    return lines.join('\n');
 }
 
 function shareLottoApp() {
     var shareData = {
         title: 'LottoCanvas Workstation',
-        text: _getLottoStatusText(),
+        text: _getLottoStatusText(false),
         url: _LOTTO_APP_SOURCE_URL
     };
     if (navigator.share) {
@@ -6195,7 +6198,7 @@ function shareLottoApp() {
 
 function copyLottoAppLink() {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(_getLottoStatusText()).then(function() {
+        navigator.clipboard.writeText(_getLottoStatusText(true)).then(function() {
             showToast('Status text copied to clipboard.', 'success');
         }).catch(function() {
             showToast('Unable to copy the status text.', 'error');
