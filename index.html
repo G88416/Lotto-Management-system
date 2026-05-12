@@ -6179,8 +6179,8 @@ function showDownloadModal() {
         cards += _dlCard('&#127822;', 'macOS App (.dmg)', 'Open the official download page, then choose the latest macOS build.', appSource, 'Open Download Page', true);
         cards += _dlCard('&#127758;', 'Web App (no install)', 'Use LottoCanvas directly in your browser \u2014 no download needed.', null, null, false);
     } else if (isLinux) {
-        cards += _dlCard('&#127939;', 'Linux AppImage', 'Open the official download page, then choose the latest Linux build.', appSource, 'Open Download Page', true);
-        cards += _dlCard('&#128230;', 'Linux .deb Package', 'Open the official download page, then choose the latest Linux build.', appSource, 'Open Download Page', false);
+        cards += _dlCard('&#127939;', 'Linux AppImage', 'Open the official download page, then choose the latest AppImage build for portable Linux use.', appSource, 'Open Download Page', true);
+        cards += _dlCard('&#128230;', 'Linux .deb Package', 'Open the official download page, then choose the latest .deb build for Debian/Ubuntu-based systems.', appSource, 'Open Download Page', false);
     } else {
         /* Unknown / desktop fallback — show all platforms */
         cards += _dlCard('&#128167;', 'Windows', 'Open the official download page, then choose the Windows build.', appSource, 'Open Download Page', false);
