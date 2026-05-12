@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080">
+  <defs>
+    <!-- Main background gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a0533;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#3b0f6b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0c2a4a;stop-opacity:1" />
+    </linearGradient>
+    <!-- Logo ball gradient -->
+    <linearGradient id="ballGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+    </linearGradient>
+    <!-- Shine overlay for logo -->
+    <linearGradient id="ballShine" x1="0%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.18" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+    </linearGradient>
+    <!-- CTA button gradient -->
+    <linearGradient id="ctaGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+    </linearGradient>
+    <!-- Glow filter for logo -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- Subtle text shadow -->
+    <filter id="textShadow" x="-5%" y="-5%" width="110%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+    <!-- Gold shimmer for dots -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#fde68a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- ── BACKGROUND ── -->
+  <rect width="1080" height="1080" fill="url(#bgGrad)"/>
+
+  <!-- Decorative corner arcs -->
+  <circle cx="0"    cy="0"    r="340" fill="none" stroke="#8b5cf6" stroke-width="2" opacity="0.15"/>
+  <circle cx="1080" cy="1080" r="340" fill="none" stroke="#06b6d4" stroke-width="2" opacity="0.15"/>
+  <circle cx="0"    cy="1080" r="200" fill="none" stroke="#8b5cf6" stroke-width="1" opacity="0.10"/>
+  <circle cx="1080" cy="0"    r="200" fill="none" stroke="#06b6d4" stroke-width="1" opacity="0.10"/>
+
+  <!-- Faint star dots scattered -->
+  <circle cx="80"  cy="120" r="3" fill="#ffffff" opacity="0.25"/>
+  <circle cx="200" cy="60"  r="2" fill="#ffffff" opacity="0.20"/>
+  <circle cx="950" cy="90"  r="3" fill="#ffffff" opacity="0.25"/>
+  <circle cx="1020" cy="200" r="2" fill="#ffffff" opacity="0.20"/>
+  <circle cx="60"  cy="900" r="2" fill="#ffffff" opacity="0.20"/>
+  <circle cx="1010" cy="950" r="3" fill="#ffffff" opacity="0.25"/>
+  <circle cx="500" cy="40"  r="2" fill="#ffffff" opacity="0.15"/>
+  <circle cx="700" cy="1040" r="2" fill="#ffffff" opacity="0.15"/>
+
+  <!-- ── LOGO ICON (centred, top half) ── -->
+  <g filter="url(#glow)" transform="translate(540,370)">
+    <!-- Logo rounded-square background -->
+    <rect x="-130" y="-130" width="260" height="260" rx="56" fill="url(#ballGrad)"/>
+    <rect x="-130" y="-130" width="260" height="260" rx="56" fill="url(#ballShine)"/>
+
+    <!-- Lottery ball ring -->
+    <circle cx="0" cy="-14" r="88" fill="none" stroke="#ffffff" stroke-width="13" opacity="0.95"/>
+
+    <!-- Horizontal stripe across ball -->
+    <path d="M-88,-14 Q-44,-38 0,-14 Q44,10 88,-14" fill="none" stroke="#ffffff" stroke-width="10" opacity="0.7"/>
+
+    <!-- "L" letter -->
+    <text x="0" y="2" font-family="Arial Black, Arial, sans-serif" font-size="72" font-weight="900"
+          fill="#ffffff" text-anchor="middle" dominant-baseline="middle" opacity="0.95">L</text>
+
+    <!-- Five lottery dots below letter -->
+    <circle cx="-60" cy="90" r="10" fill="#ffffff" opacity="0.85"/>
+    <circle cx="-30" cy="90" r="10" fill="#ffffff" opacity="0.85"/>
+    <circle cx="0"   cy="90" r="10" fill="#ffffff" opacity="0.85"/>
+    <circle cx="30"  cy="90" r="10" fill="#ffffff" opacity="0.85"/>
+    <circle cx="60"  cy="90" r="10" fill="#ffffff" opacity="0.85"/>
+
+    <!-- Thin bar above dots -->
+    <rect x="-80" y="72" width="160" height="5" rx="2.5" fill="#ffffff" opacity="0.4"/>
+  </g>
+
+  <!-- ── APP NAME ── -->
+  <text x="540" y="560" font-family="Arial Black, Arial, sans-serif" font-size="52" font-weight="900"
+        fill="#ffffff" text-anchor="middle" filter="url(#textShadow)" letter-spacing="2">BOPHELONG</text>
+  <text x="540" y="622" font-family="Arial Black, Arial, sans-serif" font-size="38" font-weight="700"
+        fill="#c4b5fd" text-anchor="middle" letter-spacing="3">LOTTO MANAGEMENT</text>
+
+  <!-- Divider line -->
+  <rect x="290" y="648" width="500" height="3" rx="1.5" fill="url(#ctaGrad)" opacity="0.7"/>
+
+  <!-- ── TAGLINE ── -->
+  <text x="540" y="700" font-family="Arial, sans-serif" font-size="28" font-weight="400"
+        fill="#93c5fd" text-anchor="middle" letter-spacing="1">Your lucky numbers, one tap away 🎱</text>
+
+  <!-- ── FIVE GOLD LOTTO BALLS (decorative row) ── -->
+  <circle cx="340" cy="770" r="22" fill="url(#goldGrad)" opacity="0.95"/>
+  <text x="340" y="778" font-family="Arial, sans-serif" font-size="16" font-weight="bold"
+        fill="#1a0533" text-anchor="middle" dominant-baseline="middle">7</text>
+
+  <circle cx="400" cy="770" r="22" fill="url(#goldGrad)" opacity="0.95"/>
+  <text x="400" y="778" font-family="Arial, sans-serif" font-size="16" font-weight="bold"
+        fill="#1a0533" text-anchor="middle" dominant-baseline="middle">14</text>
+
+  <circle cx="460" cy="770" r="22" fill="url(#goldGrad)" opacity="0.95"/>
+  <text x="460" y="778" font-family="Arial, sans-serif" font-size="16" font-weight="bold"
+        fill="#1a0533" text-anchor="middle" dominant-baseline="middle">22</text>
+
+  <circle cx="520" cy="770" r="22" fill="url(#goldGrad)" opacity="0.95"/>
+  <text x="520" y="778" font-family="Arial, sans-serif" font-size="16" font-weight="bold"
+        fill="#1a0533" text-anchor="middle" dominant-baseline="middle">36</text>
+
+  <circle cx="580" cy="770" r="22" fill="url(#goldGrad)" opacity="0.95"/>
+  <text x="580" y="778" font-family="Arial, sans-serif" font-size="16" font-weight="bold"
+        fill="#1a0533" text-anchor="middle" dominant-baseline="middle">49</text>
+
+  <circle cx="640" cy="770" r="22" fill="url(#goldGrad)" opacity="0.95"/>
+  <text x="640" y="778" font-family="Arial, sans-serif" font-size="16" font-weight="bold"
+        fill="#1a0533" text-anchor="middle" dominant-baseline="middle">★</text>
+
+  <circle cx="700" cy="770" r="22" fill="url(#goldGrad)" opacity="0.95"/>
+  <text x="700" y="778" font-family="Arial, sans-serif" font-size="16" font-weight="bold"
+        fill="#1a0533" text-anchor="middle" dominant-baseline="middle">3</text>
+
+  <!-- ── SIGN UP CALL-TO-ACTION BUTTON ── -->
+  <rect x="240" y="820" width="600" height="80" rx="40" fill="url(#ctaGrad)"/>
+  <!-- Button inner border highlight -->
+  <rect x="244" y="824" width="592" height="72" rx="38" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.3"/>
+
+  <text x="540" y="868" font-family="Arial Black, Arial, sans-serif" font-size="34" font-weight="900"
+        fill="#ffffff" text-anchor="middle" dominant-baseline="middle" letter-spacing="2">🎉 SIGN UP FREE — PLAY NOW!</text>
+
+  <!-- ── URL LINK ── -->
+  <rect x="200" y="922" width="680" height="54" rx="10" fill="#ffffff" opacity="0.08"/>
+  <text x="540" y="952" font-family="Courier New, monospace" font-size="24" font-weight="700"
+        fill="#67e8f9" text-anchor="middle" dominant-baseline="middle">
+    lotto-management-system-26761.web.app
+  </text>
+
+  <!-- ── BOTTOM NOTICE ── -->
+  <text x="540" y="1020" font-family="Arial, sans-serif" font-size="20" font-weight="400"
+        fill="#a78bfa" text-anchor="middle" opacity="0.8">Tap the link above · Share with friends · Win big 🏆</text>
+
+  <!-- Thin bottom accent line -->
+  <rect x="0" y="1065" width="1080" height="6" rx="0" fill="url(#ctaGrad)" opacity="0.6"/>
+</svg>
