@@ -2490,17 +2490,6 @@
     <!-- INTEGRITY CHECK -->
     <section id="sec-integrity" class="section">
         <div class="section-title">&#128270; Integrity Check</div>
-        <div id="integrity-lock-panel" class="card premium-lock-card" style="display:none;">
-            <div class="pattern-section-title" id="integrity-lock-title"></div>
-            <p class="text-muted text-sm">
-                The Integrity Check tab is premium. It includes randomness health scoring, anomaly tests, and smart prediction guidance.
-            </p>
-            <p class="text-muted text-sm" id="premium-expiry-integrity"></p>
-            <div class="btn-row">
-                <button class="btn btn-primary" onclick="unlockPremiumFor12Months('integrity')">&#128179; I Paid — Unlock 12 Months</button>
-            </div>
-        </div>
-        <div id="integrity-premium-content">
         <div class="algo-info">
             Statistical anomaly detection engine &#8212; runs <strong>7 independent tests</strong> on your draw history and synthesises them into a single <strong>Randomness Score (0&#8211;100)</strong>.
             A score above 70 indicates statistically healthy randomness. Persistent bias across 100+ draws warrants deeper investigation.
@@ -2564,7 +2553,6 @@
 
         <!-- Sub-tab 5: Smart Prediction -->
         <div id="integ-sub-5" style="display:none;"></div>
-        </div>
     </section>
 
     <!-- AI ADVISOR -->
@@ -3562,12 +3550,6 @@ var TAB_KEYS = ['quickpick','manual','tickets','stats','seed','budget','schedule
 var PREMIUM_PRICE_LABEL = 'R150/year';
 var PREMIUM_UNLOCK_MESSAGE = 'Pay ' + PREMIUM_PRICE_LABEL + ' to unlock this tab for 12 months.';
 var PREMIUM_TAB_CONFIG = {
-    integrity: {
-        lockTitle: 'Unlock ' + PREMIUM_PRICE_LABEL,
-        shortLabel: 'Unlock ' + PREMIUM_PRICE_LABEL,
-        hoverInfo: 'Integrity Check is locked. Includes randomness and anomaly tests. Unlock for ' + PREMIUM_PRICE_LABEL + '.',
-        blockedToast: 'Integrity Check is locked — Unlock ' + PREMIUM_PRICE_LABEL + '.'
-    },
     aiadvisor: {
         lockTitle: 'Coming Soon ' + PREMIUM_PRICE_LABEL,
         shortLabel: 'Coming Soon ' + PREMIUM_PRICE_LABEL,
@@ -3602,12 +3584,10 @@ function isPremiumTabLocked(key) {
 }
 
 function updatePremiumTabLockUi() {
-    var integrityLockTitle = document.getElementById('integrity-lock-title');
-    if (integrityLockTitle) integrityLockTitle.innerHTML = '&#128274; ' + PREMIUM_TAB_CONFIG.integrity.lockTitle;
     var aiLockTitle = document.getElementById('aiadvisor-lock-title');
     if (aiLockTitle) aiLockTitle.innerHTML = '&#128640; ' + PREMIUM_TAB_CONFIG.aiadvisor.lockTitle;
 
-    ['integrity', 'aiadvisor'].forEach(function(key) {
+    ['aiadvisor'].forEach(function(key) {
         var btn = document.getElementById('tab-' + key);
         var note = document.getElementById('tab-note-' + key);
         if (!btn) return;
@@ -3618,15 +3598,10 @@ function updatePremiumTabLockUi() {
         if (note) note.textContent = locked ? cfg.shortLabel : '';
     });
 
-    var integLock = document.getElementById('integrity-lock-panel');
-    var integContent = document.getElementById('integrity-premium-content');
     var aiLock = document.getElementById('aiadvisor-lock-panel');
     var aiContent = document.getElementById('aiadvisor-premium-content');
-    var integLocked = isPremiumTabLocked('integrity');
     var aiLocked = isPremiumTabLocked('aiadvisor');
 
-    if (integLock) integLock.style.display = integLocked ? 'block' : 'none';
-    if (integContent) integContent.style.display = integLocked ? 'none' : 'block';
     if (aiLock) aiLock.style.display = aiLocked ? 'block' : 'none';
     if (aiContent) aiContent.style.display = aiLocked ? 'none' : 'block';
 
@@ -3634,9 +3609,7 @@ function updatePremiumTabLockUi() {
     var expiryLabel = expiryTs > Date.now()
         ? ('Premium active until ' + formatPremiumExpiryDate(expiryTs) + '.')
         : PREMIUM_UNLOCK_MESSAGE;
-    var integExpiry = document.getElementById('premium-expiry-integrity');
     var aiExpiry = document.getElementById('premium-expiry-aiadvisor');
-    if (integExpiry) integExpiry.textContent = expiryLabel;
     if (aiExpiry) aiExpiry.textContent = expiryLabel;
 }
 
