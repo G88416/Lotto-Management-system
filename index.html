@@ -6149,8 +6149,8 @@ function _shuffleModClear() {
 }
 
 /* ── Download App modal — device-aware ───────────────────────────── */
-/* Base URL for all platform-specific release asset downloads */
-var _LOTTO_RELEASES_BASE = 'https://github.com/G88416/Lotto-Management-system/releases/latest';
+/* Base URL used as the source for app downloads */
+var _LOTTO_APP_SOURCE_URL = 'https://lotto-management-system-26761.web.app/';
 
 function showDownloadModal() {
     var content = document.getElementById('download-modal-content');
@@ -6162,35 +6162,35 @@ function showDownloadModal() {
     var isMac     = /Macintosh|Mac OS X/i.test(ua) && !isIOS;
     var isLinux   = /Linux/i.test(ua) && !isAndroid;
 
-    var ghBase = _LOTTO_RELEASES_BASE;
+    var appSource = _LOTTO_APP_SOURCE_URL;
 
     var cards = '';
 
     if (isAndroid) {
-        cards += _dlCard('&#129419;', 'Android App (APK)', 'Download the native Android APK for the best experience.', ghBase + '/download/LottoCanvas.apk', 'Download APK', true);
+        cards += _dlCard('&#129419;', 'Android App (APK)', 'Use the official app source to get the latest app build.', appSource, 'Download APK', true);
         cards += _dlCard('&#128241;', 'Install as Web App (PWA)', 'In Chrome, tap the menu (&#8942;) &rarr; <strong>Add to Home Screen</strong> for an app-like experience with no download needed.', null, null, false);
     } else if (isIOS) {
         cards += _dlCard('&#127822;', 'iPhone / iPad Web App (PWA)', 'In Safari, tap the <strong>Share</strong> button &#8679; then <strong>Add to Home Screen</strong>. LottoCanvas will appear like a native app.', null, null, true);
         cards += _dlCard('&#128241;', 'iOS App Store', 'Native iOS app coming soon \u2014 use the PWA option above in the meantime.', null, null, false);
     } else if (isWin) {
-        cards += _dlCard('&#128167;', 'Windows Installer (.exe)', 'Download the Windows setup file \u2014 includes full offline support.', ghBase + '/download/LottoCanvas-Setup.exe', 'Download for Windows', true);
+        cards += _dlCard('&#128167;', 'Windows Installer (.exe)', 'Use the official app source to get the latest app build.', appSource, 'Download for Windows', true);
         cards += _dlCard('&#127758;', 'Web App (no install)', 'Use LottoCanvas directly in your browser \u2014 no download needed.', null, null, false);
     } else if (isMac) {
-        cards += _dlCard('&#127822;', 'macOS App (.dmg)', 'Download the macOS disk image for Apple Silicon and Intel Macs.', ghBase + '/download/LottoCanvas.dmg', 'Download for macOS', true);
+        cards += _dlCard('&#127822;', 'macOS App (.dmg)', 'Use the official app source to get the latest app build.', appSource, 'Download for macOS', true);
         cards += _dlCard('&#127758;', 'Web App (no install)', 'Use LottoCanvas directly in your browser \u2014 no download needed.', null, null, false);
     } else if (isLinux) {
-        cards += _dlCard('&#127939;', 'Linux AppImage', 'Download the portable AppImage \u2014 works on most Linux distributions.', ghBase + '/download/LottoCanvas.AppImage', 'Download AppImage', true);
-        cards += _dlCard('&#128230;', 'Linux .deb Package', 'Install via the Debian/Ubuntu package.', ghBase + '/download/LottoCanvas.deb', 'Download .deb', false);
+        cards += _dlCard('&#127939;', 'Linux AppImage', 'Use the official app source to get the latest app build.', appSource, 'Download AppImage', true);
+        cards += _dlCard('&#128230;', 'Linux .deb Package', 'Use the official app source to get the latest app build.', appSource, 'Download .deb', false);
     } else {
         /* Unknown / desktop fallback — show all platforms */
-        cards += _dlCard('&#128167;', 'Windows', 'Windows 10/11 installer.', ghBase + '/download/LottoCanvas-Setup.exe', 'Download', false);
-        cards += _dlCard('&#127822;', 'macOS', 'macOS DMG (Intel + Apple Silicon).', ghBase + '/download/LottoCanvas.dmg', 'Download', false);
-        cards += _dlCard('&#127939;', 'Linux', 'AppImage \u2014 no install required.', ghBase + '/download/LottoCanvas.AppImage', 'Download', false);
-        cards += _dlCard('&#129419;', 'Android APK', 'Sideload on Android devices.', ghBase + '/download/LottoCanvas.apk', 'Download', false);
+        cards += _dlCard('&#128167;', 'Windows', 'Get the Windows app from the official app source.', appSource, 'Download', false);
+        cards += _dlCard('&#127822;', 'macOS', 'Get the macOS app from the official app source.', appSource, 'Download', false);
+        cards += _dlCard('&#127939;', 'Linux', 'Get the Linux app from the official app source.', appSource, 'Download', false);
+        cards += _dlCard('&#129419;', 'Android APK', 'Get the Android app from the official app source.', appSource, 'Download', false);
     }
 
     cards += '<div style="margin-top:14px;padding:10px 14px;background:var(--surface2);border-radius:12px;font-size:0.82rem;color:var(--text-muted);">' +
-        '&#127758; <strong>All releases:</strong> <a href="' + ghBase + '" target="_blank" rel="noopener" style="color:var(--purple);">github.com/G88416/Lotto-Management-system/releases</a>' +
+        '&#127758; <strong>App source:</strong> <a href="' + appSource + '" target="_blank" rel="noopener" style="color:var(--purple);">lotto-management-system-26761.web.app</a>' +
         '</div>';
 
     content.innerHTML = cards;
