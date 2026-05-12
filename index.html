@@ -817,7 +817,7 @@
         console.info('[Firebase App Check] Missing reCAPTCHA Enterprise site key; App Check was not initialized.');
       }
       const ai = getAI(firebaseApp, { backend: new GoogleAIBackend() });
-      const model = getGenerativeModel(ai, { model: "gemini-3-flash-preview" });
+      const model = getGenerativeModel(ai, { model: "gemini-2.0-flash" });
 
       async function runGeminiPrompt(promptText) {
         const prompt = promptText || DEFAULT_GEMINI_PROMPT;
@@ -3680,14 +3680,7 @@ var TAB_VIDEO_DEMOS = {
 };
 var PREMIUM_PRICE_LABEL = 'R150/year';
 var PREMIUM_UNLOCK_MESSAGE = 'Pay ' + PREMIUM_PRICE_LABEL + ' to unlock this tab for 12 months.';
-var PREMIUM_TAB_CONFIG = {
-    aiadvisor: {
-        lockTitle: 'Coming Soon ' + PREMIUM_PRICE_LABEL,
-        shortLabel: 'Coming Soon ' + PREMIUM_PRICE_LABEL,
-        hoverInfo: 'AI Advisor is locked. Includes AI verdict, guidance and chat. Coming soon at ' + PREMIUM_PRICE_LABEL + '.',
-        blockedToast: 'AI Advisor is locked — Coming Soon ' + PREMIUM_PRICE_LABEL + '.'
-    }
-};
+var PREMIUM_TAB_CONFIG = {};
 
 function getPremiumAccessExpiryTs() {
     var ts = Number(state.premiumAccessExpiresAt || 0);
@@ -3716,7 +3709,7 @@ function isPremiumTabLocked(key) {
 
 function updatePremiumTabLockUi() {
     var aiLockTitle = document.getElementById('aiadvisor-lock-title');
-    if (aiLockTitle) aiLockTitle.innerHTML = '&#128640; ' + PREMIUM_TAB_CONFIG.aiadvisor.lockTitle;
+    if (aiLockTitle && PREMIUM_TAB_CONFIG.aiadvisor) aiLockTitle.innerHTML = '&#128640; ' + PREMIUM_TAB_CONFIG.aiadvisor.lockTitle;
 
     ['aiadvisor'].forEach(function(key) {
         var btn = document.getElementById('tab-' + key);
@@ -3998,7 +3991,8 @@ function _aiBuildInsight(mode, promptText) {
         why: why,
         hot: hot,
         cold: cold,
-        overdue: overdue
+        overdue: overdue,
+        drawCount: data.draws.length
     };
 }
 
@@ -4083,19 +4077,75 @@ function runAiQuickAction(mode) {
     _runAiAdvisor(mode, prompts[mode] || 'AI analysis');
 }
 
+function _buildGeminiPrompt(mode, promptText, insight) {
+    var fmt = insight.fmt;
+    var linesText = insight.lines.map(function(l, i) { return 'Line ' + (i + 1) + ': ' + l.join(', '); }).join('; ');
+    var whyText = insight.why.join(' ');
+    return 'You are an expert lottery strategy advisor. ' +
+        'The player is using ' + fmt.name + ' (' + fmt.mainCount + ' numbers drawn from 1\u2013' + fmt.mainMax + '). ' +
+        'Historical draws analysed: ' + insight.drawCount + '. ' +
+        'Hot numbers (most frequent): ' + insight.hot.slice(0, 6).join(', ') + '. ' +
+        'Cold numbers (least frequent): ' + insight.cold.slice(0, 6).join(', ') + '. ' +
+        'Overdue numbers (long absence): ' + insight.overdue.slice(0, 6).join(', ') + '. ' +
+        'Statistically strongest numbers: ' + insight.strongest.join(', ') + '. ' +
+        'Suggested combinations: ' + linesText + '. ' +
+        'Statistical reasoning: ' + whyText + ' ' +
+        'Player request: "' + promptText + '". ' +
+        'Respond in 3\u20134 concise, practical sentences. ' +
+        'Focus on statistical patterns and actionable strategy. ' +
+        'Do not guarantee or predict winning outcomes.';
+}
+
+function _renderAiGeminiText(text) {
+    var el = document.getElementById('ai-results');
+    if (!el) return;
+    var existing = el.querySelector('.ai-gemini-block');
+    if (existing) existing.remove();
+    var wrap = document.createElement('div');
+    wrap.className = 'ai-gemini-block';
+    wrap.style.cssText = 'background:var(--surface2);border:1.5px solid var(--primary);border-radius:14px;padding:14px 16px;margin-top:14px;';
+    var header = document.createElement('div');
+    header.className = 'text-sm fw-700';
+    header.style.marginBottom = '6px';
+    header.textContent = '\u{1F916} Gemini AI Insight';
+    var body = document.createElement('div');
+    body.className = 'text-sm';
+    body.style.lineHeight = '1.6';
+    text.split('\n').forEach(function(line, i) {
+        if (i > 0) body.appendChild(document.createElement('br'));
+        body.appendChild(document.createTextNode(line));
+    });
+    wrap.appendChild(header);
+    wrap.appendChild(body);
+    el.appendChild(wrap);
+}
+
 function _runAiAdvisor(mode, promptText) {
     _aiAdvisorLastReq = { mode: mode, prompt: promptText };
     _aiThinking(true);
-    setTimeout(function() {
-        var result = _aiBuildInsight(mode, promptText);
+    _aiPostMessage(promptText, 'user');
+    var result = _aiBuildInsight(mode, promptText);
+    if (!result) { _aiThinking(false); return; }
+    _aiAdvisorLastResult = result;
+    _renderAiResult(result);
+    _pushAiHistory(result);
+    if (typeof globalThis.runGeminiPrompt === 'function') {
+        var geminiPrompt = _buildGeminiPrompt(mode, promptText, result);
+        globalThis.runGeminiPrompt(geminiPrompt)
+            .then(function(text) {
+                _aiThinking(false);
+                _renderAiGeminiText(text);
+                _aiPostMessage(text, 'assistant');
+            })
+            .catch(function(err) {
+                _aiThinking(false);
+                console.warn('[AI Advisor] Gemini error:', err);
+                _aiPostMessage('Analysis ready. Strongest numbers: ' + result.strongest.join(', ') + ' for ' + result.fmt.name + '.', 'assistant');
+            });
+    } else {
         _aiThinking(false);
-        if (!result) return;
-        _aiAdvisorLastResult = result;
-        _renderAiResult(result);
-        _aiPostMessage(promptText, 'user');
         _aiPostMessage('Done. I prepared strongest numbers, suggested lines, and reasoning for ' + result.fmt.name + '.', 'assistant');
-        _pushAiHistory(result);
-    }, 750);
+    }
 }
 
 function submitAiChat() {
