@@ -5863,9 +5863,89 @@ function clearMatrixEnhancer() {
 
 /* ---- Matrix Predictor Filter Logic ---- */
 var _matrixPredictions = [];
+var _matrixBasePredictions = [];
 var _matrixPredictFmt  = null;
 var _mpfOE = 'any';
 var _mpfHL = 'any';
+
+function _shuffleCopy(arr) {
+    var out = (arr || []).slice();
+    for (var i = out.length - 1; i > 0; i--) {
+        var j = _randInt(i + 1);
+        var t = out[i]; out[i] = out[j]; out[j] = t;
+    }
+    return out;
+}
+
+function _randInt(maxExclusive) {
+    if (!(maxExclusive > 0)) return 0;
+    try {
+        if (window.crypto && window.crypto.getRandomValues) {
+            var buf = new Uint32Array(1);
+            window.crypto.getRandomValues(buf);
+            return buf[0] % maxExclusive;
+        }
+    } catch (e) {}
+    return Math.floor(Math.random() * maxExclusive);
+}
+
+function _predictionComboKey(main, bonus) {
+    return (main || []).slice().sort(function(a, b) { return a - b; }).join(',') +
+        '|' + (bonus || []).slice().sort(function(a, b) { return a - b; }).join(',');
+}
+
+function _buildDoubledShuffledPredictions(basePreds, cfg) {
+    var MAX_SHUFFLE_ATTEMPTS = 30;
+    var src = (basePreds || []).map(function(p) {
+        return { main: (p.main || []).slice(), bonus: (p.bonus || []).slice(), _src: p };
+    });
+    if (!src.length) return [];
+    var target = src.length * 2;
+    var mainPoolMap = {};
+    src.forEach(function(p) { p.main.forEach(function(n) { mainPoolMap[n] = true; }); });
+    for (var n = 1; n <= (cfg.mainMax || 0); n++) mainPoolMap[n] = true;
+    var mainPool = Object.keys(mainPoolMap).map(Number);
+    var bonusPool = [];
+    if ((cfg.bonusCount || 0) > 0) {
+        for (var b = 1; b <= (cfg.bonusMax || 0); b++) bonusPool.push(b);
+    }
+    var out = src.map(function(p) { return { main: p.main.slice(), bonus: p.bonus.slice(), _src: p._src }; });
+    var used = {};
+    out.forEach(function(p) { used[_predictionComboKey(p.main, p.bonus)] = true; });
+
+    for (var i = 0; i < src.length && out.length < target; i++) {
+        var s = src[i];
+        var main = s.main.slice();
+        if (!main.length) main = _shuffleCopy(mainPool).slice(0, cfg.mainCount || 0);
+        var mutateCount = Math.max(1, Math.floor(main.length / 2));
+        for (var m = 0; m < mutateCount; m++) {
+            if (!main.length) break;
+            var idx = _randInt(main.length);
+            var candidates = mainPool.filter(function(v) { return main.indexOf(v) === -1; });
+            if (!candidates.length) break;
+            main[idx] = candidates[_randInt(candidates.length)];
+        }
+        main = main.slice().sort(function(a, b) { return a - b; });
+        var bonus = [];
+        if ((cfg.bonusCount || 0) > 0) {
+            var bSh = _shuffleCopy(bonusPool);
+            bonus = bSh.slice(0, cfg.bonusCount).sort(function(a, b) { return a - b; });
+        }
+        var key = _predictionComboKey(main, bonus);
+        var attempts = 0;
+        while (used[key] && attempts < MAX_SHUFFLE_ATTEMPTS) {
+            attempts++;
+            main = _shuffleCopy(mainPool).slice(0, cfg.mainCount).sort(function(a, b) { return a - b; });
+            if ((cfg.bonusCount || 0) > 0) {
+                bonus = _shuffleCopy(bonusPool).slice(0, cfg.bonusCount).sort(function(a, b) { return a - b; });
+            }
+            key = _predictionComboKey(main, bonus);
+        }
+        used[key] = true;
+        out.push({ main: main, bonus: bonus, _src: s._src });
+    }
+    return out;
+}
 
 function toggleMatrixPredictFilter() {
     var fpEl = document.getElementById('matrix-predict-filter-panel');
@@ -5883,6 +5963,41 @@ function setMpfHL(el, val) {
     _mpfHL = val;
     document.querySelectorAll('#mpf-hl-chips .wf-chip').forEach(function(c) { c.classList.toggle('wf-active', c === el); });
     applyMatrixPredictFilter();
+}
+
+function shuffleMatrixPredictions() {
+    if (!_matrixBasePredictions.length || !_matrixPredictFmt) {
+        showToast('Run predictions first!', 'warning');
+        return;
+    }
+    var expanded = _buildDoubledShuffledPredictions(_matrixBasePredictions, {
+        mainCount: _matrixPredictFmt.mainCount,
+        mainMax: _matrixPredictFmt.mainMax,
+        bonusCount: _matrixPredictFmt.bonusCount || 0,
+        bonusMax: _matrixPredictFmt.bonusMax || 0
+    });
+    var pd = computePatternData(_matrixPredictFmt.id);
+    _matrixPredictions = expanded.map(function(p) {
+        var main = p.main.slice();
+        var bonus = p.bonus.slice();
+        var sum = main.reduce(function(a, b) { return a + b; }, 0);
+        var even = main.filter(function(x) { return x % 2 === 0; }).length;
+        var primes = main.filter(function(x) { return isPrime(x); }).length;
+        var conf = computePredictionConfidence(main, _matrixPredictFmt, pd);
+        return {
+            algo: (p._src && p._src.algo) ? p._src.algo + ' + Shuffle' : 'Shuffle Blend',
+            main: main,
+            bonus: bonus,
+            sum: sum,
+            even: even,
+            primes: primes,
+            confidence: conf
+        };
+    });
+    applyMatrixPredictFilter();
+    var badge = document.getElementById('mpf-filtered-count');
+    if (badge) badge.textContent = 'All ' + _matrixPredictions.length;
+    showToast('Shuffled combinations added: ' + _matrixBasePredictions.length + ' \u2192 ' + _matrixPredictions.length, 'success');
 }
 
 function applyMatrixPredictFilter() {
@@ -9358,9 +9473,13 @@ function renderDNABorrowedBrilliancePanel(fmt, draws) {
     }
     var bbPreds = _bbCreatePredictions(fmt, draws, dna, 3);
     if (bbPreds.length) {
+        var bbData = encodeURIComponent(JSON.stringify(bbPreds.map(function(pred) {
+            return { numbers: pred.numbers.slice(), bonus: (pred.bonus || []).slice(), confidence: pred.confidence };
+        })));
         html += '<div class="pattern-section-title" style="font-size:0.88rem;margin-top:10px;margin-bottom:6px;">&#127919; Borrowed Brilliance Predictions</div>' +
             '<div class="algo-info" style="margin-bottom:8px;font-size:0.82rem;">Predictions synthesized to match draw DNA (sum profile, even/odd ratio, low/high split) with recency-aware frequency weighting.</div>' +
-            '<div style="display:flex;flex-direction:column;gap:7px;">' +
+            '<div class="btn-row" style="margin-bottom:8px;"><button class="btn btn-secondary btn-sm" onclick="_shuffleBorrowedBrilliancePredictions(this,' + fmt.mainCount + ',' + fmt.mainMax + ',' + (fmt.bonusCount || 0) + ',' + (fmt.bonusMax || 0) + ')">&#128256; Shuffle Combinations</button></div>' +
+            '<div class="bb-preds-wrap" data-bb-base="' + bbData + '" style="display:flex;flex-direction:column;gap:7px;">' +
             bbPreds.map(function(pred, idx) {
                 return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);">' +
                     '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
@@ -9377,6 +9496,42 @@ function renderDNABorrowedBrilliancePanel(fmt, draws) {
     }
     html += '</div>';
     return html;
+}
+
+function _shuffleBorrowedBrilliancePredictions(btn, mainCount, mainMax, bonusCount, bonusMax) {
+    if (!btn) return;
+    var card = btn.closest('.card');
+    if (!card) return;
+    var wrap = card.querySelector('.bb-preds-wrap');
+    if (!wrap) return;
+    var raw = wrap.getAttribute('data-bb-base');
+    if (!raw) return;
+    var parsed = [];
+    try { parsed = JSON.parse(decodeURIComponent(raw)); } catch (e) { parsed = []; }
+    if (!parsed.length) return;
+    var base = parsed.map(function(p) {
+        return { main: (p.numbers || []).slice(), bonus: (p.bonus || []).slice(), _src: p };
+    });
+    var expanded = _buildDoubledShuffledPredictions(base, {
+        mainCount: mainCount,
+        mainMax: mainMax,
+        bonusCount: bonusCount || 0,
+        bonusMax: bonusMax || 0
+    });
+    wrap.innerHTML = expanded.map(function(pred, idx) {
+        var src = pred._src || {};
+        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);">' +
+            '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+            '<span style="font-size:0.74rem;color:var(--text-muted);min-width:20px;">#' + (idx + 1) + '</span>' +
+            pred.main.map(function(n) { return '<span class="ball ball-main ball-sm">' + n + '</span>'; }).join('') +
+            (pred.bonus && pred.bonus.length
+                ? '<span style="font-size:0.72rem;color:var(--text-muted);margin:0 2px;">+</span>' + pred.bonus.map(function(b) { return '<span class="ball ball-bonus ball-sm">' + b + '</span>'; }).join('')
+                : '') +
+            '</div>' +
+            '<span style="font-size:0.76rem;font-weight:700;color:#22c55e;">' + (src.confidence || 65) + '%</span>' +
+            '</div>';
+    }).join('');
+    showToast('Shuffled combinations added: ' + base.length + ' \u2192 ' + expanded.length, 'success');
 }
 
 function runPatternDetector() {
@@ -11026,6 +11181,7 @@ function runNextDrawPredictor() {
     predictions.sort(function(a, b) { return b.confidence - a.confidence; });
 
     // Store globally for filter
+    _matrixBasePredictions = predictions.slice();
     _matrixPredictions = predictions.slice();
     _matrixPredictFmt  = fmt;
     // Reset predictor filter state
@@ -11074,6 +11230,7 @@ function runNextDrawPredictor() {
     html += '</div>';
 
     html += '<div class="pattern-card-title" style="margin-bottom:12px;">&#127942; Top Predictions by Confidence <span class="paste-count-badge" style="font-size:0.7rem;margin-left:6px;" id="mpf-filtered-count">All ' + predictions.length + '</span></div>';
+    html += '<div class="btn-row" style="margin-bottom:10px;"><button class="btn btn-secondary btn-sm" onclick="shuffleMatrixPredictions()">&#128256; Shuffle Combinations</button></div>';
     html += '<div id="matrix-predict-filtered-list">';
     var medals = ['&#127941;','&#129352;','&#129353;'];
     predictions.slice(0, 5).forEach(function(p, rank) {
@@ -13593,9 +13750,12 @@ function _icRenderPrediction(predData, fmt) {
         if (algo.cls === 'ic-predict') {
             html += '<div style="' + titleStyle + '">' + algo.icon + ' ' + algo.name +
                 '<button class="btn btn-secondary" style="margin-left:auto;padding:4px 12px;font-size:0.78rem;font-weight:700;" onclick="icRegenerateDeltaPrediction()">&#128260; Regenerate</button>' +
+                '<button class="btn btn-secondary" style="padding:4px 12px;font-size:0.78rem;font-weight:700;" onclick="_icShuffleAlgoPredictions(\'' + algo.cls + '\')">&#128256; Shuffle</button>' +
                 '</div>';
         } else {
-            html += '<div style="' + titleStyle + '">' + algo.icon + ' ' + algo.name + '</div>';
+            html += '<div style="' + titleStyle + '">' + algo.icon + ' ' + algo.name +
+                '<button class="btn btn-secondary" style="margin-left:auto;padding:4px 12px;font-size:0.78rem;font-weight:700;" onclick="_icShuffleAlgoPredictions(\'' + algo.cls + '\')">&#128256; Shuffle</button>' +
+                '</div>';
         }
 
         if (!algo.result || algo.result.predictions.length === 0) {
@@ -13653,6 +13813,41 @@ function icRegenerateDeltaPrediction() {
     });
     var container = document.getElementById('ic-canvas-container');
     icRenderCanvas(container, _icLastFmt, _icCurrentNumbers, _icLastMatchNums, predSets);
+}
+
+function _icShuffleAlgoPredictions(algoClass) {
+    if (!_icLastPredData || !_icLastFmt) {
+        showToast('Run prediction first.', 'warning');
+        return;
+    }
+    var algo = (_icLastPredData.algorithms || []).find(function(a) { return a.cls === algoClass; });
+    if (!algo || !algo.result || !algo.result.predictions || !algo.result.predictions.length) return;
+    if (!algo._basePredictions) {
+        algo._basePredictions = algo.result.predictions.map(function(p) {
+            var next = {};
+            Object.keys(p || {}).forEach(function(k) {
+                var v = p[k];
+                next[k] = Array.isArray(v) ? v.slice() : v;
+            });
+            return next;
+        });
+    }
+    var base = algo._basePredictions.map(function(p) { return { main: (p.numbers || []).slice(), bonus: [], _src: p }; });
+    var expanded = _buildDoubledShuffledPredictions(base, {
+        mainCount: _icLastFmt.mainCount,
+        mainMax: _icLastFmt.mainMax,
+        bonusCount: 0,
+        bonusMax: 0
+    });
+    algo.result.predictions = expanded.map(function(p) {
+        var src = p._src || {};
+        var next = {};
+        Object.keys(src).forEach(function(k) { next[k] = src[k]; });
+        next.numbers = p.main.slice();
+        return next;
+    });
+    _icRenderPrediction(_icLastPredData, _icLastFmt);
+    showToast('Shuffled combinations added: ' + algo._basePredictions.length + ' \u2192 ' + algo.result.predictions.length, 'success');
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -13843,9 +14038,17 @@ function runIntelligentGenerator() {
     if (!targets.length) { showToast('Select a lottery format first', 'error'); return; }
 
     _icgLastResults = targets.map(function(fmt) {
-        return { fmt: fmt, predictions: _icgGenerateForFormat(fmt, predictionCount) };
+        var base = _icgGenerateForFormat(fmt, predictionCount);
+        return { fmt: fmt, basePredictions: base.slice(), predictions: base.slice() };
     });
 
+    _icgRenderResults();
+    showToast('Generated ' + predictionCount + ' prediction' + (predictionCount !== 1 ? 's' : '') + ' for ' + targets.length + ' format' + (targets.length !== 1 ? 's' : '') + '.', 'success');
+}
+
+function _icgRenderResults() {
+    var out = document.getElementById('icg-results');
+    if (!out) return;
     var html = _icgLastResults.map(function(item) {
         var fmt = item.fmt;
         var body = item.predictions.map(function(p, i) {
@@ -13859,15 +14062,30 @@ function runIntelligentGenerator() {
                 '</div></div>';
         }).join('');
         return '<div class="card">' +
-            '<div class="pattern-section-title">' + fmt.flag + ' ' + fmt.name + ' — ' + predictionCount + ' predictions</div>' +
+            '<div class="pattern-section-title">' + fmt.flag + ' ' + fmt.name + ' — ' + item.predictions.length + ' predictions</div>' +
             '<div class="algo-info" style="margin-bottom:12px;">Combined engines: Quick Pick, Manual Pick, My Tickets, Wheeling, Seed Engine, Budget, Draws, Live Draws, Patterns, Combi-Matrix, Lotto Gap, Digit Pattern, Smart Canvas.</div>' +
+            '<div class="btn-row" style="margin-bottom:10px;"><button class="btn btn-secondary btn-sm" onclick="_icgShufflePredictions(\'' + fmt.id + '\')">&#128256; Shuffle Combinations</button></div>' +
             body +
             renderDNABorrowedBrilliancePanel(fmt, getCombinedDrawsForFormat(fmt.id)) +
             '</div>';
     }).join('');
-
     out.innerHTML = html;
-    showToast('Generated ' + predictionCount + ' prediction' + (predictionCount !== 1 ? 's' : '') + ' for ' + targets.length + ' format' + (targets.length !== 1 ? 's' : '') + '.', 'success');
+}
+
+function _icgShufflePredictions(fmtId) {
+    var out = document.getElementById('icg-results');
+    if (!out || !_icgLastResults.length) return;
+    var item = _icgLastResults.find(function(x) { return x.fmt && x.fmt.id === fmtId; });
+    if (!item || !item.basePredictions || !item.basePredictions.length) return;
+    var expanded = _buildDoubledShuffledPredictions(item.basePredictions, {
+        mainCount: item.fmt.mainCount,
+        mainMax: item.fmt.mainMax,
+        bonusCount: item.fmt.bonusCount || 0,
+        bonusMax: item.fmt.bonusMax || 0
+    });
+    item.predictions = expanded.map(function(p) { return { main: p.main.slice(), bonus: p.bonus.slice() }; });
+    _icgRenderResults();
+    showToast('Shuffled combinations added: ' + item.basePredictions.length + ' \u2192 ' + item.predictions.length, 'success');
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -15271,6 +15489,71 @@ function _runPrngBrillianceTab(fmt, draws) {
 
     out.innerHTML = html;
 }
+var _prngMlShuffleState = null;
+
+function _renderPrngMlPredictions(out) {
+    if (!out || !_prngMlShuffleState) return;
+    var st = _prngMlShuffleState;
+    var fmt = st.fmt;
+    var html =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#127919; Advanced PRNG ML Predictions &#8212; ' + fmt.flag + ' ' + fmt.name + '</div>' +
+        '<div class="algo-info" style="margin-bottom:10px;">8 combined signals &middot; DNA-constrained sampling &middot; carry-forward scoring &middot; sum targeting (<strong>' + st.targetSum.toFixed(0) + ' &#177;' + st.sumTol.toFixed(0) + '</strong>)</div>' +
+        st.signalSummary +
+        '<div class="btn-row" style="margin-bottom:10px;"><button class="btn btn-secondary btn-sm" onclick="_prngShufflePredictions()">&#128256; Shuffle Combinations</button></div>' +
+        st.predictions.map(function(p, i) {
+            var confColor = p.conf >= 78 ? '#22c55e' : p.conf >= 62 ? '#f59e0b' : 'var(--text-muted)';
+            var dnaMatch  = p.dnaScore !== undefined ? Math.round(p.dnaScore * 100) : null;
+            return '<div class="draw-result-card" style="margin-bottom:10px;">' +
+                '<div class="draw-result-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">' +
+                '<span class="fw-700 text-sm">#' + (i + 1) + '</span>' +
+                '<span style="font-size:0.78rem;color:var(--text-muted);">Sum: ' + p.sum + '</span>' +
+                (dnaMatch !== null ? '<span style="font-size:0.74rem;color:var(--text-muted);">DNA: ' + dnaMatch + '%</span>' : '') +
+                '<span style="font-size:0.78rem;font-weight:700;color:' + confColor + ';">Confidence: ' + p.conf + '%</span>' +
+                '</div>' +
+                '<div class="balls-row" style="margin-top:6px;">' +
+                p.main.map(function(nn) { return '<span class="ball ball-main ball-sm">' + nn + '</span>'; }).join('') +
+                (p.bonus && p.bonus.length
+                    ? '<span class="ball-separator">+</span>' + p.bonus.map(function(nn) {
+                        return '<span class="ball ' + (fmt.bonusColor || 'ball-bonus') + ' ball-sm">' + nn + '</span>';
+                    }).join('') : '') +
+                '</div>' +
+                '<div style="margin-top:6px;background:var(--surface2);border-radius:6px;height:6px;">' +
+                '<div style="width:' + p.conf + '%;background:var(--accent-grad);height:100%;border-radius:6px;"></div></div>' +
+                '</div>';
+        }).join('') +
+        '</div>' +
+        st.subsetHtml;
+    out.innerHTML = html;
+}
+
+function _prngShufflePredictions() {
+    if (!_prngMlShuffleState || !_prngMlShuffleState.basePredictions.length) {
+        showToast('Generate PRNG predictions first.', 'warning');
+        return;
+    }
+    var st = _prngMlShuffleState;
+    var expanded = _buildDoubledShuffledPredictions(st.basePredictions, {
+        mainCount: st.fmt.mainCount,
+        mainMax: st.fmt.mainMax,
+        bonusCount: st.fmt.bonusCount || 0,
+        bonusMax: st.fmt.bonusMax || 0
+    });
+    st.predictions = expanded.map(function(p) {
+        var sum = p.main.reduce(function(a, b) { return a + b; }, 0);
+        var src = p._src || {};
+        return {
+            main: p.main.slice(),
+            bonus: p.bonus.slice(),
+            sum: sum,
+            conf: src.conf || 65,
+            dnaScore: src.dnaScore
+        };
+    });
+    _renderPrngMlPredictions(document.getElementById('prng-predict-out'));
+    showToast('Shuffled combinations added: ' + st.basePredictions.length + ' \u2192 ' + st.predictions.length, 'success');
+}
+
 /* ── Predictions (Advanced — 8 Signals + DNA Constraints) ───────── */
 function runPrngMlPredict() {
     if (!_prngModel) {
@@ -15585,36 +15868,16 @@ function runPrngMlPredict() {
                 s.label + ' <span style="color:var(--purple);">' + s.w + 'pt</span></span>';
         }).join('') + '</div>';
 
-    var html =
-        '<div class="card">' +
-        '<div class="pattern-section-title">&#127919; Advanced PRNG ML Predictions &#8212; ' + fmt.flag + ' ' + fmt.name + '</div>' +
-        '<div class="algo-info" style="margin-bottom:10px;">8 combined signals &middot; DNA-constrained sampling &middot; carry-forward scoring &middot; sum targeting (<strong>' + targetSum.toFixed(0) + ' &#177;' + sumTol.toFixed(0) + '</strong>)</div>' +
-        signalSummary +
-        predictions.map(function(p, i) {
-            var confColor = p.conf >= 78 ? '#22c55e' : p.conf >= 62 ? '#f59e0b' : 'var(--text-muted)';
-            var dnaMatch  = p.dnaScore !== undefined ? Math.round(p.dnaScore * 100) : null;
-            return '<div class="draw-result-card" style="margin-bottom:10px;">' +
-                '<div class="draw-result-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">' +
-                '<span class="fw-700 text-sm">#' + (i + 1) + '</span>' +
-                '<span style="font-size:0.78rem;color:var(--text-muted);">Sum: ' + p.sum + '</span>' +
-                (dnaMatch !== null ? '<span style="font-size:0.74rem;color:var(--text-muted);">DNA: ' + dnaMatch + '%</span>' : '') +
-                '<span style="font-size:0.78rem;font-weight:700;color:' + confColor + ';">Confidence: ' + p.conf + '%</span>' +
-                '</div>' +
-                '<div class="balls-row" style="margin-top:6px;">' +
-                p.main.map(function(nn) { return '<span class="ball ball-main ball-sm">' + nn + '</span>'; }).join('') +
-                (p.bonus && p.bonus.length
-                    ? '<span class="ball-separator">+</span>' + p.bonus.map(function(nn) {
-                        return '<span class="ball ' + (fmt.bonusColor || 'ball-bonus') + ' ball-sm">' + nn + '</span>';
-                    }).join('') : '') +
-                '</div>' +
-                '<div style="margin-top:6px;background:var(--surface2);border-radius:6px;height:6px;">' +
-                '<div style="width:' + p.conf + '%;background:var(--accent-grad);height:100%;border-radius:6px;"></div></div>' +
-                '</div>';
-        }).join('') +
-        '</div>' +
-        subsetHtml;
-
-    out.innerHTML = html;
+    _prngMlShuffleState = {
+        fmt: fmt,
+        basePredictions: predictions.map(function(p) { return { main: p.main.slice(), bonus: p.bonus.slice(), conf: p.conf, dnaScore: p.dnaScore }; }),
+        predictions: predictions.map(function(p) { return { main: p.main.slice(), bonus: p.bonus.slice(), sum: p.sum, conf: p.conf, dnaScore: p.dnaScore }; }),
+        signalSummary: signalSummary,
+        subsetHtml: subsetHtml,
+        targetSum: targetSum,
+        sumTol: sumTol
+    };
+    _renderPrngMlPredictions(out);
     switchPrngSub(2);
     showToast('Generated ' + predictions.length + ' advanced PRNG ML prediction' + (predictions.length !== 1 ? 's' : '') + ' for ' + fmt.name, 'success');
 }
@@ -16850,6 +17113,9 @@ function _renderIntegrityPrediction(fmt, draws, n, composite,
         SIG_WEIGHTS: { A: SIG_WEIGHTS.A, B: SIG_WEIGHTS.B, C: SIG_WEIGHTS.C, D: SIG_WEIGHTS.D,
                        E: SIG_WEIGHTS.E, F: SIG_WEIGHTS.F, G: SIG_WEIGHTS.G, H: SIG_WEIGHTS.H },
         predictions: predictions,
+        basePredictions: predictions.map(function(p) {
+            return { numbers: p.numbers.slice(), sum: p.sum, confidence: p.confidence, method: p.method };
+        }),
         /* Interactive controls */
         interactMode: 'info',
         lockedNums: [], excludedNums: [], pickerNums: [],
@@ -17227,7 +17493,8 @@ function _integBuildPredictionsHtml(st) {
         '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#d97706);vertical-align:middle;"></span>&nbsp;Medium&nbsp;&nbsp;' +
         '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);vertical-align:middle;"></span>&nbsp;Low. ' +
         'Overdue: &#9201;&#65039; &nbsp; Hot-pair: &#128101;' +
-        '</div>';
+        '</div>' +
+        '<div class="btn-row" style="margin-bottom:10px;"><button class="btn btn-secondary btn-sm" onclick="_integShufflePredictions()">&#128256; Shuffle Combinations</button></div>';
 
     predictions.forEach(function(p, idx) {
         var scoreCls  = p.confidence >= 60 ? 'ic-score-high' : p.confidence >= 35 ? 'ic-score-mid' : 'ic-score-low';
@@ -17799,6 +18066,40 @@ function _integToggleExplain(idx) {
 }
 
 /* Copy a prediction to the clipboard */
+function _integShufflePredictions() {
+    var st = window._integState;
+    if (!st || !st.basePredictions || !st.basePredictions.length) {
+        showToast('Run predictions first.', 'warning');
+        return;
+    }
+    var base = st.basePredictions.map(function(p) {
+        return { main: p.numbers.slice(), bonus: [] , _src: p };
+    });
+    var expanded = _buildDoubledShuffledPredictions(base, {
+        mainCount: st.k,
+        mainMax: st.N,
+        bonusCount: 0,
+        bonusMax: 0
+    });
+    st.predictions = expanded.map(function(p) {
+        var src = p._src || {};
+        var nums = p.main.slice();
+        var sum = nums.reduce(function(a, b) { return a + b; }, 0);
+        return {
+            numbers: nums,
+            sum: sum,
+            confidence: src.confidence || 55,
+            method: src.method ? src.method + ' + Shuffle' : 'Shuffle Blend'
+        };
+    });
+    window._integLastPredictions = st.predictions.map(function(p) {
+        return { formatId: st.fmt.id, main: p.numbers.slice(), bonus: [] };
+    });
+    var wrapper = document.getElementById('integ-predictions-wrapper');
+    if (wrapper) wrapper.innerHTML = _integBuildPredictionsHtml(st);
+    showToast('Shuffled combinations added: ' + st.basePredictions.length + ' \u2192 ' + st.predictions.length, 'success');
+}
+
 function _integCopyPrediction(idx) {
     var st = window._integState;
     if (!st || !st.predictions || !st.predictions[idx]) return;
@@ -17908,6 +18209,9 @@ function _integRegenerate() {
 
     /* 5. Re-run prediction methods */
     st.predictions = _integRunAllMethods(st);
+    st.basePredictions = st.predictions.map(function(p) {
+        return { numbers: p.numbers.slice(), sum: p.sum, confidence: p.confidence, method: p.method };
+    });
 
     /* 6. Update save helper */
     window._integLastPredictions = st.predictions.map(function(p) {
