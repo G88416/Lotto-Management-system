@@ -30,6 +30,7 @@ var FIREBASE_CONFIG = {
     projectId:         'lotto-management-system-26761',
     storageBucket:     'lotto-management-system-26761.firebasestorage.app',
     messagingSenderId: '986799310017',
-    appId:             '1:986799310017:web:f65d7f237c26e8834d4040',
-    measurementId:     'G-EPNKLK5B52'
+    appId:             '1:986799310017:web:3dd73e67ccc1654b4d4040',
+    measurementId:     'G-9E7QXGCQW8',
+    databaseURL:       'https://lotto-management-system-26761-default-rtdb.firebaseio.com'
 };
