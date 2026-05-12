@@ -12,14 +12,14 @@
     <meta property="og:title" content="LottoCanvas Workstation">
     <meta property="og:description" content="Sign up for LottoCanvas Workstation and share one link for lotto tracking, predictions, and cloud sync.">
     <meta property="og:url" content="https://lotto-management-system-26761.web.app">
-    <meta property="og:image" content="https://lotto-management-system-26761.web.app/icons/ad-banner.png">
+    <meta property="og:image" content="https://github.com/user-attachments/assets/4ba9cd33-5b1d-48d8-af59-2f08da6d52a1">
     <meta property="og:image:width" content="1080">
     <meta property="og:image:height" content="1080">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="LottoCanvas Workstation">
     <meta name="twitter:description" content="Share the LottoCanvas sign-up link so people can tap through and create an account.">
-    <meta name="twitter:image" content="https://lotto-management-system-26761.web.app/icons/ad-banner.png">
+    <meta name="twitter:image" content="https://github.com/user-attachments/assets/4ba9cd33-5b1d-48d8-af59-2f08da6d52a1">
 
     <!-- PWA / Web App Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -871,7 +871,7 @@
         <button id="auth-manage-btn" class="theme-toggle" onclick="focusAuthPortal()" style="display:none;">&#128274; Sign In</button>
         <button id="auth-signout-btn" class="theme-toggle" onclick="signOutUser()" style="display:none;">&#128682; Sign Out</button>
         <button class="download-app-btn" onclick="shareLottoApp()" title="Share LottoCanvas sign-up link" aria-label="Share LottoCanvas sign-up link">&#128279; Share App</button>
-        <button class="download-app-btn" onclick="copyLottoAppLink()" title="Copy LottoCanvas sign-up link" aria-label="Copy LottoCanvas sign-up link">&#128203; Copy Link</button>
+        <button class="download-app-btn" onclick="copyLottoAppLink()" title="Copy LottoCanvas status text" aria-label="Copy LottoCanvas status text">&#128203; Copy Status</button>
         <button class="download-app-btn" onclick="showDownloadModal()" title="Download LottoCanvas App" aria-label="Download LottoCanvas App">&#11015;&#65039; Download App</button>
         <button class="theme-toggle" onclick="toggleTheme()">&#127769; Dark</button>
     </div>
@@ -6170,11 +6170,16 @@ function _shuffleModClear() {
 /* Base URL used as the source for app downloads */
 var _LOTTO_APP_SOURCE_URL = 'https://lotto-management-system-26761.web.app/';
 var _LOTTO_APP_SIGNUP_MESSAGE = 'Sign up for LottoCanvas Workstation here';
+var _LOTTO_APP_SHARE_IMAGE_URL = 'https://github.com/user-attachments/assets/4ba9cd33-5b1d-48d8-af59-2f08da6d52a1';
+
+function _getLottoStatusText() {
+    return _LOTTO_APP_SIGNUP_MESSAGE + ': ' + _LOTTO_APP_SOURCE_URL + '\nImage: ' + _LOTTO_APP_SHARE_IMAGE_URL;
+}
 
 function shareLottoApp() {
     var shareData = {
         title: 'LottoCanvas Workstation',
-        text: _LOTTO_APP_SIGNUP_MESSAGE,
+        text: _getLottoStatusText(),
         url: _LOTTO_APP_SOURCE_URL
     };
     if (navigator.share) {
@@ -6190,10 +6195,10 @@ function shareLottoApp() {
 
 function copyLottoAppLink() {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(_LOTTO_APP_SIGNUP_MESSAGE + ': ' + _LOTTO_APP_SOURCE_URL).then(function() {
-            showToast('Sign-up link copied to clipboard.', 'success');
+        navigator.clipboard.writeText(_getLottoStatusText()).then(function() {
+            showToast('Status text copied to clipboard.', 'success');
         }).catch(function() {
-            showToast('Unable to copy the sign-up link.', 'error');
+            showToast('Unable to copy the status text.', 'error');
         });
         return;
     }
