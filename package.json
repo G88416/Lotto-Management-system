@@ -12,7 +12,7 @@
     "dist:dmg": "electron-builder --mac dmg",
     "dist:win": "electron-builder --win",
     "dist:linux": "electron-builder --linux",
-    "prepare:web": "rm -rf www && mkdir -p www/icons && cp index.html manifest.json service-worker.js firebase-config.js www/ && cp -R icons/* www/icons/",
+    "prepare:web": "rm -rf www && mkdir -p www/icons www/videos && cp index.html manifest.json service-worker.js firebase-config.js www/ && cp -R icons/* www/icons/ && (cp -R videos/* www/videos/ 2>/dev/null || true)",
     "cap:add:android": "npx cap add android",
     "cap:sync:android": "npm run prepare:web && npx cap sync android",
     "cap:open:android": "npx cap open android",
