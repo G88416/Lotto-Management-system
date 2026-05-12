@@ -52,7 +52,13 @@ This repository now includes ready-to-use Firebase rules files:
 
 Apply them in the Firebase console, or deploy them with the Firebase CLI if you use it for your project.
 
-### 6. Fill in `firebase-config.js`
+### 6. Enable Firebase App Check (reCAPTCHA Enterprise)
+
+1. In Firebase console go to **Build → App Check**.
+2. Register your web app for App Check.
+3. Select **reCAPTCHA Enterprise** as the provider and copy the generated **site key**.
+
+### 7. Fill in `firebase-config.js`
 
 Open `firebase-config.js` and replace every `YOUR_…` placeholder with the values from your app's `firebaseConfig`:
 
@@ -63,7 +69,8 @@ var FIREBASE_CONFIG = {
     projectId:         'my-project',
     storageBucket:     'my-project.appspot.com',
     messagingSenderId: '123456789',
-    appId:             '1:123456789:web:abcdef'
+    appId:             '1:123456789:web:abcdef',
+    appCheckEnterpriseKey: 'YOUR_RECAPTCHA_ENTERPRISE_SITE_KEY'
 };
 ```
 
@@ -73,7 +80,7 @@ var FIREBASE_CONFIG = {
 > data — not the API key.  Do not, however, commit a key that is also used as a
 > backend/service-account secret or in other non-Firebase contexts.
 
-### 7. Open the app
+### 8. Open the app
 
 Open `index.html` in a browser (or serve it with any static web server).  
 The sync indicator in the top-right corner will turn **green** (🟢 Synced) once Firebase is connected. Use the in-app **Login / Sign Up Portal** to sign in with Firebase Authentication and sync your data across devices.
