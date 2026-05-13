@@ -268,9 +268,6 @@
             .card, .stat-card, .ticket-card, .draw-card, .modal { padding: 14px; }
             .format-grid { grid-template-columns: repeat(2, 1fr); }
             .ball { width: 40px; height: 40px; font-size: 0.95rem; }
-            .signup-ad-banner { align-items:flex-start; }
-            .signup-ad-image { width:56px; height:56px; }
-            .signup-ad-cta { margin-top:2px; }
         }
         .text-muted { color: var(--text-muted); }
         .text-purple { color: var(--purple); }
@@ -304,13 +301,6 @@
         .sync-dot.grey   { background:rgba(255,255,255,0.45); }
         .firebase-setup-banner { background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; padding:14px 20px; border-radius:14px; margin-bottom:20px; display:none; align-items:center; gap:12px; font-weight:600; font-size:0.9rem; flex-wrap:wrap; }
         .firebase-setup-banner a { color:#fff; text-decoration:underline; }
-        .signup-ad-banner { display:flex; align-items:center; gap:14px; background:linear-gradient(135deg,#1b1048,#0e1f4d); border:1px solid rgba(103,232,249,0.32); border-radius:16px; padding:12px 14px; margin-bottom:20px; text-decoration:none; box-shadow:0 8px 24px rgba(17,24,39,0.24); transition:transform 0.2s, box-shadow 0.2s; }
-        .signup-ad-banner:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(17,24,39,0.34); }
-        .signup-ad-image { width:68px; height:68px; border-radius:12px; object-fit:cover; flex-shrink:0; }
-        .signup-ad-copy { min-width:0; flex:1; }
-        .signup-ad-title { color:#fff; font-size:1rem; font-weight:800; line-height:1.1; }
-        .signup-ad-subtitle { color:#cbd5e1; font-size:0.82rem; margin-top:4px; line-height:1.3; }
-        .signup-ad-cta { display:inline-flex; align-items:center; justify-content:center; padding:8px 12px; border-radius:999px; background:linear-gradient(135deg,#8b5cf6,#06b6d4); color:#fff; font-size:0.78rem; font-weight:800; letter-spacing:0.02em; white-space:nowrap; }
         .auth-chip { display:inline-flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:700; padding:6px 12px; border-radius:20px; background:rgba(255,255,255,0.18); color:#fff; white-space:nowrap; }
         .auth-chip.guest { background:rgba(245,158,11,0.22); }
         .auth-portal { display:none; }
@@ -910,8 +900,6 @@
         <span id="auth-user-chip" class="auth-chip" style="display:none;"></span>
         <button id="auth-manage-btn" class="theme-toggle" onclick="focusAuthPortal()" style="display:none;">&#128274; Sign In</button>
         <button id="auth-signout-btn" class="theme-toggle" onclick="signOutUser()" style="display:none;">&#128682; Sign Out</button>
-        <button class="download-app-btn" onclick="shareLottoApp()" title="Share LottoCanvas sign-up link" aria-label="Share LottoCanvas sign-up link">&#128279; Share App</button>
-        <button class="download-app-btn" onclick="copyLottoAppLink()" title="Copy LottoCanvas status text" aria-label="Copy LottoCanvas status text">&#128203; Copy Status</button>
         <button class="download-app-btn" onclick="showDownloadModal()" title="Download LottoCanvas App" aria-label="Download LottoCanvas App">&#11015;&#65039; Download App</button>
         <button class="theme-toggle" onclick="toggleTheme()">&#127769; Dark</button>
     </div>
@@ -4610,7 +4598,7 @@ function renderTickets() {
         var fmt      = getAllFormats().find(function(f) { return f.id === t.formatId; }) || {};
         var date     = t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '';
         var drawDate = t.drawDate ? ' \u00B7 Draw: ' + t.drawDate : '';
-        return '<div class="ticket-card"><div class="ticket-header"><span class="ticket-format-badge">' + (fmt.flag||'') + ' ' + (fmt.name||t.formatId) + '</span><div class="flex gap-10 items-center"><span class="ticket-date">' + date + drawDate + '</span><button class="btn btn-danger btn-sm" onclick="deleteTicket(\'' + t.id + '\')">\uD83D\uDDD1\uFE0F</button></div></div>' +
+        return '<div class="ticket-card"><div class="ticket-header"><span class="ticket-format-badge">' + (fmt.flag||'') + ' ' + (fmt.name||t.formatId) + '</span><div class="flex gap-10 items-center"><span class="ticket-date">' + date + drawDate + '</span><button class="btn btn-secondary btn-sm" onclick="shareTicket(\'' + t.id + '\')">&#128279; Share</button><button class="btn btn-danger btn-sm" onclick="deleteTicket(\'' + t.id + '\')">\uD83D\uDDD1\uFE0F</button></div></div>' +
             '<div class="balls-row">' + t.main.map(function(n) { return '<span class="ball ball-main ball-sm">' + n + '</span>'; }).join('') +
             (t.bonus && t.bonus.length ? '<span class="ball-separator">+</span>' + t.bonus.map(function(n) { return '<span class="ball ' + (fmt.bonusColor||'ball-bonus') + ' ball-sm">' + n + '</span>'; }).join('') : '') + '</div>' +
             (t.notes ? '<div class="text-sm text-muted mt-8">\uD83D\uDCDD ' + t.notes + '</div>' : '') +
@@ -4621,6 +4609,48 @@ function renderTickets() {
 function deleteTicket(id) {
     state.tickets = state.tickets.filter(function(t) { return String(t.id) !== String(id); });
     persist(); renderTickets(); updateHeader(); showToast('Ticket removed', 'info');
+}
+
+function shareTicket(id) {
+    var t = state.tickets.find(function(tk) { return String(tk.id) === String(id); });
+    if (!t) return;
+    var fmt = getAllFormats().find(function(f) { return f.id === t.formatId; }) || {};
+    var nums = t.main.join(', ') + (t.bonus && t.bonus.length ? ' + ' + t.bonus.join(', ') : '');
+    var lines = ['🎟 ' + (fmt.flag || '') + ' ' + (fmt.name || t.formatId) + ' Ticket'];
+    lines.push('Numbers: ' + nums);
+    if (t.drawDate) lines.push('Draw date: ' + t.drawDate);
+    if (t.notes) lines.push('Note: ' + t.notes);
+    lines.push('Tracked with LottoCanvas: ' + _LOTTO_APP_SOURCE_URL);
+    var text = lines.join('\n');
+    if (navigator.share) {
+        navigator.share({ title: 'My Lotto Ticket', text: text }).catch(function(err) {
+            if (err && err.name === 'AbortError') return;
+            _fallbackCopyTicket(text);
+        });
+        return;
+    }
+    _fallbackCopyTicket(text);
+}
+
+function _fallbackCopyTicket(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            showToast('Ticket details copied to clipboard.', 'success');
+        }).catch(function() {
+            showToast('Unable to copy ticket details.', 'error');
+        });
+        return;
+    }
+    try {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('Ticket details copied to clipboard.', 'success');
+    } catch (e) {
+        showToast('Unable to copy ticket details.', 'error');
+    }
 }
 
 function clearAllTickets() {
