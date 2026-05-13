@@ -4625,6 +4625,7 @@ function shareTicket(id) {
     if (navigator.share) {
         navigator.share({ title: 'My Lotto Ticket', text: text }).catch(function(err) {
             if (err && err.name === 'AbortError') return;
+            showToast('Share unavailable — copying to clipboard instead.', 'info');
             _fallbackCopyTicket(text);
         });
         return;
@@ -4645,9 +4646,9 @@ function _fallbackCopyTicket(text) {
         var ta = document.createElement('textarea');
         ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
         document.body.appendChild(ta); ta.select();
-        document.execCommand('copy');
+        var ok = document.execCommand('copy');
         document.body.removeChild(ta);
-        showToast('Ticket details copied to clipboard.', 'success');
+        showToast(ok ? 'Ticket details copied to clipboard.' : 'Unable to copy ticket details.', ok ? 'success' : 'error');
     } catch (e) {
         showToast('Unable to copy ticket details.', 'error');
     }
