@@ -3844,7 +3844,7 @@ function switchTab(key) {
     if (key === 'prngml')            { initPrngMlTab(); }
     if (key === 'integrity')         { initIntegrityTab(); }
     if (key === 'aiadvisor')         { initAiAdvisorTab(); }
-    _syncIntelligentControlTab(key);
+    if (_INTELLIGENT_CONTROL_TAB_CONFIG[key]) _syncIntelligentControlTab(key);
 }
 
 var _intelligentControlState = {};
@@ -3960,8 +3960,20 @@ function _setIntelligentControlValue(id, value) {
     var el = document.getElementById(id);
     if (!el || !value) return;
     var exists = Array.from(el.options || []).some(function(o) { return o.value === value; });
-    if (!exists) { console.warn('[Intelligent Controls] Value not found for', id, value); return; }
+    if (!exists) {
+        console.warn('[Intelligent Controls] Format value "' + value + '" not available in dropdown ' + id + '; keeping current selection.');
+        return;
+    }
     el.value = value;
+}
+
+function _getIntelligentControlBaseFormatValue(cfg) {
+    var baseVal = '';
+    (cfg.formatTargetIds || []).some(function(id) {
+        baseVal = _getIntelligentControlValue(id);
+        return !!baseVal;
+    });
+    return baseVal;
 }
 
 function _buildIntelligentControlFormatOptions(cfg) {
@@ -4008,11 +4020,7 @@ function _renderIntelligentControlsForTab(tabKey) {
     var intEl = document.getElementById(intId);
     var autoEl = document.getElementById(autoId);
     if (selEl) {
-        var baseVal = '';
-        (cfg.formatTargetIds || []).some(function(id) {
-            baseVal = _getIntelligentControlValue(id);
-            return !!baseVal;
-        });
+        var baseVal = _getIntelligentControlBaseFormatValue(cfg);
         if (baseVal) _setIntelligentControlValue(selId, baseVal);
         selEl.addEventListener('change', function() {
             (cfg.formatTargetIds || []).forEach(function(id) { _setIntelligentControlValue(id, selEl.value); });
@@ -4038,11 +4046,7 @@ function _syncIntelligentControlTab(tabKey) {
     var selId = 'intctrl-' + tabKey + '-format';
     var ctrlSel = document.getElementById(selId);
     if (!ctrlSel) return;
-    var baseVal = '';
-    (cfg.formatTargetIds || []).some(function(id) {
-        baseVal = _getIntelligentControlValue(id);
-        return !!baseVal;
-    });
+    var baseVal = _getIntelligentControlBaseFormatValue(cfg);
     if (baseVal) _setIntelligentControlValue(selId, baseVal);
 }
 
