@@ -1717,7 +1717,7 @@
     <!-- PATTERN DETECTOR -->
     <section id="sec-patterns" class="section">
         <div class="section-title">&#129302; Pattern Detector</div>
-        <div id="intelligent-controls-patterns"></div>
+        <div id="intelligent-controls-patterns" role="region" aria-label="Intelligent Controls"></div>
 
         <!-- Analysis controls -->
         <div class="card">
@@ -1856,7 +1856,7 @@
         <div class="algo-info" style="margin-bottom:20px;">
             The advanced combination engine with <strong>12 mathematical formulas</strong>, draw-history reconstruction, and a multi-formula next-draw predictor. Select draws from the Pattern tab to discover which formula best explains them, then generate predictions with combined formula confidence.
         </div>
-        <div id="intelligent-controls-combimatrix"></div>
+        <div id="intelligent-controls-combimatrix" role="region" aria-label="Intelligent Controls"></div>
 
         <!-- Sub-navigation -->
         <div class="tab-nav" style="margin-bottom:20px;">
@@ -2111,7 +2111,7 @@
         <div class="algo-info" style="margin-bottom:20px;">
             Dedicated gap analysis engine &mdash; three views in one: <strong>Number Overdue</strong> tracks how many draws have passed since each number last appeared, <strong>Delta Analysis</strong> measures the spacing between consecutive numbers within draws, and <strong>Gap Generator</strong> builds ticket combinations using overdue and delta patterns from your saved draw history.
         </div>
-        <div id="intelligent-controls-lottogap"></div>
+        <div id="intelligent-controls-lottogap" role="region" aria-label="Intelligent Controls"></div>
         <div class="btn-row" style="margin-top:-6px;margin-bottom:14px;">
             <button class="btn btn-secondary" onclick="openAiAdvisorWithContext('lottogap')">&#10024; Get AI Insights</button>
         </div>
@@ -2368,7 +2368,7 @@
             <strong>2. Digit Product</strong> &mdash; product of digits (e.g. 23&nbsp;&rarr;&nbsp;2&times;3=6, 42&nbsp;&rarr;&nbsp;4&times;2=8).<br>
             Both algorithms are integrated to identify recurring patterns and produce advanced, more accurate predictions of the <strong>next draw</strong>.
         </div>
-        <div id="intelligent-controls-digitpattern"></div>
+        <div id="intelligent-controls-digitpattern" role="region" aria-label="Intelligent Controls"></div>
 
         <div class="card">
             <div class="pattern-section-title">&#9881;&#65039; Configuration</div>
@@ -2436,7 +2436,7 @@
             The Intelligent Canvas maps any draw result onto a visual number grid and draws a connecting path between the numbers in draw order.
             It then scans <strong>all saved draws</strong> across every lottery to find matching or similar patterns, and uses the most common patterns to <strong>predict</strong> the next likely draw.
         </div>
-        <div id="intelligent-controls-intelligentcanvas"></div>
+        <div id="intelligent-controls-intelligentcanvas" role="region" aria-label="Intelligent Controls"></div>
 
         <!-- Configuration -->
         <div class="card">
@@ -2528,7 +2528,7 @@
             and <strong>&#127912; Smart Canvas</strong>.
             The generator outputs <strong>10 predictions per format</strong>.
         </div>
-        <div id="intelligent-controls-tetragematrn"></div>
+        <div id="intelligent-controls-tetragematrn" role="region" aria-label="Intelligent Controls"></div>
         <div class="card">
             <div class="pattern-section-title">&#9881;&#65039; Generator Configuration</div>
             <div class="grid-2" style="margin-bottom:14px;">
@@ -2558,7 +2558,7 @@
             LCG parameter estimation, autocorrelation, chi-squared uniformity, Markov zone transitions, delta-vector learning, pair co-occurrence, and recency-decay scoring &#8212;
             then synthesises all signals to generate statistically probable future draws.
         </div>
-        <div id="intelligent-controls-prngml"></div>
+        <div id="intelligent-controls-prngml" role="region" aria-label="Intelligent Controls"></div>
 
         <!-- Configuration -->
         <div class="card">
@@ -2709,7 +2709,7 @@
             </div>
         </div>
         <div id="aiadvisor-premium-content">
-        <div id="intelligent-controls-aiadvisor"></div>
+        <div id="intelligent-controls-aiadvisor" role="region" aria-label="Intelligent Controls"></div>
         <div class="card">
             <div class="grid-2">
                 <div>
@@ -3992,6 +3992,7 @@ function _renderIntelligentControlsForTab(tabKey) {
     if (!cfg) return;
     var mount = document.getElementById(cfg.mountId);
     if (!mount) return;
+    if (mount.getAttribute('data-intelligent-ready') === '1') return;
     if (!_intelligentControlState[tabKey]) _intelligentControlState[tabKey] = { intensity: 'balanced', autoRun: false };
     var st = _intelligentControlState[tabKey];
     var selId = 'intctrl-' + tabKey + '-format';
@@ -4038,6 +4039,7 @@ function _renderIntelligentControlsForTab(tabKey) {
             st.autoRun = !!autoEl.checked;
         });
     }
+    mount.setAttribute('data-intelligent-ready', '1');
 }
 
 function _syncIntelligentControlTab(tabKey) {
