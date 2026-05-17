@@ -18538,10 +18538,10 @@ function _integRenderUI() {
         '<div class="integ-ctrl-label">Predictions to Generate</div>' +
         '<div class="integ-count-stepper" role="group" aria-label="Number of predictions">' +
         '<button class="integ-count-btn" aria-label="Decrease count" ' +
-            'onclick="var s=window._integState,v=Math.max(3,(s.predCount||6)-1);s.predCount=v;var d=document.getElementById(\'integ-pred-count-val\');if(d)d.textContent=v;var r=document.getElementById(\'integ-pred-count\');if(r){r.value=v;r.setAttribute(\'aria-valuenow\',v);}">&#8722;</button>' +
+            'onclick="_integUpdateCount(-1)">&#8722;</button>' +
         '<span id="integ-pred-count-val" class="integ-count-val">' + _icCount + '</span>' +
         '<button class="integ-count-btn" aria-label="Increase count" ' +
-            'onclick="var s=window._integState,v=Math.min(10,(s.predCount||6)+1);s.predCount=v;var d=document.getElementById(\'integ-pred-count-val\');if(d)d.textContent=v;var r=document.getElementById(\'integ-pred-count\');if(r){r.value=v;r.setAttribute(\'aria-valuenow\',v);}">&#43;</button>' +
+            'onclick="_integUpdateCount(1)">&#43;</button>' +
         '</div>' +
         /* hidden range kept for backward-compat JS that reads #integ-pred-count */ +
         '<input type="range" id="integ-pred-count" min="3" max="10" step="1" value="' + _icCount + '" ' +
@@ -18554,7 +18554,7 @@ function _integRenderUI() {
         '<div class="integ-ctrl-label">Even / Odd Target</div>' +
         '<select id="integ-eo-override" class="integ-eo-select" aria-label="Even/Odd target override" ' +
             'onchange="var s=window._integState;if(s)s.evenOddOverride=this.value;">' +
-        '<option value="auto"' +     (st.evenOddOverride==='auto'||!st.evenOddOverride ? ' selected' : '') + '>Auto (' + targetEven + 'E\u202f/\u202f' + targetOdd + 'O)</option>' +
+        '<option value="auto"' +     (st.evenOddOverride==='auto'||!st.evenOddOverride ? ' selected' : '') + '>Auto (' + targetEven + 'E\u2009/\u2009' + targetOdd + 'O)</option>' +
         '<option value="balanced"' + (st.evenOddOverride==='balanced'  ? ' selected' : '') + '>Balanced</option>' +
         '<option value="moreeven"' + (st.evenOddOverride==='moreeven'  ? ' selected' : '') + '>More Even</option>' +
         '<option value="moreodd"'  + (st.evenOddOverride==='moreodd'   ? ' selected' : '') + '>More Odd</option>' +
@@ -19557,6 +19557,16 @@ function _integClearConstraints() {
     var gridEl = document.getElementById('integ-num-score-grid');
     if (gridEl) gridEl.innerHTML = _integBuildNumGrid(st);
     showToast('All constraints cleared.', 'success');
+}
+function _integUpdateCount(delta) {
+    var st = window._integState;
+    if (!st) return;
+    var v = Math.min(10, Math.max(3, (st.predCount || 6) + delta));
+    st.predCount = v;
+    var d = document.getElementById('integ-pred-count-val');
+    if (d) d.textContent = v;
+    var r = document.getElementById('integ-pred-count');
+    if (r) { r.value = v; r.setAttribute('aria-valuenow', v); }
 }
 
 /* Update constraint chips display */
