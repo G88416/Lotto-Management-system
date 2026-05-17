@@ -1717,6 +1717,7 @@
     <!-- PATTERN DETECTOR -->
     <section id="sec-patterns" class="section">
         <div class="section-title">&#129302; Pattern Detector</div>
+        <div id="intelligent-controls-patterns" role="region" aria-label="Intelligent Controls"></div>
 
         <!-- Analysis controls -->
         <div class="card">
@@ -1855,6 +1856,7 @@
         <div class="algo-info" style="margin-bottom:20px;">
             The advanced combination engine with <strong>12 mathematical formulas</strong>, draw-history reconstruction, and a multi-formula next-draw predictor. Select draws from the Pattern tab to discover which formula best explains them, then generate predictions with combined formula confidence.
         </div>
+        <div id="intelligent-controls-combimatrix" role="region" aria-label="Intelligent Controls"></div>
 
         <!-- Sub-navigation -->
         <div class="tab-nav" style="margin-bottom:20px;">
@@ -2109,6 +2111,7 @@
         <div class="algo-info" style="margin-bottom:20px;">
             Dedicated gap analysis engine &mdash; three views in one: <strong>Number Overdue</strong> tracks how many draws have passed since each number last appeared, <strong>Delta Analysis</strong> measures the spacing between consecutive numbers within draws, and <strong>Gap Generator</strong> builds ticket combinations using overdue and delta patterns from your saved draw history.
         </div>
+        <div id="intelligent-controls-lottogap" role="region" aria-label="Intelligent Controls"></div>
         <div class="btn-row" style="margin-top:-6px;margin-bottom:14px;">
             <button class="btn btn-secondary" onclick="openAiAdvisorWithContext('lottogap')">&#10024; Get AI Insights</button>
         </div>
@@ -2365,6 +2368,7 @@
             <strong>2. Digit Product</strong> &mdash; product of digits (e.g. 23&nbsp;&rarr;&nbsp;2&times;3=6, 42&nbsp;&rarr;&nbsp;4&times;2=8).<br>
             Both algorithms are integrated to identify recurring patterns and produce advanced, more accurate predictions of the <strong>next draw</strong>.
         </div>
+        <div id="intelligent-controls-digitpattern" role="region" aria-label="Intelligent Controls"></div>
 
         <div class="card">
             <div class="pattern-section-title">&#9881;&#65039; Configuration</div>
@@ -2432,6 +2436,7 @@
             The Intelligent Canvas maps any draw result onto a visual number grid and draws a connecting path between the numbers in draw order.
             It then scans <strong>all saved draws</strong> across every lottery to find matching or similar patterns, and uses the most common patterns to <strong>predict</strong> the next likely draw.
         </div>
+        <div id="intelligent-controls-intelligentcanvas" role="region" aria-label="Intelligent Controls"></div>
 
         <!-- Configuration -->
         <div class="card">
@@ -2523,6 +2528,7 @@
             and <strong>&#127912; Smart Canvas</strong>.
             The generator outputs <strong>10 predictions per format</strong>.
         </div>
+        <div id="intelligent-controls-tetragematrn" role="region" aria-label="Intelligent Controls"></div>
         <div class="card">
             <div class="pattern-section-title">&#9881;&#65039; Generator Configuration</div>
             <div class="grid-2" style="margin-bottom:14px;">
@@ -2552,6 +2558,7 @@
             LCG parameter estimation, autocorrelation, chi-squared uniformity, Markov zone transitions, delta-vector learning, pair co-occurrence, and recency-decay scoring &#8212;
             then synthesises all signals to generate statistically probable future draws.
         </div>
+        <div id="intelligent-controls-prngml" role="region" aria-label="Intelligent Controls"></div>
 
         <!-- Configuration -->
         <div class="card">
@@ -2702,6 +2709,7 @@
             </div>
         </div>
         <div id="aiadvisor-premium-content">
+        <div id="intelligent-controls-aiadvisor" role="region" aria-label="Intelligent Controls"></div>
         <div class="card">
             <div class="grid-2">
                 <div>
@@ -3836,6 +3844,237 @@ function switchTab(key) {
     if (key === 'prngml')            { initPrngMlTab(); }
     if (key === 'integrity')         { initIntegrityTab(); }
     if (key === 'aiadvisor')         { initAiAdvisorTab(); }
+    if (_INTELLIGENT_CONTROL_TAB_CONFIG[key]) _syncIntelligentControlTab(key);
+}
+
+var _intelligentControlState = {};
+
+var _INTELLIGENT_CONTROL_TAB_CONFIG = {
+    patterns: {
+        mountId: 'intelligent-controls-patterns',
+        formatTargetIds: ['pattern-format'],
+        clearFn: function() {
+            var results = document.getElementById('pattern-results');
+            if (results) results.innerHTML = '<p class="text-muted text-center mt-14">Select a lottery and add at least 3 draw results on the <strong>Live Draws</strong> tab to analyse patterns.</p>';
+        },
+        runFn: function(intensity) {
+            var scopeEl = document.getElementById('repeat-draws-scope');
+            if (scopeEl) scopeEl.value = intensity === 'focused' ? '10' : (intensity === 'aggressive' ? '50' : '20');
+            runPatternDetector();
+            runSmartSearch();
+        },
+        aiFn: function() { openAiAdvisorWithContext('patterns'); }
+    },
+    combimatrix: {
+        mountId: 'intelligent-controls-combimatrix',
+        formatTargetIds: ['matrix-format'],
+        clearFn: clearMatrixResults,
+        runFn: function(intensity) {
+            var countEl = document.getElementById('matrix-count');
+            if (countEl) countEl.value = intensity === 'focused' ? '3' : (intensity === 'aggressive' ? '20' : '10');
+            switchMatrixSub(0);
+            runMatrixLab();
+        },
+        aiFn: function() { openAiAdvisorWithContext('combimatrix'); }
+    },
+    lottogap: {
+        mountId: 'intelligent-controls-lottogap',
+        formatTargetIds: ['gap-format', 'gap-delta-format', 'gap-gen-format', 'gap-freq-format'],
+        clearFn: clearGapResults,
+        runFn: function(intensity) {
+            var scopeEl = document.getElementById('gap-scope');
+            if (scopeEl) scopeEl.value = intensity === 'focused' ? '20' : (intensity === 'aggressive' ? '100' : '50');
+            switchGapSub(0);
+            runNumberOverdue();
+        },
+        aiFn: function() { openAiAdvisorWithContext('lottogap'); }
+    },
+    digitpattern: {
+        mountId: 'intelligent-controls-digitpattern',
+        formatTargetIds: ['digitpattern-format'],
+        clearFn: function() {
+            ['digitpattern-status', 'digitpattern-history', 'digitpattern-analysis', 'digitpattern-prediction', 'digit-dna-panel'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.innerHTML = '';
+            });
+        },
+        runFn: function(intensity) {
+            var scopeEl = document.getElementById('digitpattern-scope');
+            if (scopeEl) scopeEl.value = intensity === 'focused' ? '30' : (intensity === 'aggressive' ? '100' : '50');
+            runDigitPattern();
+        },
+        aiFn: function() { openAiAdvisorWithContext('digitpattern'); }
+    },
+    intelligentcanvas: {
+        mountId: 'intelligent-controls-intelligentcanvas',
+        formatTargetIds: ['ic-format'],
+        clearFn: clearIntelligentCanvas,
+        runFn: function() { runIntelligentCanvas(); },
+        aiFn: function() { openAiAdvisorWithContext('intelligent'); },
+        onFormatChange: onIcFormatChange
+    },
+    tetragematrn: {
+        mountId: 'intelligent-controls-tetragematrn',
+        formatTargetIds: ['icg-format'],
+        clearFn: clearIntelligentGenerator,
+        runFn: function(intensity) {
+            var countEl = document.getElementById('icg-count');
+            if (countEl) countEl.value = intensity === 'focused' ? '5' : (intensity === 'aggressive' ? '20' : '10');
+            runIntelligentGenerator();
+        },
+        aiFn: function() { openAiAdvisorWithContext('intelligent'); },
+        includeAllFormats: true
+    },
+    prngml: {
+        mountId: 'intelligent-controls-prngml',
+        formatTargetIds: ['prng-format'],
+        clearFn: clearPrngMl,
+        runFn: function(intensity) {
+            var countEl = document.getElementById('prng-pred-count');
+            if (countEl) countEl.value = intensity === 'focused' ? '5' : (intensity === 'aggressive' ? '20' : '10');
+            runPrngFullAnalysis();
+            runPrngMlPredict();
+        },
+        aiFn: function() { openAiAdvisorWithContext('intelligent'); }
+    },
+    aiadvisor: {
+        mountId: 'intelligent-controls-aiadvisor',
+        formatTargetIds: ['ai-format'],
+        clearFn: function() {
+            var results = document.getElementById('ai-results');
+            if (results) results.innerHTML = '<p class="text-muted text-sm text-center" style="padding:20px 0;">Tap a quick action or ask a question in chat.</p>';
+        },
+        runFn: function(intensity) {
+            runAiQuickAction(intensity === 'focused' ? 'best' : (intensity === 'aggressive' ? 'overdue' : 'balanced'));
+        },
+        aiFn: function() { runAiQuickAction('pattern'); }
+    }
+};
+
+function _getIntelligentControlValue(id) {
+    var el = document.getElementById(id);
+    return el ? el.value : '';
+}
+
+function _setIntelligentControlValue(id, value) {
+    var el = document.getElementById(id);
+    if (!el || !value) return;
+    var exists = Array.from(el.options || []).some(function(o) { return o.value === value; });
+    if (!exists) {
+        console.warn('[Intelligent Controls] Format value "' + value + '" not available in dropdown ' + id + '; keeping current selection.');
+        return;
+    }
+    el.value = value;
+}
+
+function _getIntelligentControlBaseFormatValue(cfg) {
+    var baseVal = '';
+    (cfg.formatTargetIds || []).some(function(id) {
+        baseVal = _getIntelligentControlValue(id);
+        return !!baseVal;
+    });
+    return baseVal;
+}
+
+function _buildIntelligentControlFormatOptions(cfg) {
+    if (cfg && cfg.includeAllFormats) {
+        return '<option value="all">🌍 All Lottery Formats</option>' + getAllFormats().map(function(f) {
+            return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>';
+        }).join('');
+    }
+    return getAllFormats().map(function(f) {
+        return '<option value="' + f.id + '">' + f.flag + ' ' + f.name + '</option>';
+    }).join('');
+}
+
+function _renderIntelligentControlsForTab(tabKey) {
+    var cfg = _INTELLIGENT_CONTROL_TAB_CONFIG[tabKey];
+    if (!cfg) return;
+    var mount = document.getElementById(cfg.mountId);
+    if (!mount) return;
+    if (mount.getAttribute('data-intelligent-ready') === '1') return;
+    if (!_intelligentControlState[tabKey]) _intelligentControlState[tabKey] = { intensity: 'balanced', autoRun: false };
+    var st = _intelligentControlState[tabKey];
+    var selId = 'intctrl-' + tabKey + '-format';
+    var intId = 'intctrl-' + tabKey + '-intensity';
+    var autoId = 'intctrl-' + tabKey + '-auto';
+    mount.innerHTML =
+        '<div class="card">' +
+        '<div class="pattern-section-title">&#129302; Intelligent Controls</div>' +
+        '<div class="grid-2" style="margin-bottom:12px;">' +
+            '<div><label>Smart Format Sync</label><select id="' + selId + '">' + _buildIntelligentControlFormatOptions(cfg) + '</select></div>' +
+            '<div><label>Control Intensity</label><select id="' + intId + '">' +
+                '<option value="focused">Focused</option>' +
+                '<option value="balanced"' + (st.intensity === 'balanced' ? ' selected' : '') + '>Balanced</option>' +
+                '<option value="aggressive"' + (st.intensity === 'aggressive' ? ' selected' : '') + '>Aggressive</option>' +
+            '</select></div>' +
+        '</div>' +
+        '<div class="btn-row">' +
+            '<label style="display:flex;align-items:center;gap:6px;font-size:0.84rem;color:var(--text-muted);"><input type="checkbox" id="' + autoId + '"' + (st.autoRun ? ' checked' : '') + '> Auto-run on format change</label>' +
+            '<button class="btn btn-primary btn-sm" onclick="_runIntelligentControl(\'' + tabKey + '\')">&#9889; Run Smart Action</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="_runIntelligentControlAi(\'' + tabKey + '\')">&#10024; AI Assist</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="_clearIntelligentControlTab(\'' + tabKey + '\')">&#10006; Clear</button>' +
+        '</div>' +
+        '</div>';
+
+    var selEl = document.getElementById(selId);
+    var intEl = document.getElementById(intId);
+    var autoEl = document.getElementById(autoId);
+    if (selEl) {
+        var baseVal = _getIntelligentControlBaseFormatValue(cfg);
+        if (baseVal) _setIntelligentControlValue(selId, baseVal);
+        selEl.addEventListener('change', function() {
+            (cfg.formatTargetIds || []).forEach(function(id) { _setIntelligentControlValue(id, selEl.value); });
+            if (typeof cfg.onFormatChange === 'function') cfg.onFormatChange();
+            if (st.autoRun) _runIntelligentControl(tabKey);
+        });
+    }
+    if (intEl) {
+        intEl.addEventListener('change', function() {
+            st.intensity = intEl.value || 'balanced';
+        });
+    }
+    if (autoEl) {
+        autoEl.addEventListener('change', function() {
+            st.autoRun = !!autoEl.checked;
+        });
+    }
+    mount.setAttribute('data-intelligent-ready', '1');
+}
+
+function _syncIntelligentControlTab(tabKey) {
+    var cfg = _INTELLIGENT_CONTROL_TAB_CONFIG[tabKey];
+    if (!cfg) return;
+    var selId = 'intctrl-' + tabKey + '-format';
+    var ctrlSel = document.getElementById(selId);
+    if (!ctrlSel) return;
+    var baseVal = _getIntelligentControlBaseFormatValue(cfg);
+    if (baseVal) _setIntelligentControlValue(selId, baseVal);
+}
+
+function _runIntelligentControl(tabKey) {
+    var cfg = _INTELLIGENT_CONTROL_TAB_CONFIG[tabKey];
+    if (!cfg || typeof cfg.runFn !== 'function') return;
+    var st = _intelligentControlState[tabKey] || { intensity: 'balanced' };
+    cfg.runFn(st.intensity || 'balanced');
+}
+
+function _runIntelligentControlAi(tabKey) {
+    var cfg = _INTELLIGENT_CONTROL_TAB_CONFIG[tabKey];
+    if (!cfg || typeof cfg.aiFn !== 'function') return;
+    cfg.aiFn();
+}
+
+function _clearIntelligentControlTab(tabKey) {
+    var cfg = _INTELLIGENT_CONTROL_TAB_CONFIG[tabKey];
+    if (!cfg || typeof cfg.clearFn !== 'function') return;
+    cfg.clearFn();
+}
+
+function initIntelligentControlsTabs() {
+    Object.keys(_INTELLIGENT_CONTROL_TAB_CONFIG).forEach(function(tabKey) {
+        _renderIntelligentControlsForTab(tabKey);
+    });
 }
 
 function renderTabVideoGuide(tabKey) {
@@ -4228,6 +4467,9 @@ function openAiAdvisorWithContext(source) {
     if (source === 'patterns') {
         var pSel = document.getElementById('pattern-format');
         if (sel && pSel && pSel.value) sel.value = pSel.value;
+    } else if (source === 'digitpattern') {
+        var dSel = document.getElementById('digitpattern-format');
+        if (sel && dSel && dSel.value) sel.value = dSel.value;
     } else if (source === 'lottogap') {
         var gSel = document.getElementById('gap-format');
         if (sel && gSel && gSel.value) sel.value = gSel.value;
@@ -4242,6 +4484,7 @@ function openAiAdvisorWithContext(source) {
     if (badge) {
         var txt = {
             patterns: 'Context loaded from Pattern Detector',
+            digitpattern: 'Context loaded from Digit Pattern',
             lottogap: 'Context loaded from Lotto Gap Analyser',
             combimatrix: 'Context loaded from Combi-Matrix Lab',
             intelligent: 'Context loaded from Intelligent Predictions',
@@ -4251,7 +4494,7 @@ function openAiAdvisorWithContext(source) {
     }
     if (source === 'combimatrix' && typeof _matrixResults !== 'undefined' && _matrixResults.length) {
         _runAiAdvisor('chat', 'Analyze current Combi-Matrix output and suggest improvements');
-    } else if (source === 'patterns' || source === 'lottogap' || source === 'intelligent') {
+    } else if (source === 'patterns' || source === 'digitpattern' || source === 'lottogap' || source === 'intelligent') {
         _runAiAdvisor('pattern', 'Give contextual AI insights for this tool');
     }
 }
@@ -15124,6 +15367,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateHeader();
     updatePremiumTabLockUi();
     initTabVideoGuides();
+    initIntelligentControlsTabs();
     renderSavedPatternDraws();
     updatePasteWorkspaceStatus();
     updateDpPasteWorkspaceStatus();
