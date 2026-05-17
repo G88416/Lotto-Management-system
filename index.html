@@ -792,6 +792,17 @@
         .integ-preset-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
         .integ-preset-btn { padding:4px 11px; border-radius:14px; border:1.5px solid var(--border); background:var(--surface2); color:var(--text-muted); font-size:0.72rem; font-weight:700; cursor:pointer; transition:all 0.15s; }
         .integ-preset-btn:hover { border-color:var(--purple); color:var(--purple); transform:translateY(-1px); }
+        /* ── Intelligent Controls panel redesign ── */
+        .integ-ctrl-panel { padding:0; }
+        .integ-ctrl-section { padding:13px 18px; border-bottom:1px solid var(--border); }
+        .integ-ctrl-section:last-child { border-bottom:none; }
+        .integ-ctrl-label { font-size:0.65rem; font-weight:800; letter-spacing:0.07em; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px; }
+        .integ-ctrl-hint { font-size:0.72rem; color:var(--purple); font-weight:600; background:var(--surface2); border-radius:6px; padding:5px 10px; margin-top:8px; display:flex; align-items:center; gap:6px; }
+        .integ-count-stepper { display:flex; align-items:center; gap:0; border:1.5px solid var(--border); border-radius:10px; overflow:hidden; width:fit-content; }
+        .integ-count-btn { width:34px; height:34px; border:none; background:var(--surface2); color:var(--text); font-size:1.1rem; font-weight:800; cursor:pointer; transition:background 0.15s,color 0.15s; display:flex; align-items:center; justify-content:center; }
+        .integ-count-btn:hover { background:var(--purple); color:#fff; }
+        .integ-count-val { min-width:38px; text-align:center; font-size:1.1rem; font-weight:800; color:var(--purple); background:var(--surface); border-left:1px solid var(--border); border-right:1px solid var(--border); padding:0 6px; line-height:34px; }
+        .integ-eo-select { border:1.5px solid var(--border); border-radius:8px; padding:5px 10px; background:var(--surface2); color:var(--text); font-size:0.78rem; font-weight:600; cursor:pointer; }
         .integ-constraint-chip { display:inline-flex; align-items:center; gap:4px; border-radius:10px; padding:3px 9px; font-size:0.72rem; font-weight:700; margin:2px; cursor:pointer; transition:opacity 0.15s; }
         .integ-constraint-chip:hover { opacity:0.72; }
         .integ-lock-chip { background:rgba(16,185,129,0.15); border:1px solid #10b981; color:#10b981; }
@@ -18441,27 +18452,38 @@ function _integRenderUI() {
         { name:'Delta Pattern',     color:'#10b981', icon:'&#9651;' },
         { name:'Quadrant Balance',  color:'#f59e0b', icon:'&#128300;' }
     ];
+    var _icMode      = st.interactMode || 'info';
+    var _icModeHint  = _icMode==='lock'    ? '&#128274; Lock mode \u2014 click numbers to force them into every regenerated prediction.' :
+                       _icMode==='exclude' ? '&#128683; Exclude mode \u2014 click numbers to ban them from all predictions.' :
+                       _icMode==='pick'    ? '&#9999;&#65039; Custom Pick \u2014 click numbers from the grid to build your own ticket.' :
+                                            '&#8505; Info mode \u2014 click any number to see its per-signal breakdown.';
+    var _icCount     = st.predCount || 6;
+    var _icHasConstr = (st.lockedNums||[]).length > 0 || (st.excludedNums||[]).length > 0;
+
     var controlsHtml =
-        '<div class="card">' +
-        '<div class="pattern-section-title">&#127922; Intelligent Controls</div>' +
+        '<div class="card" style="padding:0;overflow:hidden;">' +
 
-        /* — Interaction Mode — */
-        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:5px;">INTERACTION MODE</div>' +
+        /* ── Title ── */
+        '<div style="padding:13px 18px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">' +
+        '<span style="font-size:1.1rem;">&#127922;</span>' +
+        '<span style="font-weight:800;font-size:0.97rem;color:var(--text);">Intelligent Controls</span>' +
+        '</div>' +
+
+        /* ── Interaction Mode ── */
+        '<div class="integ-ctrl-section">' +
+        '<div class="integ-ctrl-label">Interaction Mode</div>' +
         '<div class="integ-mode-pills">' +
-        '<button class="integ-mode-pill' + ((!st.interactMode || st.interactMode==='info') ? ' active' : '') + '" id="integ-mode-info" onclick="_integSetMode(\'info\')" title="Click numbers to see signal breakdown">&#8505;&#65039; Info</button>' +
-        '<button class="integ-mode-pill mode-lock' + (st.interactMode==='lock' ? ' active' : '') + '" id="integ-mode-lock" onclick="_integSetMode(\'lock\')" title="Click numbers to lock into predictions">&#128274; Lock</button>' +
-        '<button class="integ-mode-pill mode-exclude' + (st.interactMode==='exclude' ? ' active' : '') + '" id="integ-mode-exclude" onclick="_integSetMode(\'exclude\')" title="Click numbers to ban from predictions">&#128683; Exclude</button>' +
-        '<button class="integ-mode-pill mode-pick' + (st.interactMode==='pick' ? ' active' : '') + '" id="integ-mode-pick" onclick="_integSetMode(\'pick\')" title="Click numbers to build a custom ticket">&#9999;&#65039; Custom Pick</button>' +
+        '<button class="integ-mode-pill' + (_icMode==='info'    ? ' active' : '') + '" id="integ-mode-info"    onclick="_integSetMode(\'info\')"    title="Click numbers to see signal breakdown">&#8505;&#65039; Info</button>' +
+        '<button class="integ-mode-pill mode-lock'    + (_icMode==='lock'    ? ' active' : '') + '" id="integ-mode-lock"    onclick="_integSetMode(\'lock\')"    title="Click numbers to lock into predictions">&#128274; Lock</button>' +
+        '<button class="integ-mode-pill mode-exclude' + (_icMode==='exclude' ? ' active' : '') + '" id="integ-mode-exclude" onclick="_integSetMode(\'exclude\')" title="Click numbers to ban from predictions">&#128683; Exclude</button>' +
+        '<button class="integ-mode-pill mode-pick'    + (_icMode==='pick'    ? ' active' : '') + '" id="integ-mode-pick"    onclick="_integSetMode(\'pick\')"    title="Click numbers to build a custom ticket">&#9999;&#65039; Custom Pick</button>' +
         '</div>' +
-        '<div id="integ-mode-hint" style="font-size:0.72rem;color:var(--purple);font-weight:600;background:var(--surface2);border-radius:6px;padding:4px 10px;margin-bottom:12px;">' +
-        (st.interactMode==='lock' ? '&#128274; Lock mode — click numbers to force them into every regenerated prediction.' :
-         st.interactMode==='exclude' ? '&#128683; Exclude mode — click numbers to ban them from all predictions.' :
-         st.interactMode==='pick' ? '&#9999; Custom Pick — click numbers from the grid to build your own ticket.' :
-         '&#8505; Info mode — click any number to see its per-signal breakdown.') +
+        '<div id="integ-mode-hint" class="integ-ctrl-hint">' + _icModeHint + '</div>' +
         '</div>' +
 
-        /* — Scenario Presets — */
-        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:5px;">SIGNAL PRESETS</div>' +
+        /* ── Signal Presets ── */
+        '<div class="integ-ctrl-section">' +
+        '<div class="integ-ctrl-label">Signal Presets</div>' +
         '<div class="integ-preset-row">' +
         '<button class="integ-preset-btn" onclick="_integApplyPreset(\'default\')">&#8635; Default</button>' +
         '<button class="integ-preset-btn" onclick="_integApplyPreset(\'overdue\')">&#9201;&#65039; Overdue Focus</button>' +
@@ -18469,10 +18491,12 @@ function _integRenderUI() {
         '<button class="integ-preset-btn" onclick="_integApplyPreset(\'balanced\')">&#9878;&#65039; Balanced</button>' +
         '<button class="integ-preset-btn" onclick="_integApplyPreset(\'pattern\')">&#9651; Pattern Mode</button>' +
         '</div>' +
+        '</div>' +
 
-        /* — Method Selection — */
-        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:5px;">ACTIVE PREDICTION METHODS</div>' +
-        '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:12px;">' +
+        /* ── Active Prediction Methods ── */
+        '<div class="integ-ctrl-section">' +
+        '<div class="integ-ctrl-label">Active Prediction Methods</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:5px;">' +
         methodDefs.map(function(m) {
             var isActive = activeMethods.indexOf(m.name) !== -1;
             return '<button class="integ-method-chip' + (isActive ? ' active' : '') + '" ' +
@@ -18481,61 +18505,77 @@ function _integRenderUI() {
                 m.icon + ' ' + m.name + '</button>';
         }).join('') +
         '</div>' +
+        '</div>' +
 
-        /* — Draw Date Selection — */
-        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:5px;">PREDICT FOR DRAW DATE</div>' +
-        '<div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;margin-bottom:4px;">' +
+        /* ── Predict for Draw Date ── */
+        '<div class="integ-ctrl-section">' +
+        '<div class="integ-ctrl-label">Predict for Draw Date</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:6px;">' +
         upcomingDates.map(function(d) {
-            var dObj = new Date(d + 'T00:00:00');
+            var dObj  = new Date(d + 'T00:00:00');
             var label = dObj.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'});
-            var isActive = d === predictForDate;
-            return '<button class="integ-date-chip' + (isActive ? ' active' : '') + '" onclick="_integSetDate(\'' + d + '\')">' +
+            var isAct = d === predictForDate;
+            return '<button class="integ-date-chip' + (isAct ? ' active' : '') + '" onclick="_integSetDate(\'' + d + '\')">' +
                 '&#128197; ' + label + '</button>';
         }).join('') +
-        '<span style="color:var(--text-muted);font-size:0.7rem;margin-left:4px;">or</span>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+        '<span style="color:var(--text-muted);font-size:0.7rem;">or</span>' +
         '<input type="date" id="integ-date-custom" value="' + (predictForDate || '') + '" ' +
             'aria-label="Custom draw date" ' +
-            'style="border:1.5px solid var(--border);border-radius:8px;padding:4px 8px;background:var(--surface2);color:var(--text);font-size:0.75rem;margin-left:4px;" ' +
+            'style="border:1.5px solid var(--border);border-radius:8px;padding:4px 8px;background:var(--surface2);color:var(--text);font-size:0.75rem;" ' +
             'onchange="_integSetDate(this.value)">' +
         '</div>' +
-        '<div id="integ-date-label" style="font-size:0.72rem;color:var(--purple);min-height:16px;margin-bottom:10px;">' +
+        '<div id="integ-date-label" style="font-size:0.72rem;color:var(--purple);min-height:16px;margin-top:5px;">' +
         (predictForDate ? '&#128197; Predicting for draw on ' + new Date(predictForDate + 'T00:00:00').toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : '') +
         '</div>' +
+        '</div>' +
 
-        /* — Prediction Count & Even/Odd — */
-        '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">' +
-        '<div><div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;">PREDICTIONS TO GENERATE</div>' +
-        '<div style="display:flex;align-items:center;gap:8px;">' +
-        '<input type="range" id="integ-pred-count" min="3" max="10" step="1" value="' + (st.predCount || 6) + '" ' +
-            'aria-label="Number of predictions to generate" ' +
-            'aria-valuemin="3" aria-valuemax="10" aria-valuenow="' + (st.predCount || 6) + '" ' +
-            'style="width:100px;accent-color:var(--purple);" ' +
+        /* ── Predictions to Generate + Even/Odd ── */
+        '<div class="integ-ctrl-section" style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-end;">' +
+        /* count stepper */
+        '<div>' +
+        '<div class="integ-ctrl-label">Predictions to Generate</div>' +
+        '<div class="integ-count-stepper" role="group" aria-label="Number of predictions">' +
+        '<button class="integ-count-btn" aria-label="Decrease count" ' +
+            'onclick="_integUpdateCount(-1)">&#8722;</button>' +
+        '<span id="integ-pred-count-val" class="integ-count-val">' + _icCount + '</span>' +
+        '<button class="integ-count-btn" aria-label="Increase count" ' +
+            'onclick="_integUpdateCount(1)">&#43;</button>' +
+        '</div>' +
+        /* hidden range kept for backward-compat JS that reads #integ-pred-count */ +
+        '<input type="range" id="integ-pred-count" min="3" max="10" step="1" value="' + _icCount + '" ' +
+            'aria-label="Number of predictions to generate" aria-valuemin="3" aria-valuemax="10" aria-valuenow="' + _icCount + '" ' +
+            'style="display:none;" ' +
             'oninput="var d=document.getElementById(\'integ-pred-count-val\');if(d)d.textContent=this.value;var s=window._integState;if(s)s.predCount=parseInt(this.value);">' +
-        '<span id="integ-pred-count-val" style="font-weight:800;font-size:0.88rem;color:var(--purple);min-width:14px;">' + (st.predCount || 6) + '</span>' +
-        '</div></div>' +
-        '<div><div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;">EVEN/ODD TARGET</div>' +
-        '<select id="integ-eo-override" aria-label="Even/Odd target override" style="border:1.5px solid var(--border);border-radius:8px;padding:4px 9px;background:var(--surface2);color:var(--text);font-size:0.78rem;" ' +
+        '</div>' +
+        /* even/odd */
+        '<div>' +
+        '<div class="integ-ctrl-label">Even / Odd Target</div>' +
+        '<select id="integ-eo-override" class="integ-eo-select" aria-label="Even/Odd target override" ' +
             'onchange="var s=window._integState;if(s)s.evenOddOverride=this.value;">' +
-        '<option value="auto"' + (st.evenOddOverride==='auto'||!st.evenOddOverride ? ' selected' : '') + '>Auto (' + targetEven + 'E/' + targetOdd + 'O)</option>' +
-        '<option value="balanced"' + (st.evenOddOverride==='balanced' ? ' selected' : '') + '>Balanced</option>' +
-        '<option value="moreeven"' + (st.evenOddOverride==='moreeven' ? ' selected' : '') + '>More Even</option>' +
-        '<option value="moreodd"' + (st.evenOddOverride==='moreodd' ? ' selected' : '') + '>More Odd</option>' +
-        '<option value="any"' + (st.evenOddOverride==='any' ? ' selected' : '') + '>Any</option>' +
+        '<option value="auto"' +     (st.evenOddOverride==='auto'||!st.evenOddOverride ? ' selected' : '') + '>Auto (' + targetEven + 'E\u2009/\u2009' + targetOdd + 'O)</option>' +
+        '<option value="balanced"' + (st.evenOddOverride==='balanced'  ? ' selected' : '') + '>Balanced</option>' +
+        '<option value="moreeven"' + (st.evenOddOverride==='moreeven'  ? ' selected' : '') + '>More Even</option>' +
+        '<option value="moreodd"'  + (st.evenOddOverride==='moreodd'   ? ' selected' : '') + '>More Odd</option>' +
+        '<option value="any"'      + (st.evenOddOverride==='any'        ? ' selected' : '') + '>Any</option>' +
         '</select>' +
-        '</div></div>' +
+        '</div>' +
+        '</div>' +
 
-        /* — Constraints — */
-        '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:5px;">ACTIVE CONSTRAINTS</div>' +
-        '<div id="integ-constraint-chips" style="display:flex;flex-wrap:wrap;gap:3px;min-height:24px;align-items:center;">' +
-        ((st.lockedNums||[]).length === 0 && (st.excludedNums||[]).length === 0
-            ? '<span style="font-size:0.72rem;color:var(--text-muted);">None — use Lock or Exclude mode to constrain numbers.</span>'
-            : (st.lockedNums||[]).map(function(n){return '<span class="integ-constraint-chip integ-lock-chip" onclick="_integToggleLock('+n+')" title="Click to unlock">&#128274; '+n+' &#10006;</span>';}).join('')+
+        /* ── Active Constraints ── */
+        '<div class="integ-ctrl-section">' +
+        '<div class="integ-ctrl-label">Active Constraints</div>' +
+        '<div id="integ-constraint-chips" style="display:flex;flex-wrap:wrap;gap:4px;min-height:24px;align-items:center;">' +
+        (!_icHasConstr
+            ? '<span style="font-size:0.72rem;color:var(--text-muted);">None \u2014 use Lock or Exclude mode to constrain numbers.</span>'
+            : (st.lockedNums||[]).map(function(n){return '<span class="integ-constraint-chip integ-lock-chip" onclick="_integToggleLock('+n+')" title="Click to unlock">&#128274; '+n+' &#10006;</span>';}).join('') +
               (st.excludedNums||[]).map(function(n){return '<span class="integ-constraint-chip integ-exclude-chip" onclick="_integToggleExclude('+n+')" title="Click to un-exclude">&#128683; '+n+' &#10006;</span>';}).join('')
         ) +
         '</div>' +
-        ((st.lockedNums||[]).length > 0 || (st.excludedNums||[]).length > 0
-            ? '<button class="btn btn-sm" style="margin-top:7px;font-size:0.7rem;" onclick="_integClearConstraints()">&#10006; Clear All Constraints</button>'
-            : '') +
+        (_icHasConstr ? '<button class="btn btn-sm" style="margin-top:8px;font-size:0.7rem;" onclick="_integClearConstraints()">&#10006; Clear All Constraints</button>' : '') +
+        '</div>' +
+
         '</div>';
 
     /* ── Section: Custom Ticket Builder ── */
@@ -19517,6 +19557,16 @@ function _integClearConstraints() {
     var gridEl = document.getElementById('integ-num-score-grid');
     if (gridEl) gridEl.innerHTML = _integBuildNumGrid(st);
     showToast('All constraints cleared.', 'success');
+}
+function _integUpdateCount(delta) {
+    var st = window._integState;
+    if (!st) return;
+    var v = Math.min(10, Math.max(3, (st.predCount || 6) + delta));
+    st.predCount = v;
+    var d = document.getElementById('integ-pred-count-val');
+    if (d) d.textContent = v;
+    var r = document.getElementById('integ-pred-count');
+    if (r) { r.value = v; r.setAttribute('aria-valuenow', v); }
 }
 
 /* Update constraint chips display */
