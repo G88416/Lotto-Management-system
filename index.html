@@ -3903,14 +3903,15 @@ var _INTELLIGENT_CONTROL_TAB_CONFIG = {
             if (scopeEl) scopeEl.value = intensity === 'focused' ? '30' : (intensity === 'aggressive' ? '100' : '50');
             runDigitPattern();
         },
-        aiFn: function() { openAiAdvisorWithContext('patterns'); }
+        aiFn: function() { openAiAdvisorWithContext('digitpattern'); }
     },
     intelligentcanvas: {
         mountId: 'intelligent-controls-intelligentcanvas',
         formatTargetIds: ['ic-format'],
         clearFn: clearIntelligentCanvas,
         runFn: function() { runIntelligentCanvas(); },
-        aiFn: function() { openAiAdvisorWithContext('intelligent'); }
+        aiFn: function() { openAiAdvisorWithContext('intelligent'); },
+        onFormatChange: onIcFormatChange
     },
     tetragematrn: {
         mountId: 'intelligent-controls-tetragematrn',
@@ -3959,7 +3960,7 @@ function _setIntelligentControlValue(id, value) {
     var el = document.getElementById(id);
     if (!el || !value) return;
     var exists = Array.from(el.options || []).some(function(o) { return o.value === value; });
-    if (!exists) return;
+    if (!exists) { console.warn('[Intelligent Controls] Value not found for', id, value); return; }
     el.value = value;
 }
 
@@ -4015,7 +4016,7 @@ function _renderIntelligentControlsForTab(tabKey) {
         if (baseVal) _setIntelligentControlValue(selId, baseVal);
         selEl.addEventListener('change', function() {
             (cfg.formatTargetIds || []).forEach(function(id) { _setIntelligentControlValue(id, selEl.value); });
-            if (tabKey === 'intelligentcanvas') onIcFormatChange();
+            if (typeof cfg.onFormatChange === 'function') cfg.onFormatChange();
             if (st.autoRun) _runIntelligentControl(tabKey);
         });
     }
@@ -4460,6 +4461,9 @@ function openAiAdvisorWithContext(source) {
     if (source === 'patterns') {
         var pSel = document.getElementById('pattern-format');
         if (sel && pSel && pSel.value) sel.value = pSel.value;
+    } else if (source === 'digitpattern') {
+        var dSel = document.getElementById('digitpattern-format');
+        if (sel && dSel && dSel.value) sel.value = dSel.value;
     } else if (source === 'lottogap') {
         var gSel = document.getElementById('gap-format');
         if (sel && gSel && gSel.value) sel.value = gSel.value;
@@ -4474,6 +4478,7 @@ function openAiAdvisorWithContext(source) {
     if (badge) {
         var txt = {
             patterns: 'Context loaded from Pattern Detector',
+            digitpattern: 'Context loaded from Digit Pattern',
             lottogap: 'Context loaded from Lotto Gap Analyser',
             combimatrix: 'Context loaded from Combi-Matrix Lab',
             intelligent: 'Context loaded from Intelligent Predictions',
@@ -4483,7 +4488,7 @@ function openAiAdvisorWithContext(source) {
     }
     if (source === 'combimatrix' && typeof _matrixResults !== 'undefined' && _matrixResults.length) {
         _runAiAdvisor('chat', 'Analyze current Combi-Matrix output and suggest improvements');
-    } else if (source === 'patterns' || source === 'lottogap' || source === 'intelligent') {
+    } else if (source === 'patterns' || source === 'digitpattern' || source === 'lottogap' || source === 'intelligent') {
         _runAiAdvisor('pattern', 'Give contextual AI insights for this tool');
     }
 }
