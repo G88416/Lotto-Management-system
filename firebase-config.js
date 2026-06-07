@@ -35,5 +35,5 @@ var FIREBASE_CONFIG = {
     appId:             '1:986799310017:web:3dd73e67ccc1654b4d4040',
     measurementId:     'G-9E7QXGCQW8',
     databaseURL:       'https://lotto-management-system-26761-default-rtdb.firebaseio.com',
-    appCheckEnterpriseKey: 'YOUR_RECAPTCHA_ENTERPRISE_SITE_KEY'
+    appCheckEnterpriseKey: ''
 };
