@@ -2816,13 +2816,17 @@
             <div class="ai-hero-card">
                 <div style="font-size:1.1rem;font-weight:800;">&#129302; How can I help you today?</div>
                 <div id="ai-context-badge" class="ai-context-badge"></div>
+                <div style="margin-top:10px; font-size:0.85rem; background:rgba(0,0,0,0.2); padding:8px 12px; border-radius:8px;">
+                    <strong>Important:</strong> No AI can truly predict lottery outcomes. Analysis is based on historical patterns and statistical probability.
+                </div>
             </div>
             <div class="ai-chip-row">
-                <button class="ai-chip" onclick="runAiQuickAction('best')">&#127919; Best Numbers Right Now</button>
+                <button class="ai-chip" onclick="runAiQuickAction('conservative')">&#128737;&#65039; Conservative Strategy</button>
+                <button class="ai-chip" onclick="runAiQuickAction('balanced')">&#9878;&#65039; Balanced Strategy</button>
+                <button class="ai-chip" onclick="runAiQuickAction('highrisk')">&#128640; High Risk Strategy</button>
+                <button class="ai-chip" onclick="runAiQuickAction('historical')">&#128200; Historical Pattern Strategy</button>
                 <button class="ai-chip" onclick="runAiQuickAction('tickets')">&#128202; Analyze My Tickets</button>
                 <button class="ai-chip" onclick="runAiQuickAction('hotcold')">&#128293; Hot &amp; Cold Deep Analysis</button>
-                <button class="ai-chip" onclick="runAiQuickAction('overdue')">&#9201;&#65039; Overdue Numbers Strategy</button>
-                <button class="ai-chip" onclick="runAiQuickAction('balanced')">&#129504; Suggest 5 Balanced Combinations</button>
                 <button class="ai-chip" onclick="runAiQuickAction('budget')">&#128176; Budget-Friendly Strategy</button>
                 <button class="ai-chip" onclick="runAiQuickAction('pattern')">&#128269; Explain This Draw Pattern</button>
             </div>
@@ -4293,31 +4297,66 @@ function _aiExtractData(fmt) {
     var draws = getCombinedDrawsForFormat(fmt.id);
     var freq = {};
     var gap = {};
+    var pairFreq = {};
     var i, n;
     for (n = 1; n <= fmt.mainMax; n++) { freq[n] = 0; gap[n] = draws.length + 1; }
     draws.forEach(function(d) {
-        (d.numbers || []).forEach(function(x) { if (freq[x] !== undefined) freq[x]++; });
+        var sorted = (d.numbers || []).slice().sort(function(a, b) { return a - b; });
+        sorted.forEach(function(x) { if (freq[x] !== undefined) freq[x]++; });
+        for (var pi = 0; pi < sorted.length; pi++) {
+            for (var pj = pi + 1; pj < sorted.length; pj++) {
+                var key = sorted[pi] + '-' + sorted[pj];
+                pairFreq[key] = (pairFreq[key] || 0) + 1;
+            }
+        }
     });
     for (n = 1; n <= fmt.mainMax; n++) {
-        for (i = draws.length - 1; i >= 0; i--) {
+        for (i = 0; i < draws.length; i++) {
             var arr = (draws[i] && draws[i].numbers) ? draws[i].numbers : [];
-            if (arr.indexOf(n) > -1) { gap[n] = (draws.length - 1) - i; break; }
+            if (arr.indexOf(n) > -1) { gap[n] = i; break; }
         }
     }
-    return { draws: draws, freq: freq, gap: gap };
+    return { draws: draws, freq: freq, gap: gap, pairFreq: pairFreq };
 }
 
-function _aiTopNumbers(fmt, data) {
+function _aiTopNumbers(fmt, data, mode) {
     var AI_FREQ_WEIGHT = 0.56;
     var AI_GAP_WEIGHT  = 0.44;
+    var AI_PAIR_WEIGHT = 0.0;
+
+    if (mode === 'conservative') {
+        AI_FREQ_WEIGHT = 0.85;
+        AI_GAP_WEIGHT  = 0.15;
+    } else if (mode === 'highrisk') {
+        AI_FREQ_WEIGHT = 0.20;
+        AI_GAP_WEIGHT  = 0.80;
+    } else if (mode === 'historical') {
+        AI_FREQ_WEIGHT = 0.40;
+        AI_GAP_WEIGHT  = 0.30;
+        AI_PAIR_WEIGHT = 0.30;
+    }
+
     var AI_TIEBREAKER_MOD = 7;
     var maxFreq = 1, n;
     for (n = 1; n <= fmt.mainMax; n++) if (data.freq[n] > maxFreq) maxFreq = data.freq[n];
+
+    var pairScore = {};
+    if (AI_PAIR_WEIGHT > 0) {
+        Object.keys(data.pairFreq).forEach(function(k) {
+            var parts = k.split('-').map(Number);
+            pairScore[parts[0]] = (pairScore[parts[0]] || 0) + data.pairFreq[k];
+            pairScore[parts[1]] = (pairScore[parts[1]] || 0) + data.pairFreq[k];
+        });
+    }
+    var maxPairScore = 1;
+    for (n = 1; n <= fmt.mainMax; n++) if ((pairScore[n] || 0) > maxPairScore) maxPairScore = pairScore[n];
+
     var nums = [];
     for (n = 1; n <= fmt.mainMax; n++) {
         var freqNorm = data.freq[n] / maxFreq;
         var gapNorm  = data.gap[n] / Math.max(1, data.draws.length + 1);
-        var score = freqNorm * AI_FREQ_WEIGHT + gapNorm * AI_GAP_WEIGHT + ((n % AI_TIEBREAKER_MOD) * 0.001);
+        var pairNorm = (pairScore[n] || 0) / maxPairScore;
+        var score = freqNorm * AI_FREQ_WEIGHT + gapNorm * AI_GAP_WEIGHT + pairNorm * AI_PAIR_WEIGHT + ((n % AI_TIEBREAKER_MOD) * 0.001);
         nums.push({ n: n, score: score });
     }
     nums.sort(function(a,b){ return b.score - a.score; });
@@ -4341,23 +4380,39 @@ function _aiBuildInsight(mode, promptText) {
     var fmt = _getAiFmt();
     if (!fmt) return null;
     var data = _aiExtractData(fmt);
-    var top = _aiTopNumbers(fmt, data);
-    var strongestCount = Math.min(fmt.mainCount + 1, 7);
-    var strongest = top.slice(0, strongestCount).map(function(x){ return x.n; });
+    var top = _aiTopNumbers(fmt, data, mode);
     var freqRank = Object.keys(data.freq).map(Number).sort(function(a,b){ return data.freq[b] - data.freq[a]; });
     var hot = freqRank.slice(0, Math.max(6, fmt.mainCount));
     var cold = freqRank.slice(-Math.max(6, fmt.mainCount)).reverse();
     var overdue = Object.keys(data.gap).map(Number).sort(function(a,b){ return data.gap[b] - data.gap[a]; }).slice(0, Math.max(6, fmt.mainCount));
     var lines = [];
-    for (var i = 0; i < (mode === 'balanced' ? 5 : 4); i++) lines.push(_aiGenerateLine(fmt, top));
+    var lineCount = (mode === 'balanced' || mode === 'historical') ? 5 : 4;
+    for (var i = 0; i < lineCount; i++) lines.push(_aiGenerateLine(fmt, top));
     var topLine = lines[0] || [];
     var sum = topLine.reduce(function(s, x){ return s + x; }, 0);
     var confidence = Math.max(35, Math.min(89, 35 + data.draws.length));
     var meter = confidence >= 75 ? 'High' : (confidence >= 50 ? 'Medium' : 'Low');
     var why = [];
-    if (overdue.length >= 2) why.push('Numbers ' + overdue.slice(0,2).join(' and ') + ' are highly overdue (' + data.gap[overdue[0]] + '+ and ' + data.gap[overdue[1]] + '+ draws).');
-    if (topLine.length) why.push('Top combination has balanced spread with sum = ' + sum + '.');
-    if (hot.length) why.push('Hot momentum includes ' + hot.slice(0,3).join(', ') + ' from recent draw frequency.');
+
+    if (mode === 'conservative') {
+        why.push('This recommendation is based on frequency analysis, prioritizing numbers that appear most often in recent history.');
+    } else if (mode === 'highrisk') {
+        why.push('This recommendation is based on overdue numbers, focusing on those with the longest absence to capture potential reversion.');
+    } else if (mode === 'historical') {
+        why.push('This recommendation is based on historical patterns and pair occurrences, identifying numbers that frequently appear together.');
+        var topPairs = Object.keys(data.pairFreq).map(function(k) { return { p: k, c: data.pairFreq[k] }; })
+            .sort(function(a,b){ return b.c - a.c; }).slice(0, 3);
+        if (topPairs.length) {
+            why.push('Strong historical pairs detected: ' + topPairs.map(function(x){ return x.p; }).join(', ') + '.');
+        }
+    } else {
+        why.push('This recommendation is based on a balanced analysis of frequency, overdue status, and structural probability.');
+    }
+
+    if (overdue.length >= 2) why.push('Numbers ' + overdue.slice(0,2).join(' and ') + ' are significantly overdue (' + data.gap[overdue[0]] + '+ and ' + data.gap[overdue[1]] + '+ draws).');
+    if (topLine.length) why.push('Top combination maintains a balanced spread with a total sum of ' + sum + '.');
+    if (hot.length) why.push('Hot momentum includes ' + hot.slice(0,3).join(', ') + ' based on recent draw frequency analysis.');
+
     if (mode === 'tickets') {
         var mine = state.tickets.filter(function(t){ return t.formatId === fmt.id; }).slice(0, 20);
         if (!mine.length) why.push('You currently have no saved tickets for this lottery, so AI is using historical draw structure.');
@@ -4460,11 +4515,12 @@ function renderAiHistory() {
 
 function runAiQuickAction(mode) {
     var prompts = {
-        best: 'Best numbers right now',
+        conservative: 'Conservative Strategy (High Frequency)',
+        balanced: 'Balanced Strategy (Mixed Profile)',
+        highrisk: 'High Risk Strategy (Overdue Focus)',
+        historical: 'Historical Pattern Strategy (Pair Analysis)',
         tickets: 'Analyze my tickets',
         hotcold: 'Hot and cold deep analysis',
-        overdue: 'Overdue numbers strategy',
-        balanced: 'Suggest balanced combinations',
         budget: 'Budget-friendly strategy',
         pattern: 'Explain this draw pattern'
     };
